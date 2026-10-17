@@ -24,7 +24,7 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
-from wireforge import importers, resources, service, versioning
+from wireforge import hlr_import, importers, resources, service, versioning
 from wireforge.loader import SECTIONS, load_project
 from wireforge.server.storage import StorageError, Workspace, check_match
 from wireforge.service import EditOptions, Result, ServiceError
@@ -124,6 +124,20 @@ class ImportRequest(BaseModel):
     version: str = "0.1.0"
     endian: Literal["big", "little"] | None = None
     messages: list[str] | None = None
+
+
+class RequirementsImport(BaseModel):
+    """High-level requirements to import: the file (base64) and how to read it."""
+
+    file: str = Field(pattern=r"^[A-Za-z0-9_.-]+[.](reqif|reqifz|csv)$")
+    content: str
+    baseline: str = Field(min_length=1)
+    tool: str | None = None
+    id_attr: str | None = None
+    text_attr: str | None = None
+    csv_id_column: str = "id"
+    csv_text_column: str = "text"
+    force: bool = False
 
 
 def workspace(request: Request) -> Workspace:
@@ -313,6 +327,38 @@ def wait_for_change(
     if changed is None:
         return Response(status_code=304)
     return JSONResponse({"etag": changed.etag, "files": changed.files})
+
+
+@router.post("/projects/{project}/requirements/import")
+def requirements_import(context: Write, project: str, body: RequirementsImport) -> ResultResponse:
+    """Import the high-level requirements of a ReqIF or CSV file as a baseline snapshot."""
+    try:
+        data = base64.b64decode(body.content, validate=True)
+    except binascii.Error as error:
+        raise HTTPException(400, "content is not base64") from error
+    options = hlr_import.ImportOptions(
+        body.baseline,
+        body.tool,
+        body.id_attr,
+        body.text_attr,
+        body.csv_id_column,
+        body.csv_text_column,
+        body.force,
+    )
+
+    def action(directory: Path) -> Result:
+        with tempfile.TemporaryDirectory(prefix="wireforge-hlr-") as temporary:
+            source = Path(temporary) / body.file
+            source.write_bytes(data)
+            return service.requirements_import(directory, source, options)
+
+    return _edit(context, project, action)
+
+
+@router.post("/projects/{project}/requirements/lock")
+def requirements_lock(context: Write, project: str) -> ResultResponse:
+    """Write `llr_ids.lock`, which numbers the low-level requirements (append-only)."""
+    return _edit(context, project, service.requirements_lock)
 
 
 @router.post("/projects/{project}/validate")

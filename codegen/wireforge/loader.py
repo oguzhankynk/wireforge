@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, cast
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.error import YAMLError
 
-from wireforge import schema, versioning
+from wireforge import llr_ids, schema, versioning
 from wireforge.issues import Issue, errors_only
 from wireforge.model import (
     Checksum,
@@ -38,6 +38,7 @@ from wireforge.model import (
     UserType,
     Vector,
 )
+from wireforge.plain import to_plain
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -63,18 +64,6 @@ class LoadResult:
     project: Project | None
     issues: list[Issue]
     documents: dict[str, CommentedMap] = field(default_factory=dict)
-
-
-def to_plain(value: object) -> object:
-    """Convert ruamel scalar subclasses (HexInt, ScalarFloat, ...) to plain Python values."""
-    if isinstance(value, list):
-        return [to_plain(item) for item in value]
-    if isinstance(value, dict):
-        return {str(key): to_plain(item) for key, item in value.items()}
-    for kind in (bool, int, float, str):
-        if isinstance(value, kind):
-            return kind(value)
-    return value
 
 
 def _mapping(node: object) -> dict[str, Any]:
@@ -389,6 +378,14 @@ def _fragment_paths(root: Path, document: CommentedMap) -> list[Path]:
     return found
 
 
+def _numbers(project: Project, directory: Path, issues: list[Issue]) -> None:
+    """Read the optional lock file with the numbers of the low-level requirements."""
+    try:
+        project.llr_ids = llr_ids.load(directory)
+    except llr_ids.LockError as error:
+        issues.append(Issue(str(directory / llr_ids.LOCK_FILE), None, "", str(error)))
+
+
 def load_project(location: Path) -> LoadResult:
     """Load a project directory (or its root file), merging every included fragment."""
     root = location / schema.ROOT_FILE_NAME if location.is_dir() else location
@@ -416,4 +413,10 @@ def load_project(location: Path) -> LoadResult:
     for file, loaded in documents.items():
         issues += _merge(project, _Where(file, loaded, ""), seen)
     _user_includes(project, _Where(str(root), document, ""))
+    _numbers(project, root.parent, issues)
+    for loaded in documents.values():
+        if "requirements_source" in loaded:
+            project.requirements_source = {
+                str(key): str(value) for key, value in loaded["requirements_source"].items()
+            }
     return LoadResult(project, issues, documents)

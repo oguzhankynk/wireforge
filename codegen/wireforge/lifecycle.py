@@ -44,7 +44,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
     from wireforge.codec import ChecksumPlugin
-    from wireforge.model import Project, Struct
+    from wireforge.model import Project, Source, Struct
 
 DEPENDENCIES = ("ruamel.yaml", "jsonschema")
 ROBUST_INTERFACE_TESTS = ("RejectsCorruptedFrame", "SkipsBytesBeforeSync", "EncodeFrameNeedsRoom")
@@ -139,6 +139,26 @@ class Objective:
 
 
 @dataclass(frozen=True)
+class SourceLinks:
+    """Permalinks to the model files: a URL template with `{commit}`, `{path}` and `{line}`."""
+
+    template: str
+    commit: str
+    repository: Path
+
+    def ref(self, source: Source) -> str:
+        """Return `path:line` of a model location, linked when it lies in the repository."""
+        try:
+            path = Path(source.file).resolve().relative_to(self.repository).as_posix()
+        except ValueError:
+            return f"{source.file}:{source.line}"
+        line = source.line or 1
+        text = f"{path}:{line}"
+        url = self.template.format(commit=self.commit, path=path, line=line)
+        return f"[{text}]({url})"
+
+
+@dataclass(frozen=True)
 class DocsContext:
     """Everything the documents are made of."""
 
@@ -153,6 +173,8 @@ class DocsContext:
     model_files: tuple[tuple[str, str], ...]
     results: test_results.Results | None = None
     deviations: tuple[test_results.Deviation, ...] = ()
+    links: SourceLinks | None = None
+    baseline: tuple[tuple[str, str], ...] = ()
 
 
 NoteKey = tuple[str | None, str, str]  # profile, suite, test name
@@ -315,10 +337,6 @@ CHECKLIST_HUMAN = {
 # --- small helpers --------------------------------------------------------------------------------
 
 
-def _ids(keys: Iterable[str]) -> tuple[str, ...]:
-    return tuple(llr.display_id(key) for key in keys)
-
-
 def _preamble(ctx: DocsContext, title: str) -> list[str]:
     project = ctx.project
     files = len(ctx.model_files)
@@ -332,6 +350,23 @@ _link = md.link
 _links = md.links
 _format = md.file_format
 slug = md.slug
+
+
+def _model_ref(ctx: DocsContext, ident: str) -> str:
+    """Return where the model defines a low-level requirement (a permalink when asked for)."""
+    sources = {llr.display_id(item.key, ctx.project.llr_ids): item.source for item in ctx.llrs}
+    source = sources.get(ident)
+    if source is None:
+        return "-"
+    if ctx.links is not None:
+        return ctx.links.ref(source)
+    return md_source(ctx, source)
+
+
+def md_source(ctx: DocsContext, source: Source) -> str:
+    """Return `file:line` of a model location relative to the project directory."""
+    root = Path(ctx.project.source.file).parent
+    return f"{Path(os.path.relpath(source.file, root)).as_posix()}:{source.line}"
 
 
 def _hlr_users(ctx: DocsContext) -> dict[str, list[str]]:
@@ -498,8 +533,39 @@ def context(
 # --- strict findings ------------------------------------------------------------------------------
 
 
+def _requirement_findings(ctx: DocsContext) -> list[StrictFinding]:
+    """DS-4: requirements verified by test that nothing links to, or that no vector covers."""
+    project = ctx.project
+    used = {rid for row in ctx.rows for rid in row.requirements}
+    used |= {parent for item in ctx.llrs for parent in item.parents}
+    vectored = {rid for vector in project.vectors.values() for rid in vector.reqs}
+    findings: list[StrictFinding] = []
+    for rid, requirement in project.requirements.items():
+        if requirement.verification != "test" or rid in vectored:
+            continue
+        pointer = f"/requirements/{rid}"
+        if rid not in used:
+            text = f"requirement {rid} is not linked to any model element"
+        else:
+            text = f"requirement {rid} is verified by test but has no requirement vector"
+        findings.append(StrictFinding("DS-4", text, pointer))
+    return findings
+
+
+def _number_findings(ctx: DocsContext) -> list[StrictFinding]:
+    """DS-8: with a lock file, a requirement that has no number yet."""
+    ids = ctx.project.llr_ids
+    if ids is None:
+        return []
+    return [
+        StrictFinding("DS-8", f"{item.key} has no number; run `wireforge reqs-lock`", item.element)
+        for item in ctx.llrs
+        if item.key not in ids.ids
+    ]
+
+
 def strict_findings(ctx: DocsContext) -> list[StrictFinding]:
-    """List what a strict review rejects (rules DS-1 to DS-4)."""
+    """List what a strict review rejects (rules DS-1 to DS-8)."""
     project = ctx.project
     if not project.requirements:
         return [StrictFinding("DS-1", "the project defines no requirements")]
@@ -517,19 +583,8 @@ def strict_findings(ctx: DocsContext) -> list[StrictFinding]:
         for row in ctx.llr_rows
         if not row.tests and not (row.runtime_verified and row.realized_by)
     ]
-    used = {rid for row in ctx.rows for rid in row.requirements}
-    used |= {parent for item in ctx.llrs for parent in item.parents}
-    vectored = {rid for vector in project.vectors.values() for rid in vector.reqs}
-    for rid, requirement in project.requirements.items():
-        if requirement.verification != "test":
-            continue
-        pointer = f"/requirements/{rid}"
-        if rid not in used and rid not in vectored:
-            text = f"requirement {rid} is not linked to any model element"
-            findings.append(StrictFinding("DS-4", text, pointer))
-        elif rid not in vectored:
-            text = f"requirement {rid} is verified by test but has no requirement vector"
-            findings.append(StrictFinding("DS-4", text, pointer))
+    findings += _requirement_findings(ctx)
+    findings += _number_findings(ctx)
     findings += [
         StrictFinding(rule, text, pointer)
         for rule, text, pointer in lifecycle_results.findings(ctx)
@@ -586,6 +641,8 @@ def _index(ctx: DocsContext, findings: list[StrictFinding]) -> str:
         "",
         "The documents below describe exactly the model with the hash above.",
         "",
+        *(_table(("Item", "Value"), ctx.baseline) if ctx.baseline else []),
+        "",
     ]
     lines += ["## Documents", "", *_table(("File", "Content"), DOCUMENTS), ""]
     lines += ["## Summary", "", *_table(("Item", "Count"), summary(ctx).items()), ""]
@@ -609,6 +666,8 @@ def _index(ctx: DocsContext, findings: list[StrictFinding]) -> str:
             "DS-6": "statement coverage below 100 % or runtime not measured",
             "DS-7": "uncovered line without a justification",
         }
+    if ctx.project.llr_ids is not None:
+        rules["DS-8"] = "low-level requirement without a number in llr_ids.lock"
     rows = []
     for rule, text in rules.items():
         count = sum(1 for item in findings if item.rule == rule)
@@ -654,10 +713,12 @@ def _requirements(ctx: DocsContext) -> tuple[str, str]:
             ", ".join(row.parents) or "derived",
             "yes" if row.derived else "no",
             ", ".join(row.realized_by) or "-",
+            _model_ref(ctx, row.id),
         )
         for row in ctx.llr_rows
     ]
-    lines += _table(("ID", "Kind", "Text", "Element", "Parents", "Derived", "Runtime"), low)
+    low_headers = ("ID", "Kind", "Text", "Element", "Parents", "Derived", "Runtime", "Model source")
+    lines += _table(low_headers, low)
     runtime = runtime_reqs.version(resources.runtime_include())
     lines += [
         "",

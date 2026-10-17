@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WireForge low-level requirement numbers (llr_ids.lock)",
+  "description": "Optional file in the project directory. It gives every low-level requirement a number that never changes or returns; it is not part of the model and does not change the model hash.",
+  "type": "object",
+  "required": ["schema_version", "format", "next", "ids"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "format": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]*[{]n(:[0-9]*d)?[}][A-Za-z0-9_.:-]*$",
+      "description": "Python format string with one field `n`, e.g. SWLLR-{n:05d}. The result uses only letters, digits and _ . : -."
+    },
+    "next": { "type": "integer", "minimum": 1 },
+    "ids": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]+$" }
+    },
+    "retired": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]+$" }
+    }
+  },
+  "additionalProperties": false
+}

@@ -121,6 +121,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project}/requirements/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Requirements Import
+         * @description Import the high-level requirements of a ReqIF or CSV file as a baseline snapshot.
+         */
+        post: operations["requirements_import_api_projects__project__requirements_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project}/requirements/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Requirements Lock
+         * @description Write `llr_ids.lock`, which numbers the low-level requirements (append-only).
+         */
+        post: operations["requirements_lock_api_projects__project__requirements_lock_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project}/validate": {
         parameters: {
             query?: never;
@@ -581,6 +621,39 @@ export interface components {
             version?: string;
         };
         /**
+         * RequirementsImport
+         * @description High-level requirements to import: the file (base64) and how to read it.
+         */
+        RequirementsImport: {
+            /** File */
+            file: string;
+            /** Content */
+            content: string;
+            /** Baseline */
+            baseline: string;
+            /** Tool */
+            tool?: string | null;
+            /** Id Attr */
+            id_attr?: string | null;
+            /** Text Attr */
+            text_attr?: string | null;
+            /**
+             * Csv Id Column
+             * @default id
+             */
+            csv_id_column?: string;
+            /**
+             * Csv Text Column
+             * @default text
+             */
+            csv_text_column?: string;
+            /**
+             * Force
+             * @default false
+             */
+            force?: boolean;
+        };
+        /**
          * ResultResponse
          * @description Result of a service operation; some routes add fields such as `etag`.
          */
@@ -868,6 +941,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    requirements_import_api_projects__project__requirements_import_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "if-match"?: string | null;
+            };
+            path: {
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequirementsImport"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    requirements_lock_api_projects__project__requirements_lock_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+                "if-match"?: string | null;
+            };
+            path: {
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultResponse"];
                 };
             };
             /** @description Validation Error */

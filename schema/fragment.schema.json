@@ -42,6 +42,34 @@
     },
     "vectors": {
       "$ref": "project.schema.json#/$defs/sections/properties/vectors"
+    },
+    "requirements_source": {
+      "type": "object",
+      "required": [
+        "tool",
+        "baseline",
+        "sha256",
+        "content_sha256"
+      ],
+      "properties": {
+        "tool": {
+          "type": "string"
+        },
+        "baseline": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "content_sha256": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Where the requirements of this snapshot came from (written by `wireforge reqs-import`)."
     }
   },
   "additionalProperties": false,

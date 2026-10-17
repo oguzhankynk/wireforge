@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import io
 import shutil
 import subprocess
@@ -238,3 +239,34 @@ def test_docs_download(client: TestClient) -> None:
     broken = client.get("/api/projects/broken/docs")
     assert broken.status_code == 422
     assert not broken.json()["ok"]
+
+
+def test_requirements_import_and_lock(client: TestClient, tmp_path: Path) -> None:
+    (tmp_path / "workspace" / "avionics" / "requirements" / "hlr.yaml").unlink()
+    sample = Path(__file__).resolve().parents[2] / "examples" / "02_multi_interface_avionics"
+    content = base64.b64encode((sample / "requirements" / "srs_sample.reqif").read_bytes()).decode()
+    body = {"file": "srs.reqif", "content": content, "baseline": "B1", "force": True}
+
+    def etag() -> dict[str, str]:
+        return {"If-Match": client.get("/api/projects/avionics/state").json()["etag"]}
+
+    response = client.post("/api/projects/avionics/requirements/import", json=body, headers=etag())
+    assert response.status_code == 200, response.text
+    assert response.json()["data"]["requirements"] == 5
+    locked = client.post("/api/projects/avionics/requirements/lock", headers=etag())
+    assert locked.status_code == 200, locked.text
+    assert locked.json()["data"]["total"] > 10
+    stale = client.post("/api/projects/avionics/requirements/lock", headers={"If-Match": '"stale"'})
+    assert stale.status_code == 412
+    broken = client.post(
+        "/api/projects/avionics/requirements/import",
+        json={**body, "content": "%%%"},
+        headers=etag(),
+    )
+    assert broken.status_code == 400
+    bad_name = client.post(
+        "/api/projects/avionics/requirements/import",
+        json={**body, "file": "../x.reqif"},
+        headers=etag(),
+    )
+    assert bad_name.status_code == 422

@@ -35,6 +35,8 @@ types are generated from it. Code: `wireforge.server` (`storage.py`, `app.py`).
 | `GET /api/projects/{id}/generate[?tests=false]` | zip of the generated code (see below) | `wireforge generate --tests` |
 | `GET /api/projects/{id}/preview` | generated C++ files as text (nothing written) | `wireforge generate` |
 | `GET /api/projects/{id}/analyze?profile=P&export=markdown\|csv\|json` | layout report (data) and ICD export (text) | `wireforge analyze` |
+| `POST /api/projects/{id}/requirements/import` | take a baseline of high-level requirements (JSON with the base64 file; needs `If-Match`) | `wireforge reqs-import` |
+| `POST /api/projects/{id}/requirements/lock` | number the low-level requirements (needs `If-Match`) | `wireforge reqs-lock` |
 | `GET /api/projects/{id}/docs` | the requirements, design, test and traceability documents as a zip (`?strict=true` fails like `wireforge docs --strict`) | `wireforge docs` |
 | `GET /api/projects/{id}/wireshark` | the Wireshark Lua dissector plugin (`<project>.lua`) | `wireforge wireshark` |
 | `POST /api/compat` `{old, new, interfaces?}` | compatibility of two projects of the workspace | `wireforge compat` |

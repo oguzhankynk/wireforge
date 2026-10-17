@@ -40,6 +40,7 @@ ROOT = (
     "namespace",
     "defaults",
     "include",
+    "requirements_source",
     "requirements",
     "defines",
     "user_includes",

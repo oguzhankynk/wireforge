@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any, cast
 from xml.parsers import expat
 
 from wireforge import schema
-from wireforge.loader import to_plain
+from wireforge.plain import to_plain
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -42,6 +42,11 @@ class Node:
     tag: str
     attrs: dict[str, str]
     children: list[Node]
+    text: str = ""
+
+    def all_text(self) -> str:
+        """Return the text of the element and of everything below it, in document order."""
+        return self.text + "".join(child.all_text() for child in self.children)
 
     def find(self, tag: str) -> Node | None:
         """Return the first direct child with this tag."""
@@ -65,11 +70,15 @@ def parse_xml(text: str) -> Node:
     stack = [root]
 
     def start(tag: str, attrs: dict[str, str]) -> None:
-        node = Node(tag, dict(attrs), [])
+        node = Node(tag.rsplit(":", 1)[-1], dict(attrs), [])
         stack[-1].children.append(node)
         stack.append(node)
 
+    def characters(data: str) -> None:
+        stack[-1].text += data
+
     parser = expat.ParserCreate()
+    parser.CharacterDataHandler = characters
     parser.StartElementHandler = start
     parser.EndElementHandler = lambda _tag: stack.pop()
     parser.Parse(text, LAST_CHUNK)

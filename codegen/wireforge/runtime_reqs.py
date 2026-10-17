@@ -16,7 +16,7 @@ from typing import Any, cast
 
 from wireforge import resources, schema
 from wireforge.issues import Issue
-from wireforge.loader import to_plain
+from wireforge.plain import to_plain
 
 HEAD = re.compile(r"^(?:TEST|TEST_F|TYPED_TEST|TEST_P)\((\w+), (\w+)\) \{$", re.MULTILINE)
 PROPERTY = re.compile(r'^\s*::testing::Test::RecordProperty\("requirements", "([^"]*)"\);')

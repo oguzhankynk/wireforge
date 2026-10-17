@@ -13,7 +13,9 @@ equivalent.
 | `wireforge wireshark <project> -o <file>.lua` | Wireshark Lua dissector plugin (docs/WIRESHARK.md) |
 | `wireforge analyze <project> [--profile P] [--format markdown\|csv\|json]` | layout report / ICD (docs/LAYOUT.md) |
 | `wireforge compat <old> <new> [--interface I]` | interface compatibility and version bump check |
-| `wireforge docs <project> -o <dir> [--strict] [--results <build>]` | requirements, design, test and traceability documents (docs/LIFECYCLE.md) |
+| `wireforge reqs-import <project> <file> --baseline B` | take a baseline of high-level requirements (ReqIF or CSV) as `requirements/hlr_snapshot.yaml` |
+| `wireforge reqs-lock <project>`, `reqs-rename-key`, `reqs-list` | number the low-level requirements in `llr_ids.lock`, keep a number across a rename, list them (docs/DO178C.md) |
+| `wireforge docs <project> -o <dir> [--strict] [--results <build>] [--export reqif,csv] [--source-url T]` | requirements, design, test and traceability documents (docs/LIFECYCLE.md) |
 | `wireforge trace <project> [--format markdown\|csv] [-o file]` | requirements, model elements, generated code and tests (docs/SAFETY.md) |
 | `wireforge test <project> -o <dir> [--coverage] [--coverage-runtime] [--generator Ninja]` | generate, build and run the generated tests; the coverage build writes `results/` for `docs --results` |
 | `wireforge export <project> -o bundle.yaml` / `wireforge import <bundle> <dir>` | single-file bundles |
