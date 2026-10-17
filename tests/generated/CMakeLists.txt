@@ -155,9 +155,54 @@ function(wireforge_generated_suite name project generator)
   endforeach()
 endfunction()
 
+# Runs the differential harness of a suite against the reference codec (random, boundary and stored
+# inputs), so that the code of the harness is executed and measured too.
+# wireforge_differential_test(<suite> <example dir> <regressions dir> [PROFILE <name>] [PLUGINS <file>])
+function(wireforge_differential_test suite example regressions)
+  cmake_parse_arguments(PARSE_ARGV 3 arg "" "PROFILE;PLUGINS" "")
+  set(options "")
+  if(arg_PROFILE)
+    list(APPEND options --profile ${arg_PROFILE})
+  endif()
+  if(arg_PLUGINS)
+    list(APPEND options --plugins ${arg_PLUGINS})
+  endif()
+  # The golden inputs of the project, mutated, are the input of the replay of the fuzz target.
+  set(seeds ${CMAKE_CURRENT_BINARY_DIR}/seeds/${suite})
+  add_custom_command(
+    OUTPUT ${seeds}.done
+    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${PROJECT_SOURCE_DIR}/codegen
+            ${Python3_EXECUTABLE} -m wireforge.differential
+            ${PROJECT_SOURCE_DIR}/examples/${example} --fuzz-seeds ${seeds} ${options}
+    COMMAND ${CMAKE_COMMAND} -E touch ${seeds}.done
+    DEPENDS ${WIREFORGE_GENERATOR_SOURCES} ${arg_PLUGINS}
+    VERBATIM)
+  add_custom_target(${suite}_seeds DEPENDS ${seeds}.done)
+  add_dependencies(${suite}_replay ${suite}_seeds)
+  target_compile_definitions(${suite}_replay PRIVATE WIREFORGE_FUZZ_SEEDS_DIR="${seeds}")
+  if(CMAKE_CROSSCOMPILING)
+    return() # the harness would have to run under the emulator, which the Python driver cannot do
+  endif()
+  add_test(NAME ${suite}_differential
+           COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${PROJECT_SOURCE_DIR}/codegen
+                   ${Python3_EXECUTABLE} -m wireforge.differential
+                   ${PROJECT_SOURCE_DIR}/examples/${example} --harness $<TARGET_FILE:${suite}_diff>
+                   --values 20 --mutations 4 --frames 10
+                   --regressions ${PROJECT_SOURCE_DIR}/tests/regressions/${regressions} ${options})
+  set_tests_properties(${suite}_differential PROPERTIES TIMEOUT 300)
+endfunction()
+
 wireforge_generated_suite(generated_suite_basic_telemetry basic_telemetry generate_basic_telemetry)
 wireforge_generated_suite(generated_suite_edge_cases edge_cases generate_edge_cases)
 wireforge_generated_suite(generated_suite_avionics_a avionics_demo generate_avionics_demo
                           ${WIREFORGE_PROFILE_A})
 wireforge_generated_suite(generated_suite_avionics_b avionics_demo generate_avionics_demo
                           ${WIREFORGE_PROFILE_B})
+
+set(avionics_plugins ${PROJECT_SOURCE_DIR}/examples/02_multi_interface_avionics/plugins/vendor_sum.py)
+wireforge_differential_test(generated_suite_basic_telemetry 01_basic_telemetry basic_telemetry/default)
+wireforge_differential_test(generated_suite_edge_cases 03_edge_cases edge_cases/default)
+wireforge_differential_test(generated_suite_avionics_a 02_multi_interface_avionics avionics_demo/platformA
+                            PROFILE platformA PLUGINS ${avionics_plugins})
+wireforge_differential_test(generated_suite_avionics_b 02_multi_interface_avionics avionics_demo/platformB
+                            PROFILE platformB PLUGINS ${avionics_plugins})
