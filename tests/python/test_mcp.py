@@ -225,3 +225,10 @@ def test_wireshark_dissector(workspace: Path) -> None:
     assert plugin == workspace / ".wireforge" / "generated" / "wireshark" / "avionics.lua"
     assert plugin.read_text(encoding="utf-8").startswith("-- Wireshark dissector for avionics_demo")
     assert "avionics_demo_our_to_nodea" in result["data"]["protocols"]
+
+
+def test_lifecycle_docs(workspace: Path) -> None:
+    result = _call(workspace, "lifecycle_docs", {"project": "avionics"})
+    assert result["ok"]
+    assert "index.md" in result["data"]["files"]
+    assert (workspace / ".wireforge" / "docs" / "avionics" / "index.md").exists()

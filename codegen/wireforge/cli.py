@@ -103,6 +103,10 @@ def _wireshark(args: argparse.Namespace) -> Result:
     return service.wireshark_dissector(args.project, args.output)
 
 
+def _docs(args: argparse.Namespace) -> Result:
+    return service.lifecycle_docs(args.project, args.output, strict=args.strict)
+
+
 def _analyze(args: argparse.Namespace) -> Result:
     return service.analyze(args.project, args.profile, args.format)
 
@@ -354,6 +358,10 @@ def _report_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]
     _project(parser)
     parser.add_argument("--format", choices=("markdown", "csv"), default="markdown")
     parser.add_argument("-o", "--output", type=Path)
+    parser = add("docs", _docs, "Write requirements, design, test and traceability documents.")
+    _project(parser)
+    parser.add_argument("-o", "--output", type=Path, required=True, help="directory to write")
+    parser.add_argument("--strict", action="store_true", help="fail when a review would reject")
     parser = add("compat", _compat, "Compare two versions of a project.")
     parser.add_argument("old", type=Path)
     parser.add_argument("new", type=Path)

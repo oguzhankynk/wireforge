@@ -19,6 +19,7 @@ GoogleTest project that proves them against a reference codec.
 | Generated C++ and test project | docs/CODEGEN.md, docs/RUNTIME.md |
 | Layout analysis / ICD export | docs/LAYOUT.md |
 | Wireshark dissector (Lua plugin) | docs/WIRESHARK.md |
+| Requirements, design and test documents | docs/LIFECYCLE.md |
 | Server, web UI, MCP | docs/SERVER.md, docs/UI.md, docs/MCP.md |
 | Secure deployment and operation | docs/SERVER.md, "Deployment and operation" |
 | Importers (CSV/Excel ICD, C headers) | docs/IMPORT.md |

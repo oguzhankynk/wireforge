@@ -21,6 +21,7 @@ Example client configuration:
 | `generate_code(project, tests?)` | C++ code and the GoogleTest project; lists the files | `wireforge generate --tests` |
 | `run_tests(project, coverage?)` | build and run the generated tests (or the coverage target) | `wireforge test` |
 | `analyze_layout(project, profile?, export?)` | sizes, offsets, bit maps, frames, link RAM | `wireforge analyze` |
+| `lifecycle_docs(project, strict)` | requirements, design, test and traceability documents in `<workspace>/.wireforge/docs/<project>/` | `wireforge docs` |
 | `wireshark_dissector(project)` | Wireshark Lua plugin in `<workspace>/.wireforge/generated/wireshark/<project>.lua` | `wireforge wireshark` |
 | `compat_check(project, old_project? \| revision?)` | compatibility with another project or a git revision | `wireforge compat` |
 | `encode_sample(project, message, value?, interface?, profile?)` | payload/frame hex; without `value` a sample with every field set | `wireforge encode` |

@@ -36,6 +36,7 @@ from wireforge import (
     golden,
     importers,
     layout,
+    lifecycle,
     schema,
     test_project,
     trace,
@@ -884,3 +885,58 @@ def trace_report(location: Path, export: str = "markdown") -> Result:
         "llrs": [asdict(row) for row in traced.llrs],
     }
     return Result(ok=True, issues=issues, data=data, text=text)
+
+
+# --- lifecycle documents ------------------------------------------------------------------------
+
+
+def _lifecycle(location: Path, *, strict: bool) -> tuple[Result, dict[str, str]]:
+    project, issues = _load_valid(location)
+    if project is None:
+        return Result(ok=False, issues=issues, text=_issues_text(issues)), {}
+    content_hash = bundle.build_bundle(location)["bundle"]["content_hash"]
+    context = lifecycle.context(project, content_hash, load_plugins(find_plugins(location)))
+    files = lifecycle.render(context)
+    findings = lifecycle.strict_findings(context)
+    found = [
+        Issue(project.source.file, None, item.pointer, f"[{item.rule}] {item.message}")
+        for item in findings
+    ]
+    data = {
+        "files": sorted(files),
+        "strict": [{"rule": item.rule, "message": item.message} for item in findings],
+        "summary": lifecycle.summary(context),
+    }
+    ok = not (strict and findings)
+    result = Result(ok=ok, issues=[*issues, *found] if strict else issues, data=data)
+    return result, files
+
+
+def lifecycle_docs(location: Path, output: Path, *, strict: bool = False) -> Result:
+    """Write the requirements, design, test and traceability documents to `output`.
+
+    Only files with the names of the documents are written; other files are left alone. With
+    `strict` the result fails when a review would reject the model (rules DS-1 to DS-4).
+    """
+    result, files = _lifecycle(location, strict=strict)
+    if not files:
+        return result
+    output.mkdir(parents=True, exist_ok=True)
+    for name, text in files.items():
+        (output / name).write_text(text, encoding="utf-8", newline="\n")
+    lines = [f"wrote {len(files)} documents to {output}\n"]
+    lines += [f"{item.message}\n" for item in result.issues if "[DS-" in item.message]
+    result.text = "".join(lines)
+    return result
+
+
+def lifecycle_archive(location: Path, *, strict: bool = False) -> tuple[Result, bytes]:
+    """Return the documents of a project as a zip (empty bytes when the project is invalid)."""
+    result, files = _lifecycle(location, strict=strict)
+    if not files:
+        return result, b""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, text in sorted(files.items()):
+            archive.writestr(zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0)), text)
+    return result, buffer.getvalue()

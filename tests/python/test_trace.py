@@ -57,15 +57,11 @@ def _llrs(example: str) -> list[dict[str, object]]:
     return llrs
 
 
-# NavMode is declared but no message uses it, so no generated test can exercise its members.
-UNUSED = {"02_multi_interface_avionics": {"LLR-NavMode.VALUES"}}
-
-
 def test_llrs_have_tests() -> None:
     for example in ("01_basic_telemetry", "02_multi_interface_avionics"):
         untested = {row["id"] for row in _llrs(example) if not row["tests"]}
         runtime = {row["id"] for row in _llrs(example) if row["runtime_verified"]}
-        assert untested == runtime | UNUSED.get(example, set()), example
+        assert untested == runtime, example
 
 
 def test_requirements_flow_from_model_to_tests() -> None:
@@ -85,7 +81,7 @@ def test_requirements_flow_from_model_to_tests() -> None:
 
 def test_markdown_lists_gaps() -> None:
     text = service.trace_report(EXAMPLES / "02_multi_interface_avionics").text
-    assert "LLRs without tests: LLR-NavMode.VALUES." in text
+    assert "LLRs without tests: none." in text
     assert "LLRs verified by the runtime tests: LLR-" in text
     assert "Requirements without model elements: none." in text
     plain = service.trace_report(EXAMPLES / "03_edge_cases").text

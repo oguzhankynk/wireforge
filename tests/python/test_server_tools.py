@@ -226,3 +226,15 @@ def test_wireshark_plugin_download(client: TestClient) -> None:
     broken = client.get("/api/projects/broken/wireshark")
     assert broken.status_code == 422
     assert not broken.json()["ok"]
+
+
+def test_docs_download(client: TestClient) -> None:
+    response = client.get("/api/projects/avionics/docs")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert 'filename="avionics-docs.zip"' in response.headers["content-disposition"]
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        assert "index.md" in archive.namelist()
+    broken = client.get("/api/projects/broken/docs")
+    assert broken.status_code == 422
+    assert not broken.json()["ok"]
