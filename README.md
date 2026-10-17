@@ -2,12 +2,16 @@
 
 Schema-driven wire-format toolkit for C++17: describe binary messages in YAML (by hand, in the web UI, through the CLI
 or an AI agent) and generate allocation-free C++ serializers, validators, framers and dispatchers together with a
-GoogleTest project that proves them against a reference codec.
+GoogleTest project that proves them against a reference codec and gates the generated code at 100 % line, branch and
+function coverage.
 
 - The wire format is imposed by the remote party: generated code never adds bytes.
 - Runtime and generated code use only pre-allocated storage: no heap, no exceptions, no RTTI required.
 - One service layer behind the `wireforge` CLI, the Python API, the REST server with its web UI and the MCP server.
 - A generated Wireshark Lua dissector shows every interface's frames, with the same checks as the decoder.
+- Requirements trace from the model to the generated code and tests: `wireforge docs` writes the requirements, design,
+  test report, coverage and traceability documents, with a DO-178C DAL C objective map and ReqIF/CSV exchange with
+  requirements tools. The runtime has its own requirements and test dossier.
 - Zero warnings from every compiler and analyzer; big-endian and 32-bit runs; differential testing and fuzzing.
 
 **Start with docs/GUIDE.md** (install, 5-minute quickstart, examples). Reference:
