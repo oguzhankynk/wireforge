@@ -23,6 +23,7 @@ import subprocess
 import tarfile
 import tempfile
 import zipfile
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -38,6 +39,7 @@ from wireforge import (
     generate,
     golden,
     hlr_import,
+    impact,
     importers,
     layout,
     lifecycle,
@@ -64,6 +66,8 @@ from wireforge.plain import to_plain
 from wireforge.validate import Validator
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from wireforge.codec import ChecksumPlugin
     from wireforge.model import IdMap, Project
 
@@ -802,10 +806,9 @@ def history(location: Path, limit: int = 50) -> Result:
     return Result(ok=True, data={"commits": commits}, text=text)
 
 
-def compatibility_with_revision(
-    location: Path, revision: str, interfaces: list[str] | None = None
-) -> Result:
-    """Compare the project at a git revision (old) with the working copy (new)."""
+@contextmanager
+def _checkout_revision(location: Path, revision: str) -> Iterator[Path]:
+    """Yield a temporary copy of the project directory as it was at a git revision."""
     directory = (location if location.is_dir() else location.parent).resolve()
     top = _git(directory, "rev-parse", "--show-toplevel")
     if top.returncode != 0:
@@ -821,7 +824,16 @@ def compatibility_with_revision(
             raise ServiceError(message)
         with tarfile.open(archive) as tar:
             tar.extractall(temporary, filter="data")
-        result = compatibility(Path(temporary) / relative, directory, interfaces)
+        yield Path(temporary) / relative
+
+
+def compatibility_with_revision(
+    location: Path, revision: str, interfaces: list[str] | None = None
+) -> Result:
+    """Compare the project at a git revision (old) with the working copy (new)."""
+    directory = (location if location.is_dir() else location.parent).resolve()
+    with _checkout_revision(location, revision) as old:
+        result = compatibility(old, directory, interfaces)
     result.data["revision"] = revision
     return result
 
@@ -933,6 +945,7 @@ class DocsOptions:
     export: tuple[str, ...] = ()
     source_url: str | None = None
     allow_dirty: bool = False
+    since: str | None = None
 
 
 def _baseline(
@@ -1049,11 +1062,35 @@ def lifecycle_docs(
     for name, text in files.items():
         (output / name).write_text(text, encoding="utf-8", newline="\n")
     exported = _export(context, output, _directory(location), options or DocsOptions())
+    if options and options.since:
+        exported += _impact(location, output, context, options.since)
     lines = [f"wrote {len(files) + len(exported)} documents to {output}\n"]
     lines += [f"{item.message}\n" for item in result.issues if "[DS-" in item.message]
     result.text = "".join(lines)
     result.data["files"] = sorted([*result.data["files"], *exported])
     return result
+
+
+def _impact(
+    location: Path, output: Path, context: lifecycle.DocsContext, revision: str
+) -> list[str]:
+    """Write impact.md and impact.csv: what changed since the revision."""
+    plugins = load_plugins(find_plugins(location))
+    new = impact.side(context.project, context.content_hash, plugins)
+    with _checkout_revision(location, revision) as old_directory:
+        old_project, issues = _load_valid(old_directory)
+        if old_project is None:
+            message = f"the project at {revision} is not valid:\n{_issues_text(issues)}"
+            raise ServiceError(message)
+        old_hash = bundle.build_bundle(old_directory)["bundle"]["content_hash"]
+        old = impact.side(old_project, old_hash, load_plugins(find_plugins(old_directory)))
+        compared = compatibility(old_directory, _directory(location))
+    report = impact.compare(
+        old, new, labels=(revision, "working copy"), compatibility=compared.text
+    )
+    (output / "impact.md").write_text(impact.to_markdown(report), encoding="utf-8", newline="\n")
+    (output / "impact.csv").write_text(impact.to_csv(report), encoding="utf-8", newline="\n")
+    return ["impact.csv", "impact.md"]
 
 
 def _export(

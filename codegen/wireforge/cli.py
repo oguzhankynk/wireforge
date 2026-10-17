@@ -116,6 +116,7 @@ def _docs(args: argparse.Namespace) -> Result:
         tuple(part for part in args.export.split(",") if part),
         args.source_url,
         args.allow_dirty,
+        args.since,
     )
     return service.lifecycle_docs(
         args.project, args.output, strict=args.strict, results=args.results, options=options
@@ -421,6 +422,7 @@ def _report_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]
     parser.add_argument("--export", default="csv", help="formats besides Markdown: csv, reqif")
     parser.add_argument("--source-url", help="permalink template with {commit}, {path} and {line}")
     parser.add_argument("--allow-dirty", action="store_true", help="link even with local changes")
+    parser.add_argument("--since", metavar="REV", help="also write impact.md for a git revision")
     parser = add(
         "reqs-import", _reqs_import, "Import the high-level requirements of a ReqIF or CSV file."
     )

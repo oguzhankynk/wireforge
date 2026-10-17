@@ -91,3 +91,13 @@ The objective table in `do178c_dal_c.md` uses our own wording and the objective 
 `check` against your licensed copy of DO-178C.
 
 `quality/run_evidence.sh` writes the documents of every example to `build/evidence/docs_<project>/`.
+
+## Change impact
+`wireforge docs <project> -o <dir> --since <git-revision>` also writes `impact.md` and `impact.csv`: what a change did
+since that revision. It lists the high-level requirements that were added, removed or reworded (and a changed baseline of
+the requirement snapshot), the low-level requirements that were added, removed, reworded or got other parents, the
+generated files and the declarations in them that changed, the generated tests that were added, removed or changed, and
+the wire compatibility result of the interfaces. The last section is the list of tests to run and review again: every
+test that verifies a changed requirement and every test that changed. A test that uses a value derived from a limit
+changes when the limit changes, so a limit can reach more tests than its own requirement. The old baseline is read from
+git (`git archive`) into a temporary directory; the working copy is the new one.
