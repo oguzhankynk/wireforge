@@ -18,7 +18,8 @@ analyzer, clang-tidy, cppcheck, doxygen, Python (ruff, mypy, pytest), the web UI
 is ready when all of them pass with zero warnings.
 
 - Cross toolchains for the portability matrix: `quality/fetch_cross_toolchains.sh` (no root needed) or the Debian
-  packages `g++-s390x-linux-gnu g++-i686-linux-gnu qemu-user`.
+  packages `g++-s390x-linux-gnu g++-powerpc-linux-gnu g++-i686-linux-gnu g++-arm-linux-gnueabihf
+  g++-aarch64-linux-gnu qemu-user`; `WIREFORGE_CROSS_TRIPLES` selects some of the targets.
 - Sanitizer tests run with ASLR disabled because older sanitizer runtimes hang with the high mmap entropy of WSL2
   kernels.
 - Generated-code snapshots: after an intended generator change run

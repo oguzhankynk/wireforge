@@ -8,10 +8,17 @@ debs="${root}/debs"
 mkdir -p "${debs}"
 cd "${debs}"
 apt-get download qemu-user-static
-for triple in s390x-linux-gnu i686-linux-gnu; do
+triples="${WIREFORGE_CROSS_TRIPLES:-s390x-linux-gnu i686-linux-gnu aarch64-linux-gnu arm-linux-gnueabihf powerpc-linux-gnu}"
+for triple in ${triples}; do
+  case "${triple%%-*}" in
+    aarch64) debian_arch=arm64 ;;
+    arm) debian_arch=armhf ;;
+    i686) debian_arch=i386 ;;
+    *) debian_arch="${triple%%-*}" ;;
+  esac
   mapfile -t packages < <(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts \
     --no-breaks --no-replaces --no-enhances "g++-11-${triple}" | grep -E '^[a-z]' |
-    grep -E "${triple}|${triple%%-*}-cross|i386-cross|cross-base" | sort -u)
+    grep -E "${triple}|-${debian_arch}-cross|cross-base" | sort -u)
   apt-get download "${packages[@]}"
 done
 for deb in *.deb; do

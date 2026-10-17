@@ -14,6 +14,7 @@ option(WIREFORGE_GCC_ANALYZER "Enable GCC -fanalyzer" OFF)
 option(WIREFORGE_COVERAGE "Instrument for gcov/llvm-cov coverage" OFF)
 option(WIREFORGE_FUZZ "Build the libFuzzer targets (Clang only)" OFF)
 set(WIREFORGE_SANITIZE "" CACHE STRING "Sanitizers: address,undefined or thread")
+option(WIREFORGE_UNSIGNED_CHAR "Compile with plain char unsigned, as on ARM" OFF)
 
 include(cmake/WireforgeWarnings.cmake)
 

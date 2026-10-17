@@ -9,8 +9,9 @@ Applies to runtime, generated code, generated test project, and tooling.
 - Clang extra: `-Weverything` run in an advisory-then-gating job with a short documented exclusion list.
 - MSVC: `/W4 /WX /permissive-`.
 ## Analyzers (CI gate, any finding fails)
-- Portability matrix (`quality/run_portability.sh`): Clang `-Weverything`, clang `scan-build`, cross builds with the
-  full warning set for big-endian s390x and 32-bit i686 running every test suite under qemu; production code and the
+- Portability matrix (`quality/run_portability.sh`): Clang `-Weverything`, clang `scan-build`, a host build with
+  unsigned `char`, cross builds with the full warning set for s390x, powerpc (big endian), i686, armhf and aarch64
+  running every test suite under qemu; production code and the
   generated self-tests are compiled with `-fno-exceptions -fno-rtti` (`/GR-` on MSVC) in every build; MSVC `/W4 /WX`
   in the CI build matrix.
 - clang-tidy (bugprone-*, cert-*, cppcoreguidelines-*, performance-*, portability-*, misc-*, readability-*)

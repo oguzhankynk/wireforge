@@ -228,7 +228,8 @@ constexpr std::uint32_t kRecords = kPerProducer * kProducers;
 
 struct ConsumerTotals {
     std::atomic<std::uint32_t> consumed{0U};
-    std::atomic<std::uint64_t> sum{0U};
+    std::atomic<std::uint32_t> sum{
+        0U}; // below 2^32 for these counts: 32-bit targets lack 64-bit atomics
     std::atomic<std::uint32_t> corrupt{0U};
 };
 
@@ -254,7 +255,7 @@ void consume_records(LockedByteRing<>& ring, ConsumerTotals& totals) {
         if (record.at(0) != 0xA5U) {
             ++totals.corrupt;
         }
-        totals.sum += (std::uint64_t{record.at(1)} << 16U) | (std::uint64_t{record.at(2)} << 8U) |
+        totals.sum += (std::uint32_t{record.at(1)} << 16U) | (std::uint32_t{record.at(2)} << 8U) |
                       record.at(3);
         ++totals.consumed;
     }
@@ -275,8 +276,8 @@ TEST(LockedByteRing, MultiProducerMultiConsumerStress) {
     for (std::thread& thread : threads) {
         thread.join();
     }
-    std::uint64_t expected = 0U;
-    for (std::uint64_t producer = 0U; producer < kProducers; ++producer) {
+    std::uint32_t expected = 0U;
+    for (std::uint32_t producer = 0U; producer < kProducers; ++producer) {
         // sum of (producer << 16 | index) over index = 0 .. kPerProducer - 1
         expected += (producer << 16U) * kPerProducer + (kPerProducer * (kPerProducer - 1U) / 2U);
     }
