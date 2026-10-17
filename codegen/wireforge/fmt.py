@@ -46,6 +46,7 @@ ROOT = (
     "checksums",
     "enums",
     "types",
+    "user_types",
     "messages",
     "interfaces",
     "bundle",
@@ -130,6 +131,7 @@ ORDERS: dict[str, tuple[str, ...]] = {
     "user_includes": ("include_dirs", "headers", "constants", "prelude"),
     "header": ("path", "style", "if"),
     "constant": ("cpp", "description", "value", "profile_values"),
+    "user_type": ("cpp", "description", "size_bytes", "include", "style"),
 }
 # Mapping kind of the value under a key, for kinds reached by key from another kind.
 CHILDREN: dict[tuple[str, str], str] = {
@@ -154,6 +156,7 @@ SECTIONS = {
     "checksums": "checksum",
     "enums": "enum",
     "types": "struct",
+    "user_types": "user_type",
     "messages": "message",
     "interfaces": "interface",
 }

@@ -88,6 +88,7 @@ class Tools:
         data = {
             "messages": messages,
             "types": list(model.types),
+            "user_types": list(model.user_types),
             "interfaces": list(model.interfaces),
         }
         text = "\n".join(f"{item['name']} id={item['id']}" for item in messages)

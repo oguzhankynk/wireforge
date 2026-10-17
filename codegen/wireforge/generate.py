@@ -419,8 +419,9 @@ class _ModelHeader:
         return sum(f.bits or 0 for f in inner.fields)
 
     def element_size(self, item: Field, which: str) -> str:
-        if self.names.is_struct(item):
-            return f"{which}_wire_size(wireforge::type_tag<{item.type}>)"
+        if item.type in self.project.types or item.type in self.project.user_types:
+            cpp_name = self.names.scalar(item.type)
+            return f"{which}_wire_size(wireforge::type_tag<{cpp_name}>)"
         return f"{BUILTIN_BITS[self.names.base(item.type)] // BYTE_BITS}U"
 
     def field_size(self, item: Field, which: str) -> str:
@@ -486,6 +487,8 @@ def _user_prelude(project: Project, banner: Banner) -> str:
     out.line(f"#define {guard(name, 'USER_PRELUDE_HPP')}")
     out.line()
     out.line("#include <cstdint>")
+    if project.user_types:
+        out.line("#include <wireforge/validation.hpp>")
     for header in project.headers:
         include = f'"{header.path}"' if header.style == "quote" else f"<{header.path}>"
         if header.condition is not None:
@@ -493,11 +496,34 @@ def _user_prelude(project: Project, banner: Banner) -> str:
         out.line(f"#include {include}")
         if header.condition is not None:
             out.line("#endif")
+    _user_type_support(out, project, names)
     for constant in project.constants.values():
         _constant_checks(out, constant)
     out.line()
     out.line(f"#endif // {guard(name, 'USER_PRELUDE_HPP')}")
     return out.text()
+
+
+def _user_type_support(out: Writer, project: Project, names: Names) -> None:
+    """Each user type's own header include, plus its generated (fixed) size free functions."""
+    for user_type in project.user_types.values():
+        if user_type.include is not None:
+            quoted = user_type.style == "quote"
+            include = f'"{user_type.include}"' if quoted else f"<{user_type.include}>"
+            out.line(f"#include {include}")
+    if not project.user_types:
+        return
+    out.line()
+    out.line("namespace wireforge {")
+    for user_type in project.user_types.values():
+        cpp_name = names.scalar(user_type.name)
+        for which, text in (("max", "Largest"), ("min", "Smallest")):
+            out.line(f"/// @brief {text} encoded size of {cpp_name} in bytes (fixed).")
+            out.line(
+                f"constexpr std::size_t {which}_wire_size(TypeTag<{cpp_name}> /*tag*/) "
+                f"noexcept {{ return {user_type.size_bytes}U; }}"
+            )
+    out.line("} // namespace wireforge")
 
 
 def _constant_checks(out: Writer, constant: UserConstant) -> None:

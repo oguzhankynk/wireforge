@@ -37,6 +37,42 @@ constexpr std::size_t max_wire_size(wireforge::TypeTag<SensorReading>) noexcept;
 - Sizes are `constexpr` and follow the build's defines and `#if` blocks; call them as
   `max_wire_size(wireforge::type_tag<SensorReading>)`.
 
+## User types
+A `user_types` entry declares a field type WireForge never looks inside — only its fixed `size_bytes`:
+```yaml
+user_types:
+  Fixed16:
+    cpp: app::Fixed16
+    size_bytes: 2
+    include: app/fixed16.hpp
+```
+WireForge emits only the size query, into `user_prelude.hpp`:
+```cpp
+namespace wireforge {
+constexpr std::size_t max_wire_size(TypeTag<app::Fixed16> /*tag*/) noexcept { return 2U; }
+constexpr std::size_t min_wire_size(TypeTag<app::Fixed16> /*tag*/) noexcept { return 2U; }
+} // namespace wireforge
+```
+The user writes the type itself (`app/fixed16.hpp`, included by `user_prelude.hpp`) plus its `encode`/`decode`,
+found by ADL exactly like a generated struct's:
+```cpp
+namespace app {
+struct Fixed16 { std::int16_t raw{}; };
+void encode(const Fixed16& value, wireforge::Encoder& encoder) noexcept {
+    const auto bytes = std::bit_cast<std::array<std::uint8_t, 2U>>(value.raw);
+    encoder.write_bytes(wireforge::Span<const std::uint8_t>(bytes));
+}
+void decode(Fixed16& value, wireforge::Decoder& decoder) noexcept {
+    std::array<std::uint8_t, 2U> bytes{};
+    decoder.read_bytes(wireforge::Span<std::uint8_t>(bytes));
+    value.raw = std::bit_cast<std::int16_t>(bytes);
+}
+}
+```
+A field of this type (`occurs`, arrays and nesting inside other `types` all work) is used exactly like a struct
+field; `Encoder::write_bytes`/`Decoder::read_bytes` (docs/RUNTIME.md) copy bytes onto/from the wire unchanged,
+leaving the type's own encoding entirely up to these two functions. `Fixed16` must be default-constructible.
+
 ## Codec
 ```cpp
 std::array<std::uint8_t, max_wire_size(wireforge::type_tag<SensorReading>)> buffer{};

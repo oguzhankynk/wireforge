@@ -101,6 +101,7 @@ export interface WireForgeProjectRootFileSchemaVersion1 {
   checksums?: Checksums;
   enums?: Enums;
   types?: Types;
+  user_types?: UserTypes;
   messages?: Messages;
   interfaces?: Interfaces;
   schema_minor?: SchemaMinor;
@@ -191,6 +192,19 @@ export interface Occurs {
 export interface ChecksumUse {
   use: Identifier;
   covers: ChecksumCovers;
+}
+export interface UserTypes {
+  [k: string]: UserTypeDef;
+}
+export interface UserTypeDef {
+  /**
+   * Fully qualified C++ type name.
+   */
+  cpp: string;
+  size_bytes: number;
+  include?: string;
+  style?: "quote" | "angle";
+  description?: string;
 }
 export interface Messages {
   [k: string]: MessageDef;

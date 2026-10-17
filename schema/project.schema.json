@@ -51,6 +51,9 @@
     "types": {
       "$ref": "#/$defs/sections/properties/types"
     },
+    "user_types": {
+      "$ref": "#/$defs/sections/properties/user_types"
+    },
     "messages": {
       "$ref": "#/$defs/sections/properties/messages"
     },
@@ -600,6 +603,39 @@
         }
       ]
     },
+    "userTypeDef": {
+      "type": "object",
+      "required": [
+        "cpp",
+        "size_bytes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "cpp": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Fully qualified C++ type name."
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "include": {
+          "type": "string",
+          "pattern": "^[^\"<>\\n\\r]+$"
+        },
+        "style": {
+          "enum": [
+            "quote",
+            "angle"
+          ],
+          "default": "quote"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
     "headerDef": {
       "anyOf": [
         {
@@ -863,6 +899,15 @@
           },
           "additionalProperties": {
             "$ref": "#/$defs/structDef"
+          }
+        },
+        "user_types": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/userTypeDef"
           }
         },
         "messages": {

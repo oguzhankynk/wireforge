@@ -192,14 +192,29 @@ class RandomSampler:
 
     def field(self, item: Field, value: dict[str, Any]) -> object:
         """Return a random value of one field."""
-        inner = self.project.types.get(item.type)
         if item.occurs is None:
-            return self.struct(inner.fields) if inner is not None else self.scalar(item)
+            return self._scalar_field(item)
+        return self._array_field(item, value)
+
+    def _scalar_field(self, item: Field) -> object:
+        inner = self.project.types.get(item.type)
+        if inner is not None:
+            return self.struct(inner.fields)
+        user = self.project.user_types.get(item.type)
+        if user is not None:
+            return bytes(self.rng.byte() for _ in range(user.size_bytes))
+        return self.scalar(item)
+
+    def _array_field(self, item: Field, value: dict[str, Any]) -> object:
         count = self.length(item, value)
         if item.type == "char":
             return "".join(self.rng.choice(CHAR_ALPHABET) for _ in range(count))
+        inner = self.project.types.get(item.type)
         if inner is not None:
             return [self.struct(inner.fields) for _ in range(count)]
+        user = self.project.user_types.get(item.type)
+        if user is not None:
+            return [bytes(self.rng.byte() for _ in range(user.size_bytes)) for _ in range(count)]
         return [self.scalar(item) for _ in range(count)]
 
     def scalar(self, item: Field) -> object:

@@ -51,6 +51,8 @@ Every fallible call returns `wireforge::Status`.
 - Bit groups (D19): `BitPacker(total_bits, order)` collects fields into one container integer, `write_bits` writes it with
   the message endianness; `read_bits` + `BitUnpacker` reverse it. Endianness is a function argument, so a constant
   argument in generated code is resolved at compile time (all IO except floats is `constexpr`).
+- `Encoder::write_bytes(Span<const std::uint8_t>)` / `Decoder::read_bytes(Span<std::uint8_t>)` copy bytes onto/from
+  the wire unchanged, no endian or bit-order transform: the only IO a user type's own `encode`/`decode` needs.
 
 ## Thread safety
 - `SpscByteRing`: exactly one producer (`write`) and one consumer (`peek`, `read`, `consume`); indices run in

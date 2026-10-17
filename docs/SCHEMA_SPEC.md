@@ -33,6 +33,7 @@ instantiation per endianness.
 | `char` | 8 | unsigned byte holding ASCII/Latin-1; arrays of `char` map to fixed strings |
 | enum name | width of its underlying integer type | decoded value must be one of the listed values (else `OutOfRange` when range check is on) |
 | struct name | sum of its fields | serialized inline, **no padding, no alignment, no hidden bytes** |
+| user type name | declared `size_bytes` | opaque; wire format is entirely the user's own `encode`/`decode` free functions (section 14b) |
 
 Multi-byte values are written byte by byte using the effective message endianness; no host layout is assumed.
 
@@ -160,7 +161,7 @@ carry file, line and JSON pointer.
 ## 13. Semantic rules (beyond JSON Schema)
 - SR-1 No duplicate names within a section across root and fragments.
 - SR-2 Names are not C++ keywords and do not collide after C++ mangling.
-- SR-3 Every `type` resolves to a builtin, enum or struct; struct graphs are acyclic.
+- SR-3 Every `type` resolves to a builtin, enum, struct or user type; struct graphs are acyclic.
 - SR-4 Every checksum `use`, interface message, enum default and `covers` name resolves.
 - SR-5 Expressions parse; names resolve; `if` conditions reference no fields.
 - SR-6 `default`, `const` lie in `[min, max]` and fit the type/bit width; `min <= max`.
@@ -180,7 +181,8 @@ carry file, line and JSON pointer.
   without `value` either every profile has a value or the constant is *opaque*: opaque constants may appear only in value
   ranges (`min`/`max`), never in anything that changes layout or buffer sizes (`occurs`, framing, buffers).
 - SR-19 Version stamps: every file passes the compatibility policy of section 11; fragments carry `schema_version`.
-- SR-20 User header paths and include directories are relative, without `..` segments (portable builds).
+- SR-20 User header paths and include directories are relative, without `..` segments (portable builds); this
+  also covers a user type's `include`.
 
 Implementation notes (`wireforge.validate`, D21-D23): every issue carries `[SR-n]`, file, line and JSON pointer.
 SR-10 also limits a bit group to 64 bits (D19) and checks pure bit-field types where they are used; SR-12 verifies the
@@ -213,7 +215,33 @@ user_includes:
 - `cpp` accepts only qualified identifiers (no expressions); header paths forbid quotes, angle brackets and newlines.
   `prelude` lines are emitted verbatim, are not analysed, and are the user's responsibility under the zero-warning policy.
 - Every generated header includes the single generated `user_prelude.hpp` first.
-- Out of scope for v1: user-defined C++ *types* as field types (candidate for a later minor version: `user_types`).
+
+## 14b. User types: opaque field types backed by application code
+`user_types` (root or fragment) lets a field's type be a user-owned C++ type whose wire form WireForge never
+inspects — only its fixed size.
+```yaml
+user_types:
+  Fixed16:
+    cpp: app::Fixed16                           # fully qualified C++ type name
+    size_bytes: 2                               # fixed, positive; same in every profile (not an expression)
+    include: app/fixed16.hpp                    # optional; added to the generated user prelude
+    style: quote                                # quote | angle, default quote
+    description: "Q8.8 fixed-point sample"      # optional
+```
+- **ADL contract, same as a generated struct.** The user writes the type itself plus
+  `void encode(const T&, wireforge::Encoder&) noexcept` and `void decode(T&, wireforge::Decoder&) noexcept`,
+  found by ADL. WireForge generates only `min_wire_size`/`max_wire_size` (both equal to `size_bytes`, since the
+  size never varies); it never generates `encode`/`decode` for a user type. `T` must be default-constructible.
+- **Treated like a struct field everywhere else.** `occurs`, arrays and nesting inside other `types` all work.
+  **Opaque**: `bits`, an `occurs.count` target, a `checksum` field, and `min`/`max`/`default`/`const` are all
+  rejected — already caught by the rules that reject every non-integer, non-bool field type (SR-6, SR-7,
+  SR-10, checksum field typing), no new rules needed.
+- **Python reference codec.** A user-type field's value is raw `bytes` of exactly `size_bytes`; the default
+  value is `size_bytes` zero bytes. The reference codec never interprets the type's semantics.
+- **Generated tests.** Per-field value assertions are not generated for a user-type field (its C++ value
+  cannot be expressed as a literal); only decode `Status` and wire-byte equality are checked.
+- **Wireshark dissector.** Shown as raw hex (`FT_BYTES`); the dissector cannot run the user's C++, so the
+  value is never decoded or checked.
 
 ## 15. Export and import
 - `wireforge export <project> -o bundle.yaml` merges all fragments into **one ordinary single-file project** (no `include`),
