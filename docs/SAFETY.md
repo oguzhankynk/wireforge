@@ -11,6 +11,10 @@
 Generated code carries the trace inline as well: each struct is documented with `Defined in <file>:<line> (<JSON
 pointer>)` and each member with its `file:line`.
 
+A user type's own `encode`/`decode` is outside the no-heap check's object-file inspection unless its header is
+compiled into an example the safety-evidence pipeline builds; this is the same "informative, not a conformance
+claim" boundary as the rest of this table, not a new exception.
+
 ## Coding-rule mapping
 WireForge does not claim conformance to MISRA C++ or AUTOSAR C++14 (docs/DECISIONS.md D12). The table maps the
 concerns behind such rules to what enforces them here; rule numbers are examples of related rules.

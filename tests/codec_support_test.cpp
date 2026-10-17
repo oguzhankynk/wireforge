@@ -159,6 +159,43 @@ TEST(CodecSupport, ExpectAndTrailingBytes) {
     EXPECT_EQ(lenient.remaining(), 1U);
 }
 
+TEST(CodecSupport, WriteBytesCopiesUnchanged) {
+    Bytes buffer{};
+    Encoder encoder(Span<std::uint8_t>(buffer), Encoding{});
+    const std::array<std::uint8_t, 3> raw{0xDEU, 0xADU, 0xBEU};
+    encoder.write_bytes(Span<const std::uint8_t>(raw));
+    ASSERT_EQ(encoder.status(), Status::Ok);
+    EXPECT_EQ(encoder.position(), 3U);
+    EXPECT_EQ(buffer[0], 0xDEU);
+    EXPECT_EQ(buffer[1], 0xADU);
+    EXPECT_EQ(buffer[2], 0xBEU);
+}
+
+TEST(CodecSupport, WriteBytesFailsWhenBufferTooSmall) {
+    std::array<std::uint8_t, 2> buffer{};
+    Encoder encoder(Span<std::uint8_t>(buffer), Encoding{});
+    const std::array<std::uint8_t, 3> raw{1U, 2U, 3U};
+    encoder.write_bytes(Span<const std::uint8_t>(raw));
+    EXPECT_EQ(encoder.status(), Status::BufferTooSmall);
+}
+
+TEST(CodecSupport, ReadBytesCopiesUnchanged) {
+    const std::array<std::uint8_t, 3> bytes{0xDEU, 0xADU, 0xBEU};
+    Decoder decoder(Span<const std::uint8_t>(bytes), Encoding{});
+    std::array<std::uint8_t, 3> out{};
+    decoder.read_bytes(Span<std::uint8_t>(out));
+    EXPECT_EQ(decoder.status(), Status::Ok);
+    EXPECT_EQ(out, bytes);
+}
+
+TEST(CodecSupport, ReadBytesFailsWhenTruncated) {
+    const std::array<std::uint8_t, 2> bytes{1U, 2U};
+    Decoder decoder(Span<const std::uint8_t>(bytes), Encoding{});
+    std::array<std::uint8_t, 3> out{};
+    decoder.read_bytes(Span<std::uint8_t>(out));
+    EXPECT_EQ(decoder.status(), Status::Truncated);
+}
+
 TEST(CodecSupport, NoHeapAllocation) {
     const wireforge::testing::AllocationTrap trap;
     Bytes buffer{};

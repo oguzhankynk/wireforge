@@ -32,12 +32,22 @@ from wireforge.model import (
     Struct,
     UserConstant,
     UserHeader,
+    UserType,
 )
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-SECTIONS = ("defines", "profiles", "checksums", "enums", "types", "messages", "interfaces")
+SECTIONS = (
+    "defines",
+    "profiles",
+    "checksums",
+    "enums",
+    "types",
+    "user_types",
+    "messages",
+    "interfaces",
+)
 
 
 @dataclass
@@ -180,6 +190,19 @@ def _checksum(name: str, where: _Where, source: Source) -> Checksum:
     )
 
 
+def _user_type(name: str, where: _Where, source: Source) -> UserType:
+    raw = _mapping(where.node)
+    return UserType(
+        name=name,
+        cpp=raw["cpp"],
+        size_bytes=raw["size_bytes"],
+        source=source,
+        include=raw.get("include"),
+        style=raw.get("style", "quote"),
+        description=raw.get("description"),
+    )
+
+
 def _interface_messages(where: _Where) -> tuple[InterfaceMessage, ...]:
     entries = where.child("messages")
     result = []
@@ -237,6 +260,8 @@ def _add_entry(project: Project, section: str, name: str, where: _Where, source:
         project.enums[name] = Enum(name, raw["type"], raw["values"], source)
     elif section == "types":
         project.types[name] = _struct(name, where, source, message=False)
+    elif section == "user_types":
+        project.user_types[name] = _user_type(name, where, source)
     elif section == "messages":
         project.messages[name] = _struct(name, where, source, message=True)
     else:

@@ -44,6 +44,17 @@ STATUS = "wireforge::Status::"
 SUPPORT = "wireforge::testing::"
 
 
+def _has_user_type(project: Project, fields: tuple[Field, ...]) -> bool:
+    """Whether any field (recursively, through nested structs) is an opaque user type."""
+    for field in fields:
+        if field.type in project.user_types:
+            return True
+        inner = project.types.get(field.type)
+        if inner is not None and _has_user_type(project, inner.fields):
+            return True
+    return False
+
+
 def _identifier(text: str) -> str:
     return re.sub(r"[^A-Za-z0-9]", "_", text)
 
@@ -90,6 +101,8 @@ class _Assignments:
         return lines
 
     def field(self, item: Field, value: object, target: str) -> list[str]:
+        if item.type in self.project.user_types:
+            return []  # opaque N-byte value: left default-constructed, no assignment emitted
         inner = self.project.types.get(item.type)
         if item.occurs is None:
             if inner is not None and isinstance(value, dict):
@@ -549,14 +562,29 @@ def _golden_test(out: Writer, assignments: _Assignments, vector: dict[str, Any])
     out.indent()
     _byte_array(out, "kPayload", payload)
     _byte_array(out, "kFrame", frame)
-    statements = assignments.struct(message, vector["value"], "expected")
-    out.line(f"{'' if statements else 'const '}model::{message.name} expected{{}};")
-    for statement in statements:
-        out.line(statement)
+    # A user-type field is opaque: the value built from the golden pattern leaves it
+    # default-constructed, so its encoded bytes cannot be compared against the reference codec's
+    # bytes for that field.
+    opaque = _has_user_type(project, message.fields)
+    if not opaque:
+        statements = assignments.struct(message, vector["value"], "expected")
+        out.line(f"{'' if statements else 'const '}model::{message.name} expected{{}};")
+        for statement in statements:
+            out.line(statement)
     encoding = encoding_literal(project, message, interface)
     mutable = header_is_written(interface.header or ())
+    opaque_check = (
+        f"EXPECT_EQ({SUPPORT}decode_status<model::{message.name}>({CSPAN}(kPayload), "
+        f"{encoding}), {STATUS}Ok);"
+        if opaque
+        else None
+    )
     for text in _golden_checks(
-        interface.name, encoding, len(frame) - len(payload), mutable=mutable
+        interface.name,
+        encoding,
+        len(frame) - len(payload),
+        mutable=mutable,
+        opaque_check=opaque_check,
     ):
         out.line(text)
     out.dedent()
@@ -564,19 +592,29 @@ def _golden_test(out: Writer, assignments: _Assignments, vector: dict[str, Any])
     out.line()
 
 
-def _golden_checks(interface: str, encoding: str, overhead: int, *, mutable: bool) -> list[str]:
+def _golden_checks(
+    interface: str, encoding: str, overhead: int, *, mutable: bool, opaque_check: str | None
+) -> list[str]:
     ns = f"model::{interface}"
-    lines = [
-        f"EXPECT_TRUE({SUPPORT}golden_round_trip(",
-        f"    expected, {CSPAN}(kPayload), {encoding}));",
-        f"const {CSPAN} golden_frame(kFrame);",
-        f"std::array<std::uint8_t, {ns}::kMaxFrameSize> buffer{{}};",
-        "std::size_t size = 0U;",
-        f"ASSERT_EQ({ns}::encode_frame(expected, {SPAN}(buffer), size), {STATUS}Ok);",
-        f"EXPECT_TRUE({SUPPORT}same_bytes({CSPAN}(buffer.data(), size), golden_frame));",
-        f"{'' if mutable else 'const '}{ns}::Header header{{}};",
-        f"EXPECT_EQ({ns}::decode_header(golden_frame, header), {STATUS}Ok);",
-    ]
+    if opaque_check is not None:
+        lines = [
+            opaque_check,
+            f"const {CSPAN} golden_frame(kFrame);",
+            f"{'' if mutable else 'const '}{ns}::Header header{{}};",
+            f"EXPECT_EQ({ns}::decode_header(golden_frame, header), {STATUS}Ok);",
+        ]
+    else:
+        lines = [
+            f"EXPECT_TRUE({SUPPORT}golden_round_trip(",
+            f"    expected, {CSPAN}(kPayload), {encoding}));",
+            f"const {CSPAN} golden_frame(kFrame);",
+            f"std::array<std::uint8_t, {ns}::kMaxFrameSize> buffer{{}};",
+            "std::size_t size = 0U;",
+            f"ASSERT_EQ({ns}::encode_frame(expected, {SPAN}(buffer), size), {STATUS}Ok);",
+            f"EXPECT_TRUE({SUPPORT}same_bytes({CSPAN}(buffer.data(), size), golden_frame));",
+            f"{'' if mutable else 'const '}{ns}::Header header{{}};",
+            f"EXPECT_EQ({ns}::decode_header(golden_frame, header), {STATUS}Ok);",
+        ]
     if overhead > 0:
         lines.append(
             f"EXPECT_EQ({ns}::decode_header(golden_frame.first({overhead - 1}U), header), "
@@ -658,19 +696,25 @@ class _MessageTests:
         for message in cases.messages:
             self.message(message)
 
-    def outcome(self, subject: str, outcome: Outcome, encoding: str) -> str:
+    def outcome(self, subject: str, outcome: Outcome, encoding: str, *, opaque: bool) -> str | None:
         if isinstance(outcome, bytes):
+            if opaque:
+                return None
             return f"EXPECT_TRUE({SUPPORT}encodes_to({subject}, {CSPAN}(kExpected), {encoding}));"
         return f"EXPECT_TRUE({SUPPORT}encode_fails({subject}, Status::{outcome}, {encoding}));"
 
-    def expected(self, outcome: Outcome) -> None:
-        if isinstance(outcome, bytes):
+    def expected(self, outcome: Outcome, *, opaque: bool) -> None:
+        if isinstance(outcome, bytes) and not opaque:
             _byte_array(self.out, "kExpected", outcome)
 
     def message(self, cases: MessageCases) -> None:
         out = self.out
         name = cases.message.name
         encoding = f"model::k{name}Encoding"
+        # A user-type field is opaque: the value built from the golden pattern leaves it
+        # default-constructed, so its encoded bytes cannot be compared against the reference
+        # codec's bytes for that field.
+        opaque = _has_user_type(self.project, cases.message.fields)
         statements = self.assignments.struct(cases.message, cases.pattern, "value")
         out.line(f"/// Pattern value of {name}: every field inside its range, arrays full.")
         out.line(f"model::{name} pattern_{name}() {{")
@@ -684,16 +728,18 @@ class _MessageTests:
         out.line()
         out.line(f"TEST({name}, Defaults) {{")
         out.indent()
-        self.expected(cases.default_encoded)
+        self.expected(cases.default_encoded, opaque=opaque)
         out.line(f"const model::{name} value{{}};")
         out.line(f"EXPECT_EQ(validate(value), Status::{cases.default_validated});")
-        out.line(self.outcome("value", cases.default_encoded, encoding))
+        line = self.outcome("value", cases.default_encoded, encoding, opaque=opaque)
+        if line is not None:
+            out.line(line)
         out.dedent()
         out.line("}")
         out.line()
         used: set[str] = {"Defaults"}
         for case in cases.encodes:
-            self.encode_case(name, case, encoding, used)
+            self.encode_case(name, case, encoding, used, opaque=opaque)
         for decode in cases.decodes:
             lines = Writer(depth=0)
             _byte_array(lines, "kPayload", decode.payload)
@@ -703,15 +749,19 @@ class _MessageTests:
             )
             _test(out, name, _unique_name(f"Decode_{decode.name}", used), lines.lines)
 
-    def encode_case(self, name: str, case: EncodeCase, encoding: str, used: set[str]) -> None:
+    def encode_case(
+        self, name: str, case: EncodeCase, encoding: str, used: set[str], *, opaque: bool
+    ) -> None:
         out = self.out
         out.line(f"TEST({name}, {_unique_name(_identifier(case.name), used)}) {{")
         out.indent()
-        self.expected(case.encoded)
+        self.expected(case.encoded, opaque=opaque)
         out.line(f"model::{name} value = pattern_{name}();")
         out.line(self.assignments.edit(case.edit))
         out.line(f"EXPECT_EQ(validate(value), Status::{case.validated});")
-        out.line(self.outcome("value", case.encoded, encoding))
+        line = self.outcome("value", case.encoded, encoding, opaque=opaque)
+        if line is not None:
+            out.line(line)
         out.dedent()
         out.line("}")
         out.line()
@@ -1333,20 +1383,33 @@ class _SelfTest:
         self.function(vector["profile"], f"golden_{index}")
         _byte_array(out, "kPayload", bytes.fromhex(vector["payload"]))
         _byte_array(out, "kFrame", bytes.fromhex(vector["frame"]))
-        statements = self.assignments.struct(message, vector["value"], "expected")
-        out.line(f"{'' if statements else 'const '}model::{message.name} expected{{}};")
-        for statement in statements:
-            out.line(statement)
+        # A user-type field is opaque: the value built from the golden pattern leaves it
+        # default-constructed, so its encoded bytes cannot be compared against the reference
+        # codec's bytes for that field.
+        opaque = _has_user_type(project, message.fields)
         ns = f"model::{interface.name}"
         encoding = encoding_literal(project, message, interface)
-        lines = [
-            f'round_trip(checks, "{label}", expected, Bytes(kPayload), {encoding});',
-            f"std::array<std::uint8_t, {ns}::kMaxFrameSize> buffer{{}};",
-            "std::size_t size = 0U;",
-            f"const Status framed = {ns}::encode_frame(",
-            "    expected, Span<std::uint8_t>(buffer), size);",
-            "const bool same_frame = same(Bytes(buffer.data(), size), Bytes(kFrame));",
-            f'checks.expect(framed == Status::Ok && same_frame, "{label}", "encode_frame");',
+        lines: list[str] = []
+        if opaque:
+            lines.append(
+                f'decode_status<model::{message.name}>(checks, "{label}", Bytes(kPayload), '
+                f"Status::Ok, {encoding});"
+            )
+        else:
+            statements = self.assignments.struct(message, vector["value"], "expected")
+            out.line(f"{'' if statements else 'const '}model::{message.name} expected{{}};")
+            for statement in statements:
+                out.line(statement)
+            lines += [
+                f'round_trip(checks, "{label}", expected, Bytes(kPayload), {encoding});',
+                f"std::array<std::uint8_t, {ns}::kMaxFrameSize> buffer{{}};",
+                "std::size_t size = 0U;",
+                f"const Status framed = {ns}::encode_frame(",
+                "    expected, Span<std::uint8_t>(buffer), size);",
+                "const bool same_frame = same(Bytes(buffer.data(), size), Bytes(kFrame));",
+                f'checks.expect(framed == Status::Ok && same_frame, "{label}", "encode_frame");',
+            ]
+        lines += [
             f"generated_tests::Loop_{_identifier(interface.name)}<{ns}::kMaxFrameSize> loop;",
             f'loopback(checks, "{label}", loop, Bytes(kFrame), Bytes(kPayload));',
         ]

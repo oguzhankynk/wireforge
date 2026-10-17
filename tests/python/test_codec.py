@@ -37,11 +37,29 @@ def test_golden_files_are_up_to_date(name: str) -> None:
     assert (GOLDEN / f"{name}.json").read_text(encoding="utf-8") == text
 
 
+def _from_jsonable(value: object) -> object:
+    """Reverse of `golden._jsonable`: restores raw bytes of an opaque user type's value."""
+    if isinstance(value, dict) and set(value) == {"__bytes_hex__"}:
+        return bytes.fromhex(value["__bytes_hex__"])
+    if isinstance(value, dict):
+        return {key: _from_jsonable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_from_jsonable(item) for item in value]
+    return value
+
+
+def _from_jsonable_vector(vector: dict[str, Any]) -> dict[str, Any]:
+    """`_from_jsonable` for a whole golden vector (always a dict at the top level)."""
+    restored = _from_jsonable(vector)
+    assert isinstance(restored, dict)
+    return restored
+
+
 def _golden_vectors() -> list[tuple[str, dict[str, Any]]]:
     vectors: list[tuple[str, dict[str, Any]]] = []
     for name in EXAMPLE_NAMES:
         loaded = json.loads((GOLDEN / f"{name}.json").read_text(encoding="utf-8"))
-        vectors.extend((name, vector) for vector in loaded)
+        vectors.extend((name, _from_jsonable_vector(vector)) for vector in loaded)
     return vectors
 
 

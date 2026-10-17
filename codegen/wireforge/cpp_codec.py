@@ -143,8 +143,9 @@ class CodecWriter:
         ]
 
     def _element_size(self, item: Field) -> str:
-        if self.names.is_struct(item):
-            return f"max_wire_size(wireforge::type_tag<{item.type}>)"
+        if self.names.has_codec(item):
+            cpp_name = self.names.scalar(item.type)
+            return f"max_wire_size(wireforge::type_tag<{cpp_name}>)"
         return f"{BUILTIN_BITS[self.names.base(item.type)] // BYTE_BITS}U"
 
     def _count_owner(self, item: Struct, counter: str) -> Field:
@@ -264,7 +265,7 @@ class CodecWriter:
         return lines
 
     def _encode_value(self, field: Field, subject: str, members: set[str]) -> list[str]:
-        if self.names.is_struct(field):
+        if self.names.has_codec(field):
             return [f"encode({subject}, encoder);"]
         checks = [f"encoder.check_value({c});" for c in self._value_checks(field, subject, members)]
         return [*checks, f"encoder.write({subject});"]
@@ -354,7 +355,7 @@ class CodecWriter:
         return self._decode_occurs(field, subject, members)
 
     def _decode_value(self, field: Field, subject: str, members: set[str]) -> list[str]:
-        if self.names.is_struct(field):
+        if self.names.has_codec(field):
             return [f"decode({subject}, decoder);"]
         checks = [f"decoder.check_value({c});" for c in self._value_checks(field, subject, members)]
         return [f"decoder.read({subject});", *checks]

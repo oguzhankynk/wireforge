@@ -1,0 +1,34 @@
+# Minimal example of a user type: an opaque, fixed-size C++ type whose wire form is
+# entirely the user's own encode/decode free functions (app/include/app/fixed16.hpp).
+schema_version: 1
+project: user_type_demo
+version: "0.0.1"
+namespace: demo::usertype
+defaults: { endian: little, bit_order: msb_first, range_check: { encode: true, decode: false } }
+
+user_includes:
+  include_dirs: [app/include]
+
+user_types:
+  Fixed16:
+    cpp: app::Fixed16
+    description: Opaque 16-bit sample; WireForge only knows it is 2 bytes on the wire.
+    size_bytes: 2
+    include: app/fixed16.hpp
+
+messages:
+  Sample:
+    id: 1
+    fields:
+      - { name: id, type: u8 }
+      - { name: value, type: Fixed16 }
+      - { name: count, type: u8 }
+      - { name: history, type: Fixed16, occurs: { max: 4, count: count } }
+
+interfaces:
+  loopback:
+    version: "0.1.0"
+    direction: both
+    header: none
+    framing: { kind: none }
+    messages: [Sample]

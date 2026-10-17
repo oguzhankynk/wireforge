@@ -171,8 +171,19 @@ class _Flattener:
         enum = self.project.enums.get(item.type)
         base = enum.type if enum is not None else item.type
         occurs = item.occurs
+        user = self.project.user_types.get(item.type)
+        if user is not None:
+            type_value: object = {
+                "kind": "user_type",
+                "cpp": user.cpp,
+                "size_bytes": user.size_bytes,
+            }
+        elif base in self.project.types:
+            type_value = "struct"
+        else:
+            type_value = base
         layout: dict[str, object] = {
-            "type": "struct" if base in self.project.types else base,
+            "type": type_value,
             "bits": item.bits or BUILTIN_BITS.get(base),
             "occurs": None
             if occurs is None

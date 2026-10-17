@@ -284,6 +284,7 @@ class Validator:
         self._resolve_types()
         self._constants()
         self._checksums()
+        self._user_types()
         for item in self.project.types.values():
             self._struct(_Context(f"type {item.name}", item.fields), item)
         for item in self.project.messages.values():
@@ -308,6 +309,7 @@ class Validator:
             ("define", ((n, d.source) for n, d in project.defines.items())),
             ("enum", ((n, e.source) for n, e in project.enums.items())),
             ("type", ((n, t.source) for n, t in project.types.items())),
+            ("user type", ((n, t.source) for n, t in project.user_types.items())),
             ("message", ((n, m.source) for n, m in project.messages.items())),
             ("interface", ((n, i.source) for n, i in project.interfaces.items())),
             ("checksum", ((n, c.source) for n, c in project.checksums.items())),
@@ -353,7 +355,12 @@ class Validator:
             yield f"trailer of interface {interface.name}", interface.trailer
 
     def _resolve_types(self) -> None:
-        known = set(BUILTIN_BITS) | set(self.project.enums) | set(self.project.types)
+        known = (
+            set(BUILTIN_BITS)
+            | set(self.project.enums)
+            | set(self.project.types)
+            | set(self.project.user_types)
+        )
         for owner, fields in self._all_field_lists():
             for item in fields:
                 if item.type in known:
@@ -444,6 +451,21 @@ class Validator:
             message = f"checksum {checksum.name}: include {checksum.include!r} must be relative"
             self.report(checksum.source, "SR-20", message + " without '..'", "/include")
 
+    # --- user types -------------------------------------------------------------------------------
+
+    def _user_types(self) -> None:
+        for item in self.project.user_types.values():
+            if item.size_bytes <= 0:
+                self.report(
+                    item.source,
+                    "SR-6",
+                    f"user type {item.name}: size_bytes must be positive",
+                    "/size_bytes",
+                )
+            if item.include is not None and not _is_relative_path(item.include):
+                message = f"user type {item.name}: include {item.include!r} must be relative"
+                self.report(item.source, "SR-20", message + " without '..'", "/include")
+
     # --- expressions ------------------------------------------------------------------------------
 
     def _parse(self, raw: Value, at: _At) -> expr.Node | None:
@@ -485,7 +507,9 @@ class Validator:
             if (enum, member) not in self.members:
                 self.report(at, "SR-5", f"unknown enum member {enum}.{member}")
         for type_name in sorted(expr.call_arguments(node, "sizeof")):
-            if type_name not in self.project.types and type_name not in BUILTIN_BITS:
+            known_sizeof = type_name in self.project.types or type_name in BUILTIN_BITS
+            known_sizeof = known_sizeof or type_name in self.project.user_types
+            if not known_sizeof:
                 self.report(at, "SR-5", f"sizeof: unknown type {type_name!r}")
         return static
 
@@ -556,6 +580,8 @@ class Validator:
             return BUILTIN_BITS[type_name]
         if type_name in self.project.enums:
             return BUILTIN_BITS[self.project.enums[type_name].type]
+        if type_name in self.project.user_types:
+            return self.project.user_types[type_name].size_bytes * BYTE_BITS
         item = self.project.types.get(type_name)
         if item is None or type_name in self.cyclic:
             return None

@@ -125,6 +125,9 @@ class Names:
 
     def scalar(self, type_name: str) -> str:
         """C++ type of one element of a field."""
+        user = self.project.user_types.get(type_name)
+        if user is not None:
+            return user.cpp
         return SCALAR_TYPES.get(type_name, type_name)
 
     def member_type(self, item: Field) -> str:
@@ -142,6 +145,14 @@ class Names:
     def is_struct(self, item: Field) -> bool:
         """Whether the field's type is a struct."""
         return item.type in self.project.types
+
+    def is_user_type(self, item: Field) -> bool:
+        """Whether the field's type is a user type (opaque, user-owned encode/decode)."""
+        return item.type in self.project.user_types
+
+    def has_codec(self, item: Field) -> bool:
+        """Whether the field's type has its own encode/decode functions (struct or user type)."""
+        return self.is_struct(item) or self.is_user_type(item)
 
     # --- expressions ----------------------------------------------------------------------------
 

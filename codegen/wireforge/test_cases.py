@@ -285,6 +285,8 @@ class _ProfileOracle:
             occurs = item.occurs
             dynamic = occurs.count is not None or occurs.fill or item.type == "char"
             return [("empty", CLEAR)] if dynamic else []
+        if item.type in self.project.user_types:
+            return []  # opaque N-byte value: no boundary/mutation strategy
         if item.type in self.project.enums:
             return self.enum_edits(item)
         if item.type in FLOAT_TYPES:

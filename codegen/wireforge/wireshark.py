@@ -173,6 +173,9 @@ class _Builder:
         return enum.type if enum is not None else item.type
 
     def scalar_width(self, item: Field) -> int:
+        user = self.project.user_types.get(item.type)
+        if user is not None:
+            return user.size_bytes
         return BUILTIN_BITS[self.base_type(item)] // BYTE_BITS
 
     def fixed_size(self, fields: tuple[Field, ...], what: str) -> int:
@@ -320,6 +323,13 @@ class _Layout:
             spec = FieldSpec(abbr, item.name, "none", description=self.describe(item))
             entry["abbr"] = self.registry.add(spec)
             entry["fields"] = self.struct(inner.fields, f"{path}{item.name}.")
+            return entry
+        user = builder.project.user_types.get(item.type)
+        if user is not None:
+            entry["kind"] = "bytes"
+            entry["width"] = user.size_bytes
+            spec = FieldSpec(abbr, self.label(item), "bytes", description=self.describe(item))
+            entry["abbr"] = self.registry.add(spec)
             return entry
         entry["kind"] = "scalar"
         entry["type"] = item.type

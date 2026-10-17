@@ -1,0 +1,47 @@
+[
+  {
+    "frame": "00000000",
+    "interface": "loopback",
+    "message": "Sample",
+    "payload": "00000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "count": 0,
+      "history": [],
+      "id": 0,
+      "value": {
+        "__bytes_hex__": "0000"
+      }
+    }
+  },
+  {
+    "frame": "aa0001040001010202030304",
+    "interface": "loopback",
+    "message": "Sample",
+    "payload": "aa0001040001010202030304",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "count": 4,
+      "history": [
+        {
+          "__bytes_hex__": "0001"
+        },
+        {
+          "__bytes_hex__": "0102"
+        },
+        {
+          "__bytes_hex__": "0203"
+        },
+        {
+          "__bytes_hex__": "0304"
+        }
+      ],
+      "id": 170,
+      "value": {
+        "__bytes_hex__": "0001"
+      }
+    }
+  }
+]
