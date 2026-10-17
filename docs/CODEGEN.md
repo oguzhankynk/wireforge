@@ -39,6 +39,12 @@ constexpr std::size_t max_wire_size(wireforge::TypeTag<SensorReading>) noexcept;
 - Sizes are `constexpr` and follow the build's defines and `#if` blocks; call them as
   `max_wire_size(wireforge::type_tag<SensorReading>)`.
 
+## Requirement vectors
+With a `vectors` section the test project also has `hlr_vector_test.cpp` (`TEST(HlrVector, <name>)`, one per profile
+a vector applies to) and the self-test checks the same vectors without a test framework. Each test decodes or encodes
+the vector's bytes and compares with the values written in the model, never with the reference codec, and records the
+requirement ids of the vector (docs/SCHEMA_SPEC.md section 18). A project without vectors gets neither file.
+
 ## User types
 A `user_types` entry declares a field type WireForge never looks inside — only its fixed `size_bytes`:
 ```yaml

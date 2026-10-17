@@ -1,0 +1,71 @@
+schema_version: 1
+vectors:
+  nodeb_status_nominal_a:
+    description: Status burst with three channels and a three byte diagnostic tail.
+    interface: nodeB_to_our
+    message: NodeBStatus
+    profile: platformA
+    bytes: "E8030000 6400 C800 2C01 010203"
+    expect:
+      fields: { uptimeMs: 1000, channelMv: [100, 200, 300], diag: [1, 2, 3] }
+    reqs: [HLR-NBS-001]
+  nodeb_status_nominal_b:
+    description: The same burst with the five channels of platform B.
+    interface: nodeB_to_our
+    message: NodeBStatus
+    profile: platformB
+    bytes: "E8030000 6400 C800 2C01 9001 F401 010203"
+    expect:
+      fields: { uptimeMs: 1000, channelMv: [100, 200, 300, 400, 500], diag: [1, 2, 3] }
+    reqs: [HLR-NBS-001]
+  nodeb_status_truncated:
+    description: A burst that ends inside the uptime.
+    interface: nodeB_to_our
+    message: NodeBStatus
+    bytes: "E80300"
+    expect: { status: Truncated }
+    reqs: [HLR-NBS-001]
+  nav_solution_nominal:
+    description: Navigation solution with an altitude and one track.
+    interface: our_to_nodeA
+    message: NavSolution
+    profile: platformA
+    bytes: "A55A 01 0201 001C 05 01 03E8 4046800000000000 4022000000000000 01 0007 64 3F000000 52D5"
+    expect:
+      fields:
+        flags: { valid: true, mode: navigate }
+        alt: [1000]
+        lat: 45.0
+        lon: 9.0
+        tracks: [{ id: 7, quality: 100 }]
+        ratio: 0.5
+    reqs: [HLR-NAV-001]
+  nav_solution_too_many_tracks:
+    description: Four tracks on platform A, which carries at most three.
+    message: NavSolution
+    profile: platformA
+    bytes: "05 00 4046800000000000 4022000000000000 04 0001 10 0002 20 0003 30 0004 40 3F000000"
+    expect: { status: OutOfRange }
+    reqs: [HLR-NAV-002]
+  nav_solution_bad_checksum:
+    description: The last checksum byte is inverted.
+    interface: our_to_nodeA
+    message: NavSolution
+    profile: platformA
+    bytes: "A55A 01 0201 001C 05 01 03E8 4046800000000000 4022000000000000 01 0007 64 3F000000 522A"
+    expect: { status: ChecksumMismatch }
+    reqs: [HLR-LNK-001]
+  command_nominal:
+    description: Command 0x0102 to target 2; the sum is 2 + 1 + 2.
+    interface: our_to_nodeC
+    message: Command
+    bytes: "0030 07 05 02 0102 0005"
+    expect: { fields: { target: 2, opcode: 258 } }
+    reqs: [HLR-CMD-001]
+  command_target_out_of_range:
+    description: Target 5 is above the four nodes; the sum is 5 + 1 + 2.
+    interface: our_to_nodeC
+    message: Command
+    bytes: "0030 07 05 05 0102 0008"
+    expect: { status: OutOfRange }
+    reqs: [HLR-CMD-001]

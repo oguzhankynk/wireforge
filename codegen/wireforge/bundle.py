@@ -16,7 +16,7 @@ from typing import Any, cast
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 
-from wireforge import schema, versioning
+from wireforge import schema, vectors, versioning
 from wireforge.issues import Issue, errors_only
 from wireforge.loader import SECTIONS, load_project, to_plain
 from wireforge.validate import Validator, validate_project
@@ -28,6 +28,7 @@ LAYOUT = {
     "requirements": "requirements/requirements.yaml",
     "profiles": "profiles/profiles.yaml",
     "messages": "messages/messages.yaml",
+    "vectors": "vectors/vectors.yaml",
 }
 TYPE_SECTIONS = ("enums", "types")
 ROOT_SECTIONS = ("defines", "checksums")
@@ -74,6 +75,8 @@ def build_bundle(location: Path) -> dict[str, Any]:
     issues = list(result.issues)
     if result.project is not None:
         issues += Validator(result.project).run()
+        if not errors_only(issues):
+            issues += vectors.check(result.project)
     if result.project is None or errors_only(issues):
         message = f"{location}: export refused, the project has errors"
         raise BundleError(message, errors_only(issues))

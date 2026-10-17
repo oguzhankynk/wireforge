@@ -78,7 +78,7 @@ def test_basic_example_documents() -> None:
         assert rid in files["requirements.md"]
     assert files["traceability.csv"].startswith("llr,kind,parents,code,tests,derived\n")
     tests = files["test_spec.csv"].splitlines()
-    assert len(tests) - 1 == len(_context(EXAMPLES / "01_basic_telemetry").tests) == 35
+    assert len(tests) - 1 == len(_context(EXAMPLES / "01_basic_telemetry").tests) == 39
     assert "Test results: not provided." in files["test_report.md"]
 
 
@@ -128,7 +128,7 @@ INLINE = """\
 schema_version: 1
 project: inline
 requirements:
-  HLR-1: { text: Carry the A message. }
+  HLR-1: { text: Carry the A message., verification: review }
 messages:
   A:
     id: 1

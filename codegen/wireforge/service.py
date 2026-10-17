@@ -40,6 +40,7 @@ from wireforge import (
     schema,
     test_project,
     trace,
+    vectors,
     versioning,
     wireshark,
 )
@@ -94,6 +95,9 @@ def _load_valid(location: Path) -> tuple[Project | None, list[Issue]]:
     if result.project is None:
         return None, result.issues
     issues = result.issues + Validator(result.project).run()
+    if not errors_only(issues):
+        plugins = load_plugins(find_plugins(location))
+        issues += vectors.check(result.project, plugins)
     return (None if errors_only(issues) else result.project), issues
 
 
@@ -109,6 +113,8 @@ def validate(location: Path) -> Result:
     issues = list(result.issues)
     if result.project is not None:
         issues += Validator(result.project).run()
+        if not errors_only(issues):
+            issues += vectors.check(result.project, load_plugins(find_plugins(location)))
     ok = not errors_only(issues)
     files = result.project.files if result.project is not None else []
     text = _issues_text(issues) or f"{location}: OK\n"

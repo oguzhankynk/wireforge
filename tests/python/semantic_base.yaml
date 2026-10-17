@@ -69,6 +69,14 @@ messages:
       - { name: kind, type: u8, const: 0x42 }
       - { name: data, type: u8, occurs: { max: 32, fill: true } }
 
+vectors:
+  blob_nominal:
+    description: A blob of three bytes.
+    message: Blob
+    bytes: "42 01_02 03"
+    expect: { fields: { data: [1, 2, 3] } }
+    reqs: [HLR-1]
+
 interfaces:
   main:
     version: "1.0.0"

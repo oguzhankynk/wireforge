@@ -20,6 +20,7 @@ from dataclasses import asdict, dataclass, replace
 from typing import TYPE_CHECKING
 
 from wireforge import cpp_tests, generate, golden, layout, llr, test_cases
+from wireforge import vectors as requirement_vectors
 from wireforge.cpp import wire_only
 from wireforge.generate import source_text
 
@@ -305,13 +306,17 @@ def render_test_sources(
 ) -> dict[str, str]:
     """Render the three GoogleTest sources of a valid project: file name -> content."""
     profiles = test_cases.cases(project, plugins)
-    vectors = golden.vectors(project, plugins)
+    golden_vectors = golden.vectors(project, plugins)
     sizes = layout.analyze(project)
-    return {
-        "golden_test.cpp": cpp_tests.golden_test_source(project, vectors),
+    files = {
+        "golden_test.cpp": cpp_tests.golden_test_source(project, golden_vectors),
         "message_test.cpp": cpp_tests.message_test_source(project, profiles, sizes),
         "interface_test.cpp": cpp_tests.interface_test_source(project, profiles, sizes),
     }
+    if project.vectors:
+        runs = requirement_vectors.run(project, plugins)
+        files["hlr_vector_test.cpp"] = cpp_tests.hlr_vector_test_source(project, runs)
+    return files
 
 
 def parse_tests(sources: dict[str, str]) -> list[ParsedTest]:

@@ -74,6 +74,9 @@
     },
     "requirements": {
       "$ref": "#/$defs/sections/properties/requirements"
+    },
+    "vectors": {
+      "$ref": "#/$defs/sections/properties/vectors"
     }
   },
   "additionalProperties": false,
@@ -966,6 +969,15 @@
           "additionalProperties": {
             "$ref": "#/$defs/requirementDef"
           }
+        },
+        "vectors": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/vectorDef"
+          }
         }
       }
     },
@@ -1139,6 +1151,87 @@
             "review"
           ],
           "description": "How the requirement is verified (default test)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "vectorDef": {
+      "type": "object",
+      "required": [
+        "message",
+        "bytes",
+        "expect",
+        "reqs"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "interface": {
+          "$ref": "#/$defs/identifier"
+        },
+        "message": {
+          "$ref": "#/$defs/identifier"
+        },
+        "profile": {
+          "$ref": "#/$defs/identifier"
+        },
+        "direction": {
+          "enum": [
+            "decode",
+            "encode",
+            "both"
+          ],
+          "description": "decode (default), encode or both."
+        },
+        "bytes": {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f _]+$",
+          "description": "Payload (or frame, with `interface`) as hex; spaces and underscores are ignored."
+        },
+        "expect": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "fields"
+              ],
+              "properties": {
+                "fields": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "description": "Expected field values, in the shape of the decoded message."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "status"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "BufferTooSmall",
+                    "Truncated",
+                    "OutOfRange",
+                    "CountExceedsMax",
+                    "ConstMismatch",
+                    "ChecksumMismatch",
+                    "UnknownMessageId",
+                    "InvalidLength",
+                    "TrailingBytes",
+                    "InvalidState"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "reqs": {
+          "$ref": "#/$defs/reqs"
         }
       },
       "additionalProperties": false

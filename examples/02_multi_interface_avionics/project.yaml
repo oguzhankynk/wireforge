@@ -13,6 +13,7 @@ include:
   - types/*.yaml
   - messages/*.yaml
   - interfaces/*.yaml
+  - vectors/*.yaml
 
 defines:
   MAX_TRACKS: 8

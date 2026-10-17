@@ -39,6 +39,9 @@
     },
     "requirements": {
       "$ref": "project.schema.json#/$defs/sections/properties/requirements"
+    },
+    "vectors": {
+      "$ref": "project.schema.json#/$defs/sections/properties/vectors"
     }
   },
   "additionalProperties": false,

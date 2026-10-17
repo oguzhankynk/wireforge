@@ -37,9 +37,16 @@ reject the model; each finding is printed and listed in `index.md`:
 | DS-1 | the project defines no requirements |
 | DS-2 | a message or interface without any high-level requirement behind it |
 | DS-3 | a low-level requirement without a generated test (requirements the runtime tests verify are exempt) |
-| DS-4 | a requirement verified by `test` that no model element uses |
+| DS-4 | a requirement verified by `test` that no model element uses, or that has no requirement vector |
 
 With no requirements only DS-1 is reported. The documents are written in any case.
+
+## Two kinds of expectation
+Most generated tests take their expected result from the reference codec of WireForge (oracle `reference-codec`). A
+mistake in how the model is read would then be in both the codec and the generated code, and the tests would stay
+green. Requirement vectors (docs/SCHEMA_SPEC.md section 18) are written by you from the ICD; their tests carry the
+oracle `hlr-vector` in `test_spec.md`. A requirement verified by `test` needs at least one vector (rule DS-4); one
+verified by `analysis` or `review` does not, and is listed instead.
 
 ## What this is not
 These documents are evidence for your own process. WireForge does not claim that any output is certified or compliant,

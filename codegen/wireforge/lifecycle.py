@@ -22,7 +22,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from wireforge import generate, golden, layout, llr, test_cases, test_project, trace, versioning
+from wireforge import (
+    generate,
+    golden,
+    layout,
+    llr,
+    test_cases,
+    test_project,
+    trace,
+    vectors,
+    versioning,
+)
 from wireforge.test_cases import OK
 
 if TYPE_CHECKING:
@@ -146,6 +156,7 @@ class _Note:
     procedure: str
     expected: str
     robust: bool = False
+    oracle: str = "reference-codec"
 
 
 # --- DO-178C table (our own words; the standard is not quoted) ------------------------------------
@@ -392,6 +403,7 @@ def _notes(project: Project, plugins: dict[str, ChecksumPlugin] | None) -> dict[
                         robust=True,
                     ),
                 )
+    notes.update(_vector_notes(project, plugins))
     for vector in golden.vectors(project, plugins):
         name = _identifier(f"{vector['interface']}_{vector['message']}_{vector['sample']}")
         frame = len(bytes.fromhex(vector["frame"]))
@@ -399,6 +411,23 @@ def _notes(project: Project, plugins: dict[str, ChecksumPlugin] | None) -> dict[
             "Serialize the golden value, compare payload and frame with the golden bytes, "
             "loop the frame back through Link and Endpoint.",
             f"encodes to the golden frame ({frame} bytes) and is delivered unchanged",
+        )
+    return notes
+
+
+def _vector_notes(
+    project: Project, plugins: dict[str, ChecksumPlugin] | None
+) -> dict[NoteKey, _Note]:
+    """Return the notes of the requirement vectors; their oracle is the user's expectation."""
+    notes: dict[NoteKey, _Note] = {}
+    for run in vectors.run(project, plugins):
+        vector = run.vector
+        level = f"frame of interface {vector.interface}" if vector.interface else "payload"
+        verbs = {"decode": "Decode", "encode": "Encode", "both": "Decode and encode"}
+        procedure = f"{verbs[vector.direction]} the {level} bytes of vector {vector.name}."
+        expected = f"status {vector.status}" if vector.status else "the field values of the vector"
+        notes[run.profile, "HlrVector", vector.name] = _Note(
+            procedure, expected, robust=vector.status is not None, oracle="hlr-vector"
         )
     return notes
 
@@ -442,7 +471,7 @@ def _tests(
                 by_profile[item.profile],
                 item.profile,
                 "robustness" if note.robust else "normal",
-                "reference-codec",
+                note.oracle,
                 item.ids,
                 note.procedure,
                 note.expected,
@@ -521,13 +550,17 @@ def strict_findings(ctx: DocsContext) -> list[StrictFinding]:
     ]
     used = {rid for row in ctx.rows for rid in row.requirements}
     used |= {parent for item in ctx.llrs for parent in item.parents}
-    findings += [
-        StrictFinding(
-            "DS-4", f"requirement {rid} is not linked to any model element", f"/requirements/{rid}"
-        )
-        for rid, item in project.requirements.items()
-        if rid not in used and item.verification == "test"
-    ]
+    vectored = {rid for vector in project.vectors.values() for rid in vector.reqs}
+    for rid, requirement in project.requirements.items():
+        if requirement.verification != "test":
+            continue
+        pointer = f"/requirements/{rid}"
+        if rid not in used and rid not in vectored:
+            text = f"requirement {rid} is not linked to any model element"
+            findings.append(StrictFinding("DS-4", text, pointer))
+        elif rid not in vectored:
+            text = f"requirement {rid} is verified by test but has no requirement vector"
+            findings.append(StrictFinding("DS-4", text, pointer))
     return findings
 
 
@@ -587,7 +620,7 @@ def _index(ctx: DocsContext, findings: list[StrictFinding]) -> str:
     }
     rules |= {
         "DS-3": "low-level requirement without a test",
-        "DS-4": "requirement without a model element",
+        "DS-4": "requirement without a model element or vector",
     }
     rows = []
     for rule, text in rules.items():
@@ -943,7 +976,8 @@ def _traceability(ctx: DocsContext) -> tuple[str, str]:
     rows: list[Sequence[object]] = []
     for rid in ctx.project.requirements:
         low = [row for row in ctx.llr_rows if rid in row.parents]
-        tests = sorted({test for row in low for test in row.tests})
+        tests = {test for row in low for test in row.tests}
+        tests |= {entry.id for entry in ctx.tests if rid in entry.verifies}
         elements = ", ".join(f"`{item}`" for item in users.get(rid, [])) or "-"
         generated = sorted({row.generated for row in low if row.generated})
         rows.append(

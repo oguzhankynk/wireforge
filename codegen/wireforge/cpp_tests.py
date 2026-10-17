@@ -34,19 +34,21 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
     from wireforge.layout import InterfaceLayout, LayoutReport, MessageLayout, ProfileLayout
-    from wireforge.model import Field, Interface, Project, Struct
+    from wireforge.model import Field, Interface, Project, Struct, Vector
     from wireforge.test_cases import (
         EncodeCase,
         InterfaceCases,
         MessageCases,
         ProfileCases,
     )
+    from wireforge.vectors import VectorRun
 
 BYTES_PER_LINE = 12
 SPAN = "wireforge::Span<std::uint8_t>"
 CSPAN = "wireforge::Span<const std::uint8_t>"
 STATUS = "wireforge::Status::"
 SUPPORT = "wireforge::testing::"
+FLOAT_LITERAL = re.compile(r"^-?(?=[\d.eE+-]*[.eEFf])\d+(\.\d*)?([eE][-+]?\d+)?[Ff]?$")
 
 
 def _has_user_type(project: Project, fields: tuple[Field, ...]) -> bool:
@@ -172,11 +174,15 @@ def _close_profile(out: Writer, profile: str | None) -> None:
         out.line()
 
 
+def _record(out: Writer, ids: tuple[str, ...]) -> None:
+    """Record the requirement ids a test verifies (nothing for an empty list)."""
+    if ids:
+        out.line(f'::testing::Test::RecordProperty("requirements", "{",".join(ids)}");')
+
+
 def _property(out: Writer, keys: tuple[str, ...]) -> None:
-    """Record the requirements a test verifies (nothing for an empty list)."""
-    if keys:
-        ids = ",".join(display_id(key) for key in keys)
-        out.line(f'::testing::Test::RecordProperty("requirements", "{ids}");')
+    """Record the low-level requirements a test verifies, given as keys."""
+    _record(out, tuple(display_id(key) for key in keys))
 
 
 def _test(
@@ -1120,6 +1126,235 @@ def interface_test_source(
     return _InterfaceTests(project, layout).render(profiles)
 
 
+# --- hlr_vector_test.cpp -----------------------------------------------------------------------
+
+
+class _VectorCode:
+    """C++ statements that check one requirement vector, for GoogleTest or the self-test.
+
+    The expectations are the values written in the model; the reference codec is not asked.
+    """
+
+    def __init__(self, project: Project, label: str, *, selftest: bool) -> None:
+        self.project = project
+        self.label = label
+        self.selftest = selftest
+        self.assignments = _Assignments(project)
+
+    # --- statement forms ------------------------------------------------------------------------
+
+    def equal(self, actual: str, expected: str, *, fatal: bool = False) -> str:
+        if self.selftest:
+            return f'checks.expect({self.same(actual, expected)}, "{self.label}", "{actual}");'
+        return f"{'ASSERT' if fatal else 'EXPECT'}_EQ({actual}, {expected});"
+
+    @staticmethod
+    def same(actual: str, expected: str) -> str:
+        """Compare in the self-test: no `==` on floats (-Wfloat-equal), no `== true`."""
+        if expected == "true":
+            return actual
+        if expected == "false":
+            return f"!{actual}"
+        if FLOAT_LITERAL.match(expected):
+            return f"(!({actual} < {expected}) && !({expected} < {actual}))"
+        return f"{actual} == {expected}"
+
+    def truth(self, condition: str, what: str) -> str:
+        if self.selftest:
+            return f'checks.expect({condition}, "{self.label}", "{what}");'
+        return f"EXPECT_TRUE({condition});"
+
+    def spans(self, name: str) -> str:
+        return f"Bytes({name})" if self.selftest else f"{CSPAN}({name})"
+
+    def out_span(self, name: str) -> str:
+        return f"Span<std::uint8_t>({name})" if self.selftest else f"{SPAN}({name})"
+
+    def status(self, value: str) -> str:
+        return f"Status::{value}" if self.selftest else f"{STATUS}{value}"
+
+    # --- one vector -----------------------------------------------------------------------------
+
+    def lines(self, vector: Vector) -> list[str]:
+        project = self.project
+        message = project.messages[vector.message]
+        interface = project.interfaces[vector.interface] if vector.interface else None
+        encoding = (
+            encoding_literal(project, message, interface)
+            if interface is not None
+            else f"model::k{message.name}Encoding"
+        )
+        out = Writer(depth=0)
+        _byte_array(out, "kBytes", vector.data or b"")
+        if vector.direction in {"decode", "both"}:
+            for text in self.decode(vector, message, interface, encoding):
+                out.line(text)
+        if vector.direction in {"encode", "both"} and not _has_user_type(project, message.fields):
+            for text in self.encode(vector, message, interface, encoding):
+                out.line(text)
+        return out.lines
+
+    def decode(
+        self, vector: Vector, message: Struct, interface: Interface | None, encoding: str
+    ) -> list[str]:
+        if interface is None:
+            return self.decode_payload(vector, message, encoding)
+        name = _identifier(interface.name)
+        size = max(len(vector.data or b""), 1)
+        lines = [
+            f"generated_tests::Loop_{name}<{size}U> loop;",
+            self.equal("loop.endpoint.status()", self.status("Ok"), fatal=True),
+            self.equal(
+                f"loop.link.send_frame({self.spans('kBytes')})", self.status("Ok"), fatal=True
+            ),
+            "const wireforge::PollResult polled = loop.link.poll();",
+        ]
+        if vector.status is not None:
+            lines += [
+                self.equal("loop.recorder.count()", "0U"),
+                self.equal("polled.frames", "0U"),
+                self.truth("polled.errors >= 1U", "errors"),
+            ]
+            if not interface.framing.resync or interface.framing.kind == "none":
+                lines.append(self.equal("polled.last_error", self.status(vector.status)))
+            return lines
+        lines += [
+            self.equal("polled.frames", "1U"),
+            self.equal("polled.errors", "0U"),
+            self.equal("loop.recorder.count()", "1U", fatal=True),
+        ]
+        return lines + self.fields(vector, message, "loop.recorder.last()", encoding)
+
+    def decode_payload(self, vector: Vector, message: Struct, encoding: str) -> list[str]:
+        if vector.status is None:
+            return self.fields(vector, message, self.spans("kBytes"), encoding)
+        if self.selftest:
+            check = (
+                f'decode_status<model::{message.name}>(checks, "{self.label}", Bytes(kBytes), '
+                f"Status::{vector.status}, {encoding});"
+            )
+            return [check]
+        call = f"{SUPPORT}decode_status<model::{message.name}>({CSPAN}(kBytes), {encoding})"
+        return [f"EXPECT_EQ({call}, {STATUS}{vector.status});"]
+
+    def fields(self, vector: Vector, message: Struct, payload: str, encoding: str) -> list[str]:
+        call = f"deserialize({payload}, decoded, {encoding})"
+        lines = [
+            f"model::{message.name} decoded{{}};",
+            self.equal(call, self.status("Ok"), fatal=True),
+        ]
+        return lines + self.expectations(message, vector.fields or {}, "decoded")
+
+    def expectations(self, struct_: Struct, expected: dict[str, Any], target: str) -> list[str]:
+        lines: list[str] = []
+        for field in struct_.fields:
+            if field.name not in expected or field.type in self.project.user_types:
+                continue
+            value = expected[field.name]
+            here = f"{target}.{field.name}"
+            inner = self.project.types.get(field.type)
+            if field.occurs is None:
+                if inner is not None and isinstance(value, dict):
+                    lines += self.expectations(inner, value, here)
+                else:
+                    lines.append(self.equal(here, self.assignments.literal(field, value)))
+            elif field.type == "char":
+                lines.append(self.equal(f"{here}.view()", string_literal(str(value))))
+            else:
+                lines += self.elements(field, inner, value, here)
+        return lines
+
+    def elements(self, field: Field, inner: Struct | None, value: object, here: str) -> list[str]:
+        items = value if isinstance(value, list) else []
+        lines = [self.equal(f"{here}.size()", f"{len(items)}U", fatal=True)]
+        for index, element in enumerate(items):
+            slot = f"{here}[{index}U]"
+            if inner is not None and isinstance(element, dict):
+                lines += self.expectations(inner, element, slot)
+            else:
+                lines.append(self.equal(slot, self.assignments.literal(field, element)))
+        return lines
+
+    def encode(
+        self, vector: Vector, message: Struct, interface: Interface | None, encoding: str
+    ) -> list[str]:
+        lines = [f"model::{message.name} value{{}};"]
+        lines += self.assignments.struct(message, vector.fields or {}, "value")
+        if interface is None:
+            if self.selftest:
+                tag = f"wireforge::type_tag<model::{message.name}>"
+                lines += [
+                    f"std::array<std::uint8_t, max_wire_size({tag}) + 1U> buffer{{}};",
+                    "std::size_t size = 0U;",
+                    self.equal(
+                        f"serialize(value, Span<std::uint8_t>(buffer), size, {encoding})",
+                        "Status::Ok",
+                    ),
+                    self.truth("same(Bytes(buffer.data(), size), Bytes(kBytes))", "payload"),
+                ]
+                return lines
+            lines.append(f"EXPECT_TRUE({SUPPORT}encodes_to(value, {CSPAN}(kBytes), {encoding}));")
+            return lines
+        ns = f"model::{interface.name}"
+        lines += [
+            f"std::array<std::uint8_t, {ns}::kMaxFrameSize> buffer{{}};",
+            "std::size_t size = 0U;",
+            self.equal(
+                f"{ns}::encode_frame(value, {self.out_span('buffer')}, size)",
+                self.status("Ok"),
+                fatal=True,
+            ),
+        ]
+        same = (
+            "same(Bytes(buffer.data(), size), Bytes(kBytes))"
+            if self.selftest
+            else f"{SUPPORT}same_bytes({CSPAN}(buffer.data(), size), {CSPAN}(kBytes))"
+        )
+        lines.append(self.truth(same, "frame"))
+        return lines
+
+
+class _HlrVectorTests:
+    """Writes hlr_vector_test.cpp: the vectors of the model, checked against the user's values."""
+
+    def __init__(self, project: Project) -> None:
+        self.project = project
+        self.out = Writer()
+
+    def render(self, runs: list[VectorRun]) -> str:
+        out = self.out
+        includes = [*_interface_includes(self.project), "handlers.hpp", "test_support.hpp"]
+        _header(out, self.project, includes)
+        out.line("using wireforge::Status;")
+        out.line()
+        profiles: dict[str | None, list[VectorRun]] = {}
+        for item in runs:
+            profiles.setdefault(item.profile, []).append(item)
+        for profile, items in profiles.items():
+            _open_profile(out, profile)
+            for item in items:
+                self.test(item.vector)
+            _close_profile(out, profile)
+        out.line("} // namespace")
+        return out.text()
+
+    def test(self, vector: Vector) -> None:
+        out = self.out
+        out.line(f"TEST(HlrVector, {vector.name}) {{")
+        out.indent()
+        _record(out, vector.reqs)
+        for text in _VectorCode(self.project, vector.name, selftest=False).lines(vector):
+            out.line(text)
+        out.dedent()
+        out.line("}")
+        out.line()
+
+
+def hlr_vector_test_source(project: Project, runs: list[VectorRun]) -> str:
+    """Test of every requirement vector against the values written in the model."""
+    return _HlrVectorTests(project).render(runs)
+
+
 # --- diff_harness.cpp and fuzz_target.cpp ------------------------------------------------------
 
 HARNESS_HEAD = """\
@@ -1450,7 +1685,12 @@ class _SelfTest:
         self.out = Writer()
         self.calls: dict[str | None, list[str]] = {}
 
-    def render(self, vectors: list[dict[str, Any]], profiles: tuple[ProfileCases, ...]) -> str:
+    def render(
+        self,
+        vectors: list[dict[str, Any]],
+        profiles: tuple[ProfileCases, ...],
+        runs: list[VectorRun],
+    ) -> str:
         out = self.out
         _header(
             out,
@@ -1470,6 +1710,10 @@ class _SelfTest:
             for message in profile.messages:
                 self.decodes(profile.profile, message)
             _close_profile(out, profile.profile)
+        for run in runs:
+            _open_profile(out, run.profile)
+            self.requirement_vector(run)
+            _close_profile(out, run.profile)
         out.line("} // namespace")
         out.line()
         self.main([profile.profile for profile in profiles])
@@ -1528,6 +1772,13 @@ class _SelfTest:
             out.line(text)
         self.end()
 
+    def requirement_vector(self, run: VectorRun) -> None:
+        vector = run.vector
+        self.function(run.profile, f"requirement_vector_{_identifier(vector.name)}")
+        for text in _VectorCode(self.project, vector.name, selftest=True).lines(vector):
+            self.out.line(text)
+        self.end()
+
     def decodes(self, profile: str | None, cases: MessageCases) -> None:
         name = cases.message.name
         for case in cases.decodes:
@@ -1565,7 +1816,10 @@ class _SelfTest:
 
 
 def selftest_source(
-    project: Project, vectors: list[dict[str, Any]], profiles: tuple[ProfileCases, ...]
+    project: Project,
+    vectors: list[dict[str, Any]],
+    profiles: tuple[ProfileCases, ...],
+    runs: list[VectorRun] | None = None,
 ) -> str:
     """Return the portable self-test: no test framework, exceptions, RTTI or heap.
 
@@ -1573,4 +1827,4 @@ def selftest_source(
     prints failures and returns non-zero when any check fails. It runs on cross targets
     (big-endian, 32-bit) under an emulator.
     """
-    return _SelfTest(project).render(vectors, profiles)
+    return _SelfTest(project).render(vectors, profiles, runs or [])

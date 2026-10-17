@@ -17,6 +17,12 @@ A user type's own `encode`/`decode` is outside the no-heap check's object-file i
 compiled into an example the safety-evidence pipeline builds; this is the same "informative, not a conformance
 claim" boundary as the rest of this table, not a new exception.
 
+## Independent expectations
+The expected result of most generated tests is computed by the reference codec, which reads the model the same way as
+the code generator does. A misreading would show in both, so the tests could not catch it. Requirement vectors are
+bytes and values you write from the ICD; the reference codec only confirms them at validation time, and the generated
+tests compare with your values. That is the common-mode argument for keeping the two sources apart (docs/LIFECYCLE.md).
+
 ## Coding-rule mapping
 WireForge does not claim conformance to MISRA C++ or AUTOSAR C++14 (docs/DECISIONS.md D12). The table maps the
 concerns behind such rules to what enforces them here; rule numbers are examples of related rules.

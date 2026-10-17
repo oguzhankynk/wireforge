@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from wireforge import expr
+from wireforge.cpp import wire_only
 from wireforge.expr import ExprError, Scope
 from wireforge.loader import load_project
 from wireforge.model import (
@@ -33,6 +34,7 @@ from wireforge.model import (
     Source,
     Struct,
     Value,
+    Vector,
 )
 
 if TYPE_CHECKING:
@@ -294,6 +296,7 @@ class Validator:
             self._interface(interface)
         self._user_includes()
         self._requirement_refs()
+        self._vectors()
         return self.issues
 
     # --- requirement references -------------------------------------------------------------------
@@ -326,7 +329,12 @@ class Validator:
         for owner, fields in self._all_field_lists():
             for item in fields:
                 yield f"{owner}: field {item.name}", item.source, item.reqs, ""
-        for interface in project.interfaces.values():
+        for vector in project.vectors.values():
+            yield f"vector {vector.name}", vector.source, vector.reqs, ""
+        yield from self._interface_requirement_users()
+
+    def _interface_requirement_users(self) -> Iterable[tuple[str, Source, tuple[str, ...], str]]:
+        for interface in self.project.interfaces.values():
             yield f"interface {interface.name}", interface.source, interface.reqs, ""
             yield (
                 f"interface {interface.name}",
@@ -341,6 +349,54 @@ class Validator:
                     entry.reqs,
                     "",
                 )
+
+    # --- requirement test vectors -----------------------------------------------------------------
+
+    def _vectors(self) -> None:
+        """SR-22: what a vector says about itself is consistent (the codec check is `vectors`)."""
+        for vector in self.project.vectors.values():
+            for problem, suffix in self._vector_problems(vector):
+                self.report(vector.source, "SR-22", f"vector {vector.name}: {problem}", suffix)
+
+    def _vector_problems(self, vector: Vector) -> Iterable[tuple[str, str]]:
+        project = self.project
+        if vector.data is None:
+            yield "bytes is not hexadecimal", "/bytes"
+        message = project.messages.get(vector.message)
+        if message is None:
+            yield f"unknown message {vector.message!r}", "/message"
+        if vector.profile is not None and vector.profile not in project.profiles:
+            yield f"unknown profile {vector.profile!r}", "/profile"
+        if vector.interface is not None:
+            interface = project.interfaces.get(vector.interface)
+            if interface is None:
+                yield f"unknown interface {vector.interface!r}", "/interface"
+            elif message is not None and vector.message not in {m.name for m in interface.messages}:
+                yield f"message {vector.message} is not on interface {vector.interface}", "/message"
+        if vector.direction != "decode" and vector.fields is None:
+            yield f"direction {vector.direction} needs expect.fields", "/direction"
+        if message is not None and vector.fields is not None:
+            yield from self._vector_fields(vector, message)
+
+    def _vector_fields(self, vector: Vector, message: Struct) -> Iterable[tuple[str, str]]:
+        fields = vector.fields or {}
+        wire_only_names = wire_only(message)
+        names = {item.name for item in message.fields}
+        for name in fields:
+            if name not in names:
+                yield f"expect.fields names unknown field {name!r}", f"/expect/fields/{name}"
+            elif name in wire_only_names:
+                yield f"field {name!r} exists only on the wire", f"/expect/fields/{name}"
+        if vector.direction != "decode":
+            missing = [
+                item.name
+                for item in message.fields
+                if item.name not in wire_only_names
+                and item.condition is None
+                and item.name not in fields
+            ]
+            if missing:
+                yield f"encoding needs every field, missing {', '.join(missing)}", "/expect/fields"
 
     # --- names ------------------------------------------------------------------------------------
 
