@@ -27,6 +27,11 @@ def runtime_include() -> Path:
     return _locate("runtime/include", "runtime/include")
 
 
+def runtime_requirements() -> Path:
+    """Return the file of the runtime requirements."""
+    return _locate("runtime/requirements.yaml", "runtime/requirements.yaml")
+
+
 def cmake_dir() -> Path:
     """Return the directory of the CMake package files (WireForgeConfig.cmake)."""
     return _locate("cmake", "cmake/package")

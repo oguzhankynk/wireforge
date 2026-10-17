@@ -18,6 +18,7 @@ static_assert(std::is_same_v<wireforge::DefaultLock, wireforge::NullLock>,
 static_assert(!wireforge::config::kHasStdMutex, "config reflects the macro");
 
 TEST(LockConfig, RingBuildsWithoutStdMutex) {
+    ::testing::Test::RecordProperty("requirements", "RTR-lock-004");
     std::array<std::uint8_t, 4> storage{};
     wireforge::LockedByteRing<> ring{wireforge::Span<std::uint8_t>(storage)};
     const std::array<std::uint8_t, 2> bytes{1U, 2U};

@@ -7,6 +7,7 @@
 namespace {
 
 TEST(Smoke, VersionNumberMatchesComponents) {
+    ::testing::Test::RecordProperty("requirements", "RTR-version-001");
     EXPECT_EQ(wireforge::kVersionNumber, 100U);
 }
 

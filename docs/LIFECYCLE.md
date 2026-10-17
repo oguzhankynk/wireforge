@@ -54,6 +54,14 @@ statement coverage or runtime coverage that was not measured, DS-7 an uncovered 
 `--results`, `--strict` checks the model only and `index.md` says "Results: not provided". The generated tests alone do
 not execute every statement of the runtime, so DS-7 lists what remains; close it with tests or justify it.
 
+## The runtime
+The generated code relies on the runtime library, which is hand-written. Its requirements are in
+`runtime/requirements.yaml`; the project documents show, for each low-level requirement, the runtime requirements that
+realize its kind (`Runtime` column of `requirements.md`) and the runtime version. A requirement that only the runtime
+tests verify (an unknown message id) counts as tested only when a runtime requirement realizes it, otherwise strict
+rule DS-3 reports it. The dossier of the runtime itself is ours: `wireforge docs --runtime` produces it in CI for every
+release (docs/RUNTIME.md, "Requirements"), and a project refers to it instead of producing it again.
+
 ## Two kinds of expectation
 Most generated tests take their expected result from the reference codec of WireForge (oracle `reference-codec`). A
 mistake in how the model is read would then be in both the codec and the generated code, and the tests would stay

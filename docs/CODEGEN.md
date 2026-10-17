@@ -148,7 +148,7 @@ of the generated headers; for the examples each is 100 %.
 
 ## Generated test project
 `python -m wireforge.generate <project> -o <dir> --tests [--plugins plugins.py] [--runtime runtime/include]
-[--coverage-threshold 90]` also writes `<dir>/<project>/generated_tests/`, a standalone CMake project:
+[--coverage-threshold 100]` also writes `<dir>/<project>/generated_tests/`, a standalone CMake project:
 
 | File | Content |
 |------|---------|
@@ -174,7 +174,7 @@ when they share a directory with it, otherwise absolute; both are cache variable
 `WIREFORGE_MODEL_DIR`). GoogleTest 1.14 is found or downloaded (`FETCHCONTENT_SOURCE_DIR_GOOGLETEST` reuses a local
 copy). In this repository `tests/generated` builds the test sources of every example with all gates (warnings,
 sanitizers, clang-tidy, cppcheck), and `quality/run_generated_tests.sh` builds each project standalone with its own
-CMake files and runs its `coverage` target (line threshold 95 %, branch and function 100 %; the examples reach 100 % in all three).
+CMake files and runs its `coverage` target (line, branch and function threshold 100 %, the default of `--coverage-threshold`; the examples reach 100 % in all three).
 
 ## Results of a test run
 The `coverage` target also writes machine-readable results to `<build>/results/`, which `wireforge docs --results

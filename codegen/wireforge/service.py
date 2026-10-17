@@ -38,6 +38,7 @@ from wireforge import (
     importers,
     layout,
     lifecycle,
+    lifecycle_runtime,
     schema,
     test_project,
     trace,
@@ -963,6 +964,29 @@ def lifecycle_docs(
     lines += [f"{item.message}\n" for item in result.issues if "[DS-" in item.message]
     result.text = "".join(lines)
     return result
+
+
+def runtime_docs(output: Path, *, strict: bool = False, results: Path | None = None) -> Result:
+    """Write the dossier of the runtime library (requirements, design, tests, traceability).
+
+    `results` is the build directory of the repository's own coverage build.
+    """
+    try:
+        context = lifecycle_runtime.context(build_dir=results)
+    except ValueError as error:
+        raise ServiceError(str(error)) from error
+    files = lifecycle_runtime.render(context)
+    findings = lifecycle_runtime.strict_findings(context)
+    output.mkdir(parents=True, exist_ok=True)
+    for name, text in files.items():
+        (output / name).write_text(text, encoding="utf-8", newline="\n")
+    data = {
+        "files": sorted(files),
+        "strict": [{"rule": item.rule, "message": item.message} for item in findings],
+    }
+    lines = [f"wrote {len(files)} documents to {output}\n"]
+    lines += [f"[{item.rule}] {item.message}\n" for item in findings]
+    return Result(ok=not (strict and findings), data=data, text="".join(lines))
 
 
 def lifecycle_archive(location: Path, *, strict: bool = False) -> tuple[Result, bytes]:

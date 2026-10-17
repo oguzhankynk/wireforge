@@ -138,11 +138,14 @@ function(wireforge_generated_suite name project generator)
   target_include_directories(${name} PRIVATE ${tests_dir} ${WIREFORGE_GENERATED_DIR}
                              ${WIREFORGE_AVIONICS_INCLUDE})
   target_compile_definitions(${name} PRIVATE ${ARGN})
-  # Differential harness and fuzz target: compiled and analysed here, run by
+  # Differential harness and fuzz target: compiled and analysed here; the harness is run by
   # quality/run_generated_tests.sh and quality/run_fuzz.sh.
   add_executable(${name}_diff ${tests_dir}/diff_harness.cpp)
   add_library(${name}_fuzz OBJECT ${tests_dir}/fuzz_target.cpp)
-  foreach(target ${name}_diff ${name}_fuzz)
+  # The fuzz target also runs here with deterministic inputs.
+  wireforge_add_test(${name}_replay ${PROJECT_SOURCE_DIR}/tests/support/fuzz_replay.cpp
+                     $<TARGET_OBJECTS:${name}_fuzz>)
+  foreach(target ${name}_diff ${name}_fuzz ${name}_replay)
     add_dependencies(${target} ${generator})
     target_include_directories(${target} PRIVATE ${tests_dir} ${WIREFORGE_GENERATED_DIR}
                                ${WIREFORGE_AVIONICS_INCLUDE})

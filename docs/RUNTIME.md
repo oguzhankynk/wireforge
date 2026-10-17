@@ -98,3 +98,23 @@ whatever the transport still holds is dropped.
 The runtime is verified on big-endian (s390x) and 32-bit (i686) targets: `quality/run_portability.sh` cross compiles
 every test suite with the full warning set and runs it under qemu (docs/DECISIONS.md D34). Conversions whose source
 width depends on the platform use `narrow_to<T>(value)` (`bit_utils.hpp`); counters accept any unsigned amount.
+
+## Requirements
+`runtime/requirements.yaml` holds the requirements of the runtime (`RTR-<header>-NNN`): the text, the header and the
+symbols that implement it (checked against the header), the kinds of generated low-level requirements it realizes
+and how it is verified (`test`, `analysis` or `review`). The file is written and reviewed by people; the first
+version was drafted from the Doxygen comments and the tests, so it describes the code and does not yet stand apart from
+it. Every unit test records the requirements it verifies as the first statement of its body
+(`::testing::Test::RecordProperty("requirements", "RTR-...")`); only the tests of the allocation trap, which check the
+test tooling, record none. Ids are never reused: a dropped requirement stays with `retired: true`.
+
+Claims about several threads (the standard mutex lock, the single-producer ring, the locked ring, concurrent dispatch)
+have `verification: analysis`: the evidence is for single-threaded use with the null lock, and the rest is the
+integrator's to verify on the target. `LoopbackTransport` is a test helper and not part of that claim.
+`array_access.hpp`, `expr_support.hpp`, `frame_layout.hpp` and `config.hpp` have no requirement yet.
+
+`wireforge docs --runtime -o <dir> [--results <build>] [--strict]` writes the dossier (requirements, design, tests,
+report, traceability, environment) of the runtime; `quality/run_coverage.sh` writes it to `build/evidence-runtime`
+and CI publishes it. A project's documents name the runtime requirements that realize their low-level requirements
+and the runtime version, and do not copy the dossier (docs/LIFECYCLE.md).
+

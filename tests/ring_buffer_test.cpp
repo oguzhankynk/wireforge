@@ -28,6 +28,7 @@ template <std::size_t N> Span<const std::uint8_t> view(const std::array<std::uin
 }
 
 TEST(SpscByteRing, FullCapacityIsUsable) {
+    ::testing::Test::RecordProperty("requirements", "RTR-ring_buffer-001");
     std::array<std::uint8_t, 4> storage{};
     SpscByteRing ring{Span<std::uint8_t>(storage)};
     EXPECT_EQ(ring.capacity(), 4U);
@@ -44,6 +45,7 @@ TEST(SpscByteRing, FullCapacityIsUsable) {
 }
 
 TEST(SpscByteRing, WrapAroundPreservesOrder) {
+    ::testing::Test::RecordProperty("requirements", "RTR-ring_buffer-002");
     std::array<std::uint8_t, 5> storage{};
     SpscByteRing ring{Span<std::uint8_t>(storage)};
     std::uint8_t next_in = 0U;
@@ -62,6 +64,7 @@ TEST(SpscByteRing, WrapAroundPreservesOrder) {
 }
 
 TEST(SpscByteRing, PeekWithOffsetAndConsume) {
+    ::testing::Test::RecordProperty("requirements", "RTR-ring_buffer-003");
     std::array<std::uint8_t, 6> storage{};
     SpscByteRing ring{Span<std::uint8_t>(storage)};
     const std::array<std::uint8_t, 4> prefix{9U, 9U, 9U, 9U};
@@ -158,6 +161,7 @@ private:
 };
 
 TEST(SpscByteRing, RandomOperationsMatchModel) {
+    ::testing::Test::RecordProperty("requirements", "RTR-ring_buffer-004");
     std::array<std::uint8_t, 7> storage{};
     RingModelCheck check{Span<std::uint8_t>(storage)};
     XorShift32 random;
@@ -182,6 +186,7 @@ TEST(SpscByteRing, RandomOperationsMatchModel) {
 }
 
 TEST(SpscByteRing, ProducerConsumerStress) {
+    ::testing::Test::RecordProperty("requirements", "RTR-ring_buffer-005");
     StaticSpscByteRing<61> ring;
     constexpr std::uint32_t kTotal = 200000U;
     std::thread producer([&ring]() {
@@ -256,6 +261,7 @@ void consume_records(LockedByteRing<>& ring, ConsumerTotals& totals) {
 }
 
 TEST(LockedByteRing, MultiProducerMultiConsumerStress) {
+    ::testing::Test::RecordProperty("requirements", "RTR-ring_buffer-006");
     std::array<std::uint8_t, 64> storage{};
     LockedByteRing<> ring{Span<std::uint8_t>(storage)};
     ConsumerTotals totals;
@@ -281,6 +287,7 @@ TEST(LockedByteRing, MultiProducerMultiConsumerStress) {
 }
 
 TEST(LockedByteRing, ApiMirrorsSpsc) {
+    ::testing::Test::RecordProperty("requirements", "RTR-ring_buffer-006");
     std::array<std::uint8_t, 4> storage{};
     LockedByteRing<wireforge::NullLock> ring{Span<std::uint8_t>(storage)};
     const std::array<std::uint8_t, 3> bytes{1U, 2U, 3U};
@@ -298,6 +305,7 @@ TEST(LockedByteRing, ApiMirrorsSpsc) {
 }
 
 TEST(RingBuffer, NoHeapAllocation) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-005");
     const wireforge::testing::AllocationTrap trap;
     StaticSpscByteRing<32> spsc;
     std::array<std::uint8_t, 32> storage{};

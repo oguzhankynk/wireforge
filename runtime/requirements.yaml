@@ -1,0 +1,438 @@
+# Requirements of the WireForge runtime library (MIT, like the library).
+#
+# STATUS: draft. The requirements were written from the Doxygen comments of the headers and from what
+# the unit tests check, so they describe the code and are not independent of it. They must be reviewed
+# against the intended behaviour by a person; the pull request that changes this file records who did.
+#
+# Not covered yet: array_access.hpp, expr_support.hpp, frame_layout.hpp and config.hpp have no unit test
+# of their own (generated code exercises them). IDs are never reused: a requirement that is dropped
+# stays here with `retired: true`.
+schema_version: 1
+component: wireforge-runtime
+requirements:
+  RTR-status-001:
+    header: status.hpp
+    code: [to_string]
+    text: Every status code shall have a name, and a value outside the enumeration shall be named "Unknown".
+    verification: test
+  RTR-version-001:
+    header: version.hpp
+    code: [kVersionNumber]
+    text: The packed version number shall equal major * 10000 + minor * 100 + patch.
+    verification: test
+
+  RTR-span-001:
+    header: span.hpp
+    code: [Span, subspan, first]
+    text: A span shall view a contiguous range without owning it; subspans and prefixes shall stay inside the range.
+    verification: test
+  RTR-span-002:
+    header: span.hpp
+    code: [Span, make_span]
+    text: A span of mutable elements shall convert to a span of const elements, and make_span shall build a span from arrays and containers.
+    verification: test
+  RTR-static_vector-001:
+    header: static_vector.hpp
+    code: [StaticVector, push_back, resize]
+    text: A static vector shall hold at most its capacity; adding or resizing beyond it shall fail with a status and leave the vector unchanged.
+    realizes: [COUNT]
+    verification: test
+  RTR-static_vector-002:
+    header: static_vector.hpp
+    code: [StaticVector]
+    text: A vector of capacity one shall represent an optional field (empty or one element).
+    verification: test
+  RTR-static_vector-003:
+    header: static_vector.hpp
+    code: [StaticVector]
+    text: Two static vectors shall compare equal when their used elements are equal, whatever is in the unused storage.
+    verification: test
+  RTR-static_vector-004:
+    header: static_vector.hpp
+    code: [FixedString, assign, resize, view]
+    text: A fixed string shall hold at most its capacity of characters, report an assignment or resize beyond it, and give a view of the used characters.
+    realizes: [CHARS]
+    verification: test
+
+  RTR-lock-001:
+    header: lock.hpp
+    code: [StdMutexLock, ScopedLock]
+    text: The standard mutex lock policy shall serialize the threads that use it. The claim covers the use of the library from several threads and is the integrator's to verify on the target.
+    verification: analysis
+  RTR-lock-002:
+    header: lock.hpp
+    code: [NullLock, ScopedLock]
+    text: The null lock policy shall cost nothing and accept the same guard syntax, for single-threaded use.
+    verification: test
+  RTR-lock-003:
+    header: lock.hpp
+    code: [RelaxedCounter]
+    text: A relaxed counter shall count increments from several threads without loss. The claim is the integrator's to verify on the target.
+    verification: analysis
+  RTR-lock-004:
+    header: lock.hpp
+    code: [DefaultLock]
+    text: The runtime shall build without the standard mutex (WIREFORGE_NO_STD_MUTEX), with the null lock as the default policy.
+    verification: test
+  RTR-static_vector-005:
+    header: static_vector.hpp
+    code: [StaticVector, FixedString]
+    text: The runtime shall not allocate heap memory.
+    verification: test
+
+  RTR-byte_io-001:
+    header: byte_io.hpp
+    code: [ByteWriter, ByteReader, write_unsigned, read_unsigned]
+    text: Unsigned integers of 1 to 8 bytes shall be written and read in big or little endian order as requested.
+    realizes: [LAYOUT]
+    verification: test
+  RTR-byte_io-002:
+    header: byte_io.hpp
+    code: [write_signed, read_signed]
+    text: Signed integers shall be written as two's complement and read back with the same value, including the extremes of each width.
+    realizes: [LAYOUT]
+    verification: test
+  RTR-byte_io-003:
+    header: byte_io.hpp
+    code: [write_unsigned, write_signed]
+    text: A value that does not fit the requested width shall be rejected with OutOfRange and shall not change the writer.
+    realizes: [BITS]
+    verification: test
+  RTR-byte_io-004:
+    header: byte_io.hpp
+    code: [ByteWriter]
+    text: A write beyond the buffer shall fail with BufferTooSmall and leave the writer unchanged.
+    realizes: [FRAME_ENCODE]
+    verification: test
+  RTR-byte_io-005:
+    header: byte_io.hpp
+    code: [ByteReader]
+    text: A read beyond the input shall fail with Truncated and leave the reader unchanged.
+    realizes: [TRUNCATED]
+    verification: test
+  RTR-byte_io-006:
+    header: byte_io.hpp
+    code: [ByteWriter, ByteReader]
+    text: Values shall be written and read at any byte offset without alignment requirements.
+    verification: test
+  RTR-byte_io-007:
+    header: byte_io.hpp
+    code: [write_unsigned_at, peek_unsigned_at]
+    text: A value inside the already written region shall be patched or peeked without moving the position.
+    verification: test
+  RTR-byte_io-008:
+    header: byte_io.hpp
+    code: [ByteWriter, ByteReader]
+    text: Floating-point values shall be written as their IEEE 754 bit patterns, special values included.
+    realizes: [LAYOUT]
+    verification: test
+  RTR-bit_utils-001:
+    header: bit_utils.hpp
+    code: [sign_extend, to_twos_complement, fits_signed, fits_unsigned]
+    text: Sign extension, two's complement conversion and width checks shall be correct for every width up to 64 bits.
+    realizes: [BITS]
+    verification: test
+  RTR-bit_utils-002:
+    header: bit_utils.hpp
+    code: [BitPacker, BitUnpacker, write_bits, read_bits]
+    text: Bit groups shall pack and unpack fields that straddle bytes, in most-significant-bit-first and least-significant-bit-first order and in both byte orders, up to 64 bits.
+    realizes: [LAYOUT]
+    verification: test
+  RTR-bit_utils-003:
+    header: bit_utils.hpp
+    code: [BitPacker, BitUnpacker]
+    text: Signed bit fields shall be sign-extended when read.
+    realizes: [LAYOUT]
+    verification: test
+  RTR-bit_utils-004:
+    header: bit_utils.hpp
+    code: [BitPacker, BitUnpacker]
+    text: A bit group of an invalid size, a field that does not fit it and a truncated group shall be reported with a status.
+    realizes: [BITS, TRUNCATED]
+    verification: test
+
+  RTR-ring_buffer-001:
+    header: ring_buffer.hpp
+    code: [SpscByteRing, StaticSpscByteRing]
+    text: A byte ring shall be usable to its full capacity.
+    verification: test
+  RTR-ring_buffer-002:
+    header: ring_buffer.hpp
+    code: [SpscByteRing]
+    text: A byte ring shall return bytes in the order they were written, also when the indices wrap around.
+    verification: test
+  RTR-ring_buffer-003:
+    header: ring_buffer.hpp
+    code: [SpscByteRing]
+    text: A byte ring shall allow peeking at an offset and consuming a number of bytes without copying.
+    verification: test
+  RTR-ring_buffer-004:
+    header: ring_buffer.hpp
+    code: [SpscByteRing]
+    text: A byte ring shall behave like a queue of bytes under any sequence of writes, reads, peeks and consumes.
+    verification: test
+  RTR-ring_buffer-005:
+    header: ring_buffer.hpp
+    code: [SpscByteRing]
+    text: A ring with one producer thread and one consumer thread shall lose and reorder no bytes. The claim is the integrator's to verify on the target.
+    verification: analysis
+  RTR-ring_buffer-006:
+    header: ring_buffer.hpp
+    code: [LockedByteRing]
+    text: A locked ring shall lose and reorder no bytes with several producers and consumers, and shall offer the interface of the single-producer ring. The claim for several threads is the integrator's to verify on the target.
+    verification: analysis
+
+  RTR-checksum-001:
+    header: checksum.hpp
+    code: [Crc, compute]
+    text: Parametric CRCs, with a table and without, shall produce the catalog check values.
+    realizes: [ALGORITHM, CHECKSUM]
+    verification: test
+  RTR-checksum-002:
+    header: checksum.hpp
+    code: [Crc]
+    text: The CRC aliases shall have the width, and the checksum size shall be the width in bytes.
+    realizes: [ALGORITHM]
+    verification: test
+  RTR-checksum-003:
+    header: checksum.hpp
+    code: [Crc, update, finalize]
+    text: A CRC computed in pieces shall equal the CRC computed at once, and the CRC of empty input shall be the initial value with the final xor applied.
+    realizes: [ALGORITHM]
+    verification: test
+  RTR-checksum-004:
+    header: checksum.hpp
+    code: [is_checksum, compute_checksum]
+    text: A user-defined checksum that provides init, update, finalize and a size shall be accepted wherever a CRC is.
+    realizes: [ALGORITHM]
+    verification: test
+
+  RTR-frame_decoder-001:
+    header: frame_decoder.hpp
+    code: [FrameFormat, FrameDecoder, valid]
+    text: A frame format shall be accepted only when its fields, sizes and length rule are consistent.
+    realizes: [FRAME_LENGTH]
+    verification: test
+  RTR-frame_decoder-002:
+    header: frame_decoder.hpp
+    code: [FrameDecoder, next]
+    text: The frame decoder shall deliver a complete frame, and the result shall not depend on how the bytes were split into chunks.
+    realizes: [FRAME_LENGTH]
+    verification: test
+  RTR-frame_decoder-003:
+    header: frame_decoder.hpp
+    code: [FrameDecoder, next]
+    text: The frame decoder shall skip bytes until the configured sync value and count them as skipped.
+    realizes: [FRAME_SYNC]
+    verification: test
+  RTR-frame_decoder-004:
+    header: frame_decoder.hpp
+    code: [FrameDecoder, next]
+    text: A frame with a wrong checksum shall be reported once as ChecksumMismatch and the decoder shall go on with the next frame.
+    realizes: [FRAME_RESYNC]
+    verification: test
+  RTR-frame_decoder-005:
+    header: frame_decoder.hpp
+    code: [FrameDecoder, next]
+    text: A length above the maximum frame size or above the ring capacity shall be reported as InvalidLength.
+    realizes: [FRAME_MAX]
+    verification: test
+  RTR-frame_decoder-006:
+    header: frame_decoder.hpp
+    code: [FrameDecoder, next]
+    text: Without resynchronization an error shall drop all buffered bytes.
+    realizes: [FRAME_RESYNC]
+    verification: test
+  RTR-frame_decoder-007:
+    header: frame_decoder.hpp
+    code: [FrameDecoder, next]
+    text: An output buffer that cannot hold the frame shall be reported as BufferTooSmall.
+    verification: test
+  RTR-frame_decoder-008:
+    header: frame_decoder.hpp
+    code: [FrameFormat, FrameDecoder]
+    text: Fixed-size framing with a sync value and a payload checksum shall be decoded.
+    realizes: [FRAME_LENGTH, FRAME_SYNC]
+    verification: test
+  RTR-frame_decoder-009:
+    header: frame_decoder.hpp
+    code: [FrameFormat, FrameDecoder]
+    text: A length field shall be interpreted as counting the payload, the payload and the trailer, or the whole frame, as configured.
+    realizes: [FRAME_LENGTH]
+    verification: test
+  RTR-frame_decoder-010:
+    header: frame_decoder.hpp
+    code: [FrameDecoder, counters]
+    text: The decoder shall work on a locked ring and shall reset its counters on request.
+    verification: test
+
+  RTR-delegate-001:
+    header: delegate.hpp
+    code: [Delegate]
+    text: A default-constructed delegate and a delegate made from a null function shall test false.
+    verification: test
+  RTR-delegate-002:
+    header: delegate.hpp
+    code: [Delegate, from_function, bind]
+    text: A delegate shall call a free function or a member function of an object.
+    verification: test
+  RTR-delegate-003:
+    header: delegate.hpp
+    code: [Delegate, from_callable]
+    text: A delegate shall refer to a callable object and not copy it.
+    verification: test
+  RTR-dispatcher-001:
+    header: dispatcher.hpp
+    code: [Dispatcher, dispatch, find]
+    text: The dispatcher shall deliver a message to the handler registered for its id, also with many ids.
+    realizes: [DISPATCH]
+    verification: test
+  RTR-dispatcher-002:
+    header: dispatcher.hpp
+    code: [Dispatcher, add, start]
+    text: Registration of an empty handler, of a duplicate id and after start, and a second start, shall be reported as InvalidState.
+    realizes: [DISPATCH]
+    verification: test
+  RTR-dispatcher-003:
+    header: dispatcher.hpp
+    code: [Dispatcher, dispatch]
+    text: A message with an unknown id shall go to the fallback handler when there is one, and shall be reported as UnknownMessageId otherwise.
+    realizes: [DISPATCH_UNKNOWN]
+    verification: test
+  RTR-dispatcher-004:
+    header: dispatcher.hpp
+    code: [Dispatcher, dispatch_frame, HeaderLayout]
+    text: A frame shall be dispatched by the id found with the header layout, passing the payload and the whole frame to the handler.
+    realizes: [DISPATCH]
+    verification: test
+  RTR-dispatcher-005:
+    header: dispatcher.hpp
+    code: [Dispatcher]
+    text: Dispatching after start shall be safe from several threads, and registration before start too. The claim for several threads is the integrator's to verify on the target.
+    verification: analysis
+  RTR-dispatcher-006:
+    header: dispatcher.hpp
+    code: [RawDispatcher, RawMessage]
+    text: The raw dispatcher shall give every frame to its single handler undecoded, with payload and frame, and report UnknownMessageId when there is no handler.
+    realizes: [RAW, DISPATCH_UNKNOWN]
+    verification: test
+
+  RTR-transport-001:
+    header: transport.hpp
+    code: [ITransport, is_transport]
+    text: A link shall work through the abstract transport interface as well as through a concrete transport type.
+    verification: test
+  RTR-link-001:
+    header: link.hpp
+    code: [Link, record]
+    text: A link shall send a frame to the transport and deliver a received frame to the dispatcher.
+    realizes: [FRAME_ENCODE, DISPATCH]
+    verification: test
+  RTR-link-002:
+    header: link.hpp
+    code: [Link, LinkCounters]
+    text: A link shall deliver frames in the order received and count bytes, frames and errors.
+    realizes: [DISPATCH]
+    verification: test
+  RTR-link-003:
+    header: link.hpp
+    code: [Link, PollResult]
+    text: A link shall report garbage and unknown message ids in the poll result without delivering them.
+    realizes: [DISPATCH_UNKNOWN, FRAME_SYNC]
+    verification: test
+  RTR-link-004:
+    header: link.hpp
+    code: [Link]
+    text: A link shall report an encoder error and a transport that cannot take the frame, and count the frame as not sent.
+    realizes: [FRAME_ENCODE]
+    verification: test
+  RTR-link-005:
+    header: link.hpp
+    code: [Link, Unframed]
+    text: A link without framing shall treat each transport read as one frame.
+    realizes: [FRAME_LENGTH]
+    verification: test
+  RTR-link-006:
+    header: link.hpp
+    code: [Link, Unframed]
+    text: A read longer than the maximum frame of an unframed link shall be rejected as InvalidLength.
+    realizes: [FRAME_MAX]
+    verification: test
+  RTR-link-007:
+    header: link.hpp
+    code: [Link]
+    text: One thread may send while another polls. The claim is the integrator's to verify on the target.
+    verification: analysis
+
+  RTR-codec_support-001:
+    header: codec_support.hpp
+    code: [Encoder, Decoder]
+    text: The encoder and decoder shall write and read every wire type of the model.
+    realizes: [LAYOUT, SIZE]
+    verification: test
+  RTR-codec_support-002:
+    header: codec_support.hpp
+    code: [Encoder, Decoder, status]
+    text: After the first error the encoder and decoder shall keep that status and refuse further work.
+    verification: test
+  RTR-codec_support-003:
+    header: codec_support.hpp
+    code: [Encoder, Decoder, fill_count]
+    text: Element counts and values shall be checked against their limits and reported as CountExceedsMax or OutOfRange.
+    realizes: [COUNT, RANGE]
+    verification: test
+  RTR-codec_support-004:
+    header: codec_support.hpp
+    code: [Encoder, Decoder]
+    text: A boolean on the wire shall be 0 or 1; any other value shall be reported as OutOfRange.
+    realizes: [RANGE]
+    verification: test
+  RTR-codec_support-005:
+    header: codec_support.hpp
+    code: [Encoder, Decoder, resize]
+    text: Text fields shall be zero padded on write and stripped of trailing zeros on read, and a payload-filling array shall take the rest of the payload.
+    realizes: [CHARS, COUNT]
+    verification: test
+  RTR-codec_support-006:
+    header: codec_support.hpp
+    code: [Encoder, Decoder]
+    text: Bit groups, constant fields (ConstMismatch) and checksums (ChecksumMismatch) shall be written and checked.
+    realizes: [CONST, CHECKSUM, LAYOUT]
+    verification: test
+  RTR-codec_support-007:
+    header: codec_support.hpp
+    code: [Decoder]
+    text: The decoder shall expect a given value and report bytes left after the last field as TrailingBytes.
+    realizes: [CONST, TRAILING]
+    verification: test
+  RTR-codec_support-008:
+    header: codec_support.hpp
+    code: [Encoder, Decoder]
+    text: Raw bytes shall be copied unchanged, and a buffer too small or input too short shall be reported as BufferTooSmall or Truncated.
+    realizes: [LAYOUT, TRUNCATED]
+    verification: test
+
+  RTR-validation-001:
+    header: validation.hpp
+    code: [check_range, check_min, check_max]
+    text: Range checks shall report OutOfRange for a value outside its limits, and NaN shall be outside every range.
+    realizes: [RANGE]
+    verification: test
+  RTR-validation-002:
+    header: validation.hpp
+    code: [check_true, status_if]
+    text: Width and membership checks shall report OutOfRange when the condition does not hold.
+    realizes: [ENUM, BITS]
+    verification: test
+  RTR-validation-003:
+    header: validation.hpp
+    code: [check_count, check_count_equals, first_error]
+    text: Count checks shall report CountExceedsMax, and several checks shall combine into the first error.
+    realizes: [COUNT]
+    verification: test
+  RTR-validation-004:
+    header: validation.hpp
+    code: [check_each, validate_each]
+    text: A check on every element of a sequence shall report the first element that fails.
+    realizes: [RANGE, COUNT]
+    verification: test

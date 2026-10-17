@@ -11,7 +11,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 out="build/generated-projects"
 rm -rf build/evidence-results
-threshold="${WIREFORGE_GENERATED_COVERAGE_MIN_LINE:-95}"
+threshold="${WIREFORGE_GENERATED_COVERAGE_MIN_LINE:-100}"
 values="${WIREFORGE_DIFFERENTIAL_VALUES:-100}"
 gtest=()
 # Reuse the GoogleTest sources fetched by the main build instead of downloading them again.

@@ -26,6 +26,7 @@ constexpr Encoding kLittle{wireforge::Endian::Little, wireforge::BitOrder::LsbFi
                            false};
 
 TEST(CodecSupport, WritesEveryWireType) {
+    ::testing::Test::RecordProperty("requirements", "RTR-codec_support-001");
     Bytes buffer{};
     Encoder encoder(Span<std::uint8_t>(buffer), kLittle);
     encoder.write(true);
@@ -56,6 +57,7 @@ TEST(CodecSupport, WritesEveryWireType) {
 }
 
 TEST(CodecSupport, StickyErrorStopsFurtherWrites) {
+    ::testing::Test::RecordProperty("requirements", "RTR-codec_support-002");
     std::array<std::uint8_t, 2> buffer{};
     Encoder encoder(Span<std::uint8_t>(buffer), Encoding{});
     encoder.write(std::uint32_t{1});
@@ -67,6 +69,7 @@ TEST(CodecSupport, StickyErrorStopsFurtherWrites) {
 }
 
 TEST(CodecSupport, CountsAndValueChecks) {
+    ::testing::Test::RecordProperty("requirements", "RTR-codec_support-003");
     Bytes buffer{};
     Encoder encoder(
         Span<std::uint8_t>(buffer),
@@ -82,6 +85,7 @@ TEST(CodecSupport, CountsAndValueChecks) {
 }
 
 TEST(CodecSupport, BoolMustBeZeroOrOne) {
+    ::testing::Test::RecordProperty("requirements", "RTR-codec_support-004");
     const std::array<std::uint8_t, 1> two{2U};
     Decoder decoder(Span<const std::uint8_t>(two), Encoding{});
     bool flag = false;
@@ -90,6 +94,7 @@ TEST(CodecSupport, BoolMustBeZeroOrOne) {
 }
 
 TEST(CodecSupport, TextResizeAndFill) {
+    ::testing::Test::RecordProperty("requirements", "RTR-codec_support-005");
     const std::array<std::uint8_t, 6> bytes{'a', 'b', 0U, 0U, 'c', 'd'};
     Decoder decoder(Span<const std::uint8_t>(bytes), Encoding{});
     wireforge::FixedString<4> fixed;
@@ -114,6 +119,7 @@ TEST(CodecSupport, TextResizeAndFill) {
 }
 
 TEST(CodecSupport, BitGroupsConstsAndChecksums) {
+    ::testing::Test::RecordProperty("requirements", "RTR-codec_support-006");
     Bytes buffer{};
     Encoder encoder(Span<std::uint8_t>(buffer), Encoding{});
     wireforge::BitPacker group(8U, wireforge::BitOrder::MsbFirst);
@@ -145,6 +151,7 @@ TEST(CodecSupport, BitGroupsConstsAndChecksums) {
 }
 
 TEST(CodecSupport, ExpectAndTrailingBytes) {
+    ::testing::Test::RecordProperty("requirements", "RTR-codec_support-007");
     const std::array<std::uint8_t, 3> bytes{0x12U, 0x34U, 0x00U};
     Decoder decoder(Span<const std::uint8_t>(bytes), Encoding{});
     decoder.expect<std::uint16_t>(0x1234U);
@@ -160,6 +167,7 @@ TEST(CodecSupport, ExpectAndTrailingBytes) {
 }
 
 TEST(CodecSupport, WriteBytesCopiesUnchanged) {
+    ::testing::Test::RecordProperty("requirements", "RTR-codec_support-008");
     Bytes buffer{};
     Encoder encoder(Span<std::uint8_t>(buffer), Encoding{});
     const std::array<std::uint8_t, 3> raw{0xDEU, 0xADU, 0xBEU};
@@ -172,6 +180,7 @@ TEST(CodecSupport, WriteBytesCopiesUnchanged) {
 }
 
 TEST(CodecSupport, WriteBytesFailsWhenBufferTooSmall) {
+    ::testing::Test::RecordProperty("requirements", "RTR-codec_support-008");
     std::array<std::uint8_t, 2> buffer{};
     Encoder encoder(Span<std::uint8_t>(buffer), Encoding{});
     const std::array<std::uint8_t, 3> raw{1U, 2U, 3U};
@@ -180,6 +189,7 @@ TEST(CodecSupport, WriteBytesFailsWhenBufferTooSmall) {
 }
 
 TEST(CodecSupport, ReadBytesCopiesUnchanged) {
+    ::testing::Test::RecordProperty("requirements", "RTR-codec_support-008");
     const std::array<std::uint8_t, 3> bytes{0xDEU, 0xADU, 0xBEU};
     Decoder decoder(Span<const std::uint8_t>(bytes), Encoding{});
     std::array<std::uint8_t, 3> out{};
@@ -189,6 +199,7 @@ TEST(CodecSupport, ReadBytesCopiesUnchanged) {
 }
 
 TEST(CodecSupport, ReadBytesFailsWhenTruncated) {
+    ::testing::Test::RecordProperty("requirements", "RTR-codec_support-008");
     const std::array<std::uint8_t, 2> bytes{1U, 2U};
     Decoder decoder(Span<const std::uint8_t>(bytes), Encoding{});
     std::array<std::uint8_t, 3> out{};
@@ -197,6 +208,7 @@ TEST(CodecSupport, ReadBytesFailsWhenTruncated) {
 }
 
 TEST(CodecSupport, NoHeapAllocation) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-005");
     const wireforge::testing::AllocationTrap trap;
     Bytes buffer{};
     Encoder encoder(Span<std::uint8_t>(buffer), Encoding{});

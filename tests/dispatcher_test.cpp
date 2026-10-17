@@ -48,18 +48,21 @@ private:
 };
 
 TEST(Delegate, EmptyDelegate) {
+    ::testing::Test::RecordProperty("requirements", "RTR-delegate-001");
     const IntDelegate empty;
     EXPECT_FALSE(empty);
     EXPECT_FALSE(IntDelegate::from_function(nullptr));
 }
 
 TEST(Delegate, FreeFunction) {
+    ::testing::Test::RecordProperty("requirements", "RTR-delegate-002");
     const IntDelegate function = IntDelegate::from_function(&twice);
     ASSERT_TRUE(function);
     EXPECT_EQ(function(21), 42);
 }
 
 TEST(Delegate, MemberFunction) {
+    ::testing::Test::RecordProperty("requirements", "RTR-delegate-002");
     Accumulator accumulator;
     const IntDelegate member = IntDelegate::bind<&Accumulator::add>(accumulator);
     EXPECT_EQ(member(5), 5);
@@ -68,6 +71,7 @@ TEST(Delegate, MemberFunction) {
 }
 
 TEST(Delegate, CallableIsReferencedNotCopied) {
+    ::testing::Test::RecordProperty("requirements", "RTR-delegate-003");
     int offset = 100;
     auto lambda = [&offset](int value) { return value + offset; };
     const IntDelegate callable = IntDelegate::from_callable(lambda);
@@ -109,6 +113,7 @@ template <std::size_t N> void register_both(Dispatcher<N>& dispatcher, Recorder&
 }
 
 TEST(Dispatcher, DispatchesById) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-001");
     Recorder recorder;
     Dispatcher<4> dispatcher(kLayout);
     register_both(dispatcher, recorder);
@@ -159,6 +164,7 @@ Status register_scrambled(ManyDispatcher& dispatcher, std::array<HitCounter, kMa
 }
 
 TEST(Dispatcher, ManyIdsAreFoundAfterSorting) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-001");
     std::array<HitCounter, kManyIds> counters{};
     ManyDispatcher dispatcher(kLayout);
     ASSERT_EQ(register_scrambled(dispatcher, counters), Status::Ok);
@@ -173,6 +179,7 @@ TEST(Dispatcher, ManyIdsAreFoundAfterSorting) {
 }
 
 TEST(Dispatcher, RegistrationRules) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-002");
     Recorder recorder;
     Dispatcher<2> dispatcher(kLayout);
     const MessageHandler handler = MessageHandler::bind<&Recorder::on_status>(recorder);
@@ -186,6 +193,7 @@ TEST(Dispatcher, RegistrationRules) {
 }
 
 TEST(Dispatcher, FallbackReceivesUnknownIds) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-003");
     std::uint64_t seen = 0U;
     auto fallback = [&seen](std::uint64_t message_id, const wireforge::RawMessage& /*message*/) {
         seen = message_id;
@@ -200,6 +208,7 @@ TEST(Dispatcher, FallbackReceivesUnknownIds) {
 }
 
 TEST(Dispatcher, DispatchFrameExtractsIdAndPayload) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-004");
     Recorder recorder;
     Dispatcher<4> dispatcher(kLayout);
     register_both(dispatcher, recorder);
@@ -217,6 +226,7 @@ TEST(Dispatcher, DispatchFrameExtractsIdAndPayload) {
 }
 
 TEST(Dispatcher, ConcurrentDispatchAfterStart) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-005");
     Recorder recorder;
     Dispatcher<4> dispatcher(kLayout);
     register_both(dispatcher, recorder);
@@ -242,6 +252,7 @@ TEST(Dispatcher, ConcurrentDispatchAfterStart) {
 }
 
 TEST(Dispatcher, ConcurrentRegistrationBeforeStart) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-005");
     Recorder recorder;
     Dispatcher<64> dispatcher(kLayout);
     const MessageHandler handler = MessageHandler::bind<&Recorder::on_status>(recorder);
@@ -260,6 +271,7 @@ TEST(Dispatcher, ConcurrentRegistrationBeforeStart) {
 }
 
 TEST(RawDispatcher, SingleHandler) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-006");
     Recorder recorder;
     RawDispatcher<> dispatcher;
     EXPECT_EQ(dispatcher.set_handler(MessageHandler()), Status::InvalidState);
@@ -277,6 +289,7 @@ TEST(RawDispatcher, SingleHandler) {
 }
 
 TEST(RawDispatcher, WithoutHandlerReportsUnknown) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-006");
     RawDispatcher<wireforge::NullLock> dispatcher;
     ASSERT_EQ(dispatcher.start(), Status::Ok);
     EXPECT_EQ(dispatcher.dispatch(Payload()), Status::UnknownMessageId);
@@ -284,6 +297,7 @@ TEST(RawDispatcher, WithoutHandlerReportsUnknown) {
 }
 
 TEST(Dispatcher, NoHeapAllocation) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-005");
     Recorder recorder;
     const wireforge::testing::AllocationTrap trap;
     Dispatcher<4> dispatcher(kLayout);
@@ -314,6 +328,7 @@ private:
 };
 
 TEST(Dispatcher, DispatchFramePassesFrameAndPayload) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-004");
     RawProbe probe;
     Dispatcher<1> dispatcher(kLayout);
     ASSERT_EQ(dispatcher.add(0x0201U, MessageHandler::from_callable(probe)), Status::Ok);
@@ -330,6 +345,7 @@ TEST(Dispatcher, DispatchFramePassesFrameAndPayload) {
 }
 
 TEST(Dispatcher, DispatchPayloadUsesPayloadAsFrame) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-004");
     RawProbe probe;
     Dispatcher<1> dispatcher(kLayout);
     ASSERT_EQ(dispatcher.add(7U, MessageHandler::from_callable(probe)), Status::Ok);
@@ -341,6 +357,7 @@ TEST(Dispatcher, DispatchPayloadUsesPayloadAsFrame) {
 }
 
 TEST(Dispatcher, FallbackReceivesFrame) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-003");
     std::size_t frame_size = 0U;
     auto fallback = [&frame_size](std::uint64_t /*message_id*/,
                                   const wireforge::RawMessage& message) {
@@ -357,6 +374,7 @@ TEST(Dispatcher, FallbackReceivesFrame) {
 }
 
 TEST(RawDispatcher, DispatchFramePassesFrame) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-006");
     RawProbe probe;
     RawDispatcher<> dispatcher(2U, 1U);
     ASSERT_EQ(dispatcher.set_handler(MessageHandler::from_callable(probe)), Status::Ok);
