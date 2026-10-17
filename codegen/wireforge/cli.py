@@ -104,7 +104,9 @@ def _wireshark(args: argparse.Namespace) -> Result:
 
 
 def _docs(args: argparse.Namespace) -> Result:
-    return service.lifecycle_docs(args.project, args.output, strict=args.strict)
+    return service.lifecycle_docs(
+        args.project, args.output, strict=args.strict, results=args.results
+    )
 
 
 def _analyze(args: argparse.Namespace) -> Result:
@@ -118,7 +120,8 @@ def _compat(args: argparse.Namespace) -> Result:
 def _test(args: argparse.Namespace) -> Result:
     build = BuildOptions(
         build_dir=args.build_dir,
-        coverage=args.coverage,
+        coverage=args.coverage or args.coverage_runtime,
+        coverage_runtime=args.coverage_runtime,
         generator=args.generator,
         extra_cmake_args=tuple(args.cmake_args or ()),
     )
@@ -284,6 +287,19 @@ def _codec_options(parser: argparse.ArgumentParser) -> None:
 Handler = Callable[[argparse.Namespace], Result]
 
 
+def _build_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--coverage", action="store_true", help="run the coverage target")
+    parser.add_argument(
+        "--coverage-runtime",
+        action="store_true",
+        help="also measure the runtime headers (implies --coverage)",
+    )
+    parser.add_argument("--generator", help="CMake generator, e.g. Ninja")
+    parser.add_argument(
+        "--cmake-arg", action="append", dest="cmake_args", help="extra argument for cmake"
+    )
+
+
 def _commands(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     def add(name: str, handler: Handler, text: str) -> argparse.ArgumentParser:
         parser = sub.add_parser(name, help=text, description=text)
@@ -311,11 +327,7 @@ def _commands(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     _project(parser)
     parser.add_argument("-o", "--output", type=Path, required=True)
     parser.add_argument("--build-dir", type=Path)
-    parser.add_argument("--coverage", action="store_true", help="run the coverage target")
-    parser.add_argument("--generator", help="CMake generator, e.g. Ninja")
-    parser.add_argument(
-        "--cmake-arg", action="append", dest="cmake_args", help="extra argument for cmake"
-    )
+    _build_options(parser)
     _test_options(parser)
     parser = add("export", _export, "Write the single-file bundle of a project.")
     _project(parser)
@@ -362,6 +374,9 @@ def _report_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]
     _project(parser)
     parser.add_argument("-o", "--output", type=Path, required=True, help="directory to write")
     parser.add_argument("--strict", action="store_true", help="fail when a review would reject")
+    parser.add_argument(
+        "--results", type=Path, help="build directory of a test run (--coverage --coverage-runtime)"
+    )
     parser = add("compat", _compat, "Compare two versions of a project.")
     parser.add_argument("old", type=Path)
     parser.add_argument("new", type=Path)

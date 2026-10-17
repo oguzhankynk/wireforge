@@ -176,6 +176,41 @@ copy). In this repository `tests/generated` builds the test sources of every exa
 sanitizers, clang-tidy, cppcheck), and `quality/run_generated_tests.sh` builds each project standalone with its own
 CMake files and runs its `coverage` target (line threshold 95 %, branch and function 100 %; the examples reach 100 % in all three).
 
+## Results of a test run
+The `coverage` target also writes machine-readable results to `<build>/results/`, which `wireforge docs --results
+<build>` turns into the test report, the resource document and the toolchain section (docs/LIFECYCLE.md):
+
+| File | Content |
+|------|---------|
+| `junit/<executable>/*.xml` | GoogleTest result of every test, with the requirement ids it recorded |
+| `ctest.xml` | CTest result, which includes the self-tests |
+| `coverage.json`, `coverage_summary.json`, `coverage.cobertura.xml` | statement and branch coverage of the generated headers (gcovr; the Cobertura file is for other tools) |
+| `coverage_runtime.json` | statement coverage of the runtime headers, only with `WIREFORGE_COVERAGE_RUNTIME=ON` |
+| `toolchain.json` | compiler, CMake and gcovr versions, build type and the warning flags (no path) |
+
+`WIREFORGE_COVERAGE_RUNTIME` adds a second report for the runtime headers and fails below
+`WIREFORGE_COVERAGE_RUNTIME_MIN_LINE` percent of the statements (default 100). Only code that reaches the binary is
+counted, which is the code that flies; `wireforge test --coverage-runtime` sets the option. With coverage on, the
+tests are also built with `-fstack-usage`; the `.su` files next to the objects give the stack use of the generated
+and runtime functions. The coverage build is `-O0`, so these values are indicative; measure on the target.
+
+A line the tests do not reach is either closed with a test or justified in an optional `deviations.yaml` in the
+project directory (not part of the model, no effect on the model hash):
+
+```yaml
+schema_version: 1
+deviations:
+  - kind: coverage
+    file: wireforge/ring_buffer.hpp          # runtime header relative to the include directory
+    function: "wireforge::StaticSpscByteRing<*>::push"   # as gcov names it; * matches anything
+    lines: [118, 119]                        # optional; absent: every uncovered line of the function
+    category: defensive                      # deactivated | defensive | unreachable-by-design
+    rationale: The ring cannot be full with this link.
+    reviewer: J. Doe
+```
+A deviation with `lines` stops matching when a runtime update moves them, which makes the gap unjustified again so
+that the reason is reviewed. `kind: rule` entries are accepted by the schema and ignored for now.
+
 ## Differential and fuzz testing
 `python -m wireforge.differential <project> --harness <dir>/<project>_diff[_<profile>] [--profile P] [--plugins F]
 [--seed N] [--values N] [--mutations N] [--frames N] [--regressions DIR]` sends inputs to the generated harness and

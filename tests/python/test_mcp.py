@@ -14,6 +14,7 @@ from wireforge import service
 from wireforge.mcp_server import TOOL_NAMES, create_server
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from types import ModuleType
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -232,3 +233,16 @@ def test_lifecycle_docs(workspace: Path) -> None:
     assert result["ok"]
     assert "index.md" in result["data"]["files"]
     assert (workspace / ".wireforge" / "docs" / "avionics" / "index.md").exists()
+
+
+def test_lifecycle_docs_with_results_only_below_the_output(
+    workspace: Path, make_results: Callable[..., Path]
+) -> None:
+    inside = make_results(workspace / ".wireforge" / "generated" / "run")
+    result = _call(workspace, "lifecycle_docs", {"project": "avionics", "results_dir": str(inside)})
+    assert result["ok"]
+    report = workspace / ".wireforge" / "docs" / "avionics" / "test_report.md"
+    assert "Runtime headers" in report.read_text(encoding="utf-8")
+    outside = make_results(workspace / "elsewhere")
+    with pytest.raises(ToolError, match="below the workspace output"):
+        _call(workspace, "lifecycle_docs", {"project": "avionics", "results_dir": str(outside)})

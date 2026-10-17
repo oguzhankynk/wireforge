@@ -4,10 +4,14 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from wireforge import cli, service, test_project
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 AVIONICS = EXAMPLES / "02_multi_interface_avionics"
@@ -240,3 +244,27 @@ def test_cli_docs(avionics: Path, tmp_path: Path) -> None:
     assert code == cli.EXIT_FAILED
     assert "[DS-1]" in str(result["text"])
     assert _run(["docs", str(edge), "-o", str(tmp_path / "edge")])[0] == cli.EXIT_OK
+
+
+def test_cli_docs_with_results(
+    avionics: Path, tmp_path: Path, make_results: Callable[..., Path]
+) -> None:
+    build = make_results(tmp_path / "run")
+    output = tmp_path / "docs"
+    code, result = _run(["docs", str(avionics), "-o", str(output), "--results", str(build)])
+    assert code == cli.EXIT_OK
+    assert "Runtime headers" in (output / "test_report.md").read_text(encoding="utf-8")
+    code, result = _run(
+        ["docs", str(avionics), "-o", str(output), "--results", str(build), "--strict"]
+    )
+    assert code == cli.EXIT_FAILED
+    assert "[DS-7]" in str(result["text"])
+    missing = _run(["docs", str(avionics), "-o", str(output), "--results", str(tmp_path / "none")])
+    assert missing[0] == cli.EXIT_ERROR
+
+
+def test_cli_test_accepts_the_runtime_coverage_flag() -> None:
+    parser = cli.build_parser()
+    args = parser.parse_args(["test", "x", "-o", "y", "--coverage-runtime"])
+    assert args.coverage_runtime
+    assert not parser.parse_args(["test", "x", "-o", "y", "--coverage"]).coverage_runtime

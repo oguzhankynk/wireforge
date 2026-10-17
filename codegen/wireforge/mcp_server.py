@@ -8,6 +8,7 @@ that write accept `dry_run` and return the unified diff of the change; every res
 from __future__ import annotations
 
 import functools
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from mcp.server.mcpserver import MCPServer
@@ -20,7 +21,6 @@ from wireforge.service import CodecTarget, EditOptions, Result, ServiceError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
 INSTRUCTIONS = """\
 WireForge defines binary messages in YAML and generates C++17 code and tests from them.
@@ -160,11 +160,19 @@ class Tools:
         result.data["files"] = files if result.ok else []
         return result.to_dict()
 
-    def run_tests(self, project: str, *, coverage: bool = False) -> dict[str, Any]:
-        """Generate, build and run the generated tests (with `coverage` the coverage target)."""
+    def run_tests(
+        self, project: str, *, coverage: bool = False, coverage_runtime: bool = False
+    ) -> dict[str, Any]:
+        """Generate, build and run the generated tests (with `coverage` the coverage target).
+
+        `coverage_runtime` adds the runtime headers to the coverage report. The results are written
+        below the returned `build_dir`, which `lifecycle_docs` accepts as `results_dir`.
+        """
         directory = self.project_dir(project)
         options = test_project.TestOptions(plugins=service.find_plugins(directory))
-        build = service.BuildOptions(coverage=coverage)
+        build = service.BuildOptions(
+            coverage=coverage or coverage_runtime, coverage_runtime=coverage_runtime
+        )
         result = service.run_tests(directory, self.output, options, build)
         return result.to_dict()
 
@@ -173,10 +181,24 @@ class Tools:
         target = self.output / "wireshark" / f"{project}.lua"
         return service.wireshark_dissector(self.project_dir(project), target).to_dict()
 
-    def lifecycle_docs(self, project: str, *, strict: bool = False) -> dict[str, Any]:
-        """Write the requirements, design, test and traceability documents of a project."""
+    def lifecycle_docs(
+        self, project: str, *, strict: bool = False, results_dir: str | None = None
+    ) -> dict[str, Any]:
+        """Write the requirements, design, test and traceability documents of a project.
+
+        `results_dir` is the `build_dir` that `run_tests` returned; it must lie below the workspace
+        output, so a tool call cannot read other places.
+        """
         target = self.output.parent / "docs" / project
-        return service.lifecycle_docs(self.project_dir(project), target, strict=strict).to_dict()
+        results = None
+        if results_dir is not None:
+            results = Path(results_dir).resolve()
+            if self.output.resolve() not in results.parents:
+                message = "results_dir must be a build directory below the workspace output"
+                raise ServiceError(message)
+        return service.lifecycle_docs(
+            self.project_dir(project), target, strict=strict, results=results
+        ).to_dict()
 
     def analyze_layout(
         self, project: str, profile: str | None = None, export: str = "markdown"

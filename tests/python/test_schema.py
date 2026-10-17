@@ -74,3 +74,10 @@ def test_yaml_syntax_error_is_reported(tmp_path: Path) -> None:
     issues = schema.validate_project(path)
     assert len(issues) == 1
     assert "YAML syntax error" in issues[0].message
+
+
+def test_deviations_schema_is_a_valid_json_schema() -> None:
+    contents = json.loads(
+        (schema.SCHEMA_DIR / "deviations.schema.json").read_text(encoding="utf-8")
+    )
+    Draft202012Validator.check_schema(contents)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import filecmp
 import re
 import shutil
@@ -11,11 +12,15 @@ from typing import TYPE_CHECKING
 import pytest
 
 from wireforge import bundle, golden, lifecycle, service, test_project
+from wireforge import results as test_results
 from wireforge.loader import load_project
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from wireforge.codec import ChecksumPlugin
 
+    MakeResults = Callable[..., Path]
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples"
 AVIONICS = EXAMPLES / "02_multi_interface_avionics"
@@ -67,6 +72,7 @@ def test_basic_example_documents() -> None:
         "test_spec.md",
         "test_spec.csv",
         "test_report.md",
+        "resources.md",
         "traceability.md",
         "traceability.csv",
         "environment.md",
@@ -76,7 +82,7 @@ def test_basic_example_documents() -> None:
     }
     for rid in ("HLR-SNS-001", "HLR-SNS-004", "HLR-SNS-005", "HLR-SNS-006"):
         assert rid in files["requirements.md"]
-    assert files["traceability.csv"].startswith("llr,kind,parents,code,tests,derived\n")
+    assert files["traceability.csv"].startswith("llr,kind,parents,code,tests,derived,result\n")
     tests = files["test_spec.csv"].splitlines()
     assert len(tests) - 1 == len(_context(EXAMPLES / "01_basic_telemetry").tests) == 39
     assert "Test results: not provided." in files["test_report.md"]
@@ -224,3 +230,96 @@ def test_review_checklist_auto_items_pass(name: str) -> None:
     assert "[auto: PASS]" in text
     assert "[auto: FAIL]" not in text
     assert "- [ ] reviewer:" in text
+
+
+def _with_results(
+    make_results: MakeResults, tmp_path: Path, **options: bool
+) -> lifecycle.DocsContext:
+    ctx = _context(EXAMPLES / "01_basic_telemetry")
+    build = make_results(tmp_path, **options)
+    return dataclasses.replace(ctx, results=test_results.load(build))
+
+
+def test_without_results_every_result_section_says_so() -> None:
+    files = lifecycle.render(_context(EXAMPLES / "01_basic_telemetry"))
+    assert "Test results: not provided." in files["test_report.md"]
+    assert "Coverage: not provided." in files["test_report.md"]
+    assert "Stack usage: not provided." in files["resources.md"]
+    assert "Toolchain: not provided." in files["environment.md"]
+    assert "Results: not provided — strict covered model checks only." in files["index.md"]
+    assert files["traceability.csv"].splitlines()[0].endswith(",result")
+
+
+def test_documents_with_results(make_results: MakeResults, tmp_path: Path) -> None:
+    ctx = _with_results(make_results, tmp_path, bad=True)
+    files = lifecycle.render(ctx)
+    report = files["test_report.md"]
+    assert "| demo_tests | 1 | 1 | 1 |" in report
+    assert "M.Broken (demo_tests): failed Expected equality" in report
+    assert "Runtime headers" in report
+    assert "wireforge/ring.hpp" in report
+    assert "| GNU |" in files["environment.md"] or "cxx_compiler_id" in files["environment.md"]
+    assert "wireforge/link.hpp:70" in files["resources.md"]
+    assert "indicative, measure on the target" in files["resources.md"]
+    assert "Results: 5 test results" in files["index.md"]
+
+
+def test_strict_rules_for_results(make_results: MakeResults, tmp_path: Path) -> None:
+    ctx = _with_results(make_results, tmp_path, bad=True)
+    rules = [item.rule for item in lifecycle.strict_findings(ctx)]
+    assert rules.count("DS-5") == 3, "a failure, a skip and a failed self-test"
+    assert "DS-7" in rules
+    assert "DS-6" not in rules, "generated code is fully covered and the runtime was measured"
+    clean = lifecycle.strict_findings(_with_results(make_results, tmp_path / "clean"))
+    assert {item.rule for item in clean} == {"DS-5", "DS-7"}
+
+
+def test_runtime_not_measured_is_a_strict_error(make_results: MakeResults, tmp_path: Path) -> None:
+    findings = lifecycle.strict_findings(_with_results(make_results, tmp_path, runtime=False))
+    messages = [item.message for item in findings if item.rule == "DS-6"]
+    assert messages == ["runtime coverage was not measured in this build"]
+    report = lifecycle.render(_with_results(make_results, tmp_path / "again", runtime=False))[
+        "test_report.md"
+    ]
+    assert "Runtime coverage: not measured in this build." in report
+
+
+def test_a_generated_gap_is_ds6_and_deviations_clear_ds7(
+    make_results: MakeResults, tmp_path: Path
+) -> None:
+    ctx = _with_results(make_results, tmp_path)
+    assert ctx.results is not None
+    deviations = (
+        test_results.Deviation(
+            "coverage", "wireforge/*", "*", "defensive", "Not reachable here.", "J. Doe"
+        ),
+    )
+    covered = dataclasses.replace(ctx, deviations=deviations)
+    assert "DS-7" not in {item.rule for item in lifecycle.strict_findings(covered)}
+    assert "Unused justifications" in lifecycle.render(covered)["test_report.md"]
+    short = dataclasses.replace(
+        ctx.results,
+        generated=(dataclasses.replace(ctx.results.generated[0], lines_covered=1),),
+    )
+    broken = dataclasses.replace(covered, results=short)
+    found = [item.message for item in lifecycle.strict_findings(broken) if item.rule == "DS-6"]
+    assert found == ["generated code demo/model.hpp covers 1 of 2 statements"]
+
+
+def test_traceability_result_column(make_results: MakeResults, tmp_path: Path) -> None:
+    ctx = _with_results(make_results, tmp_path)
+    assert ctx.results is not None
+    ctx = dataclasses.replace(
+        ctx,
+        results=dataclasses.replace(
+            ctx.results,
+            tests=(
+                test_results.TestResult(
+                    "Golden.sensor_to_us_SensorReading_default", "demo_tests", "failed", (), ""
+                ),
+            ),
+        ),
+    )
+    rows = lifecycle.render(ctx)["traceability.csv"].splitlines()
+    layout_row = next(row for row in rows if row.startswith("LLR-Vec3.LAYOUT"))
+    assert layout_row.endswith(",failed") or ",failed" in layout_row

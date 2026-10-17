@@ -99,6 +99,9 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install gcovr
       - run: quality/run_coverage.sh
+        env:
+          # Measured line coverage of the runtime headers by the repository's own tests, rounded down.
+          WIREFORGE_COVERAGE_MIN_LINE: "83"
 
   generated-test-projects:
     runs-on: ubuntu-24.04
@@ -109,6 +112,9 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ninja-build
       - run: pip install -e ".[mcp]" gcovr
       - run: quality/run_generated_tests.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: evidence-results, path: build/evidence-results }
 
   wireshark:
     runs-on: ubuntu-24.04

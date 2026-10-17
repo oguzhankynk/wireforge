@@ -19,9 +19,9 @@ Example client configuration:
 | `upsert_entry(project, section, name, definition, dry_run?)` | create/update a checksum, enum, interface, profile, define | `wireforge set` |
 | `validate_project(project)` | issues with file, line and JSON pointer | `wireforge validate` |
 | `generate_code(project, tests?)` | C++ code and the GoogleTest project; lists the files | `wireforge generate --tests` |
-| `run_tests(project, coverage?)` | build and run the generated tests (or the coverage target) | `wireforge test` |
+| `run_tests(project, coverage?, coverage_runtime?)` | build and run the generated tests (or the coverage target) | `wireforge test` |
 | `analyze_layout(project, profile?, export?)` | sizes, offsets, bit maps, frames, link RAM | `wireforge analyze` |
-| `lifecycle_docs(project, strict)` | requirements, design, test and traceability documents in `<workspace>/.wireforge/docs/<project>/` | `wireforge docs` |
+| `lifecycle_docs(project, strict, results_dir?)` | requirements, design, test and traceability documents in `<workspace>/.wireforge/docs/<project>/` | `wireforge docs` |
 | `wireshark_dissector(project)` | Wireshark Lua plugin in `<workspace>/.wireforge/generated/wireshark/<project>.lua` | `wireforge wireshark` |
 | `compat_check(project, old_project? \| revision?)` | compatibility with another project or a git revision | `wireforge compat` |
 | `encode_sample(project, message, value?, interface?, profile?)` | payload/frame hex; without `value` a sample with every field set | `wireforge encode` |
@@ -36,3 +36,5 @@ nothing. Bad arguments (unknown project, section or message, malformed hex) are 
 language model), creates the project, checksum, messages and interface through the tools, validates, generates and
 runs the generated tests with a real build (`quality/run_generated_tests.sh`); `tests/python/test_mcp.py` runs the same
 scenario with the build replaced and covers every tool and error path.
+
+`results_dir` is the `build_dir` returned by `run_tests`; a directory outside the workspace output is refused.

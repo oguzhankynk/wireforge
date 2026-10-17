@@ -10,5 +10,6 @@ mkdir -p build/coverage/report
 gcovr --root . --object-directory build/coverage \
   --filter 'runtime/include/' --filter 'codegen/' \
   --txt --html-details build/coverage/report/index.html \
+  --json build/coverage/report/coverage.json \
   --gcov-ignore-parse-errors=negative_hits.warn_once_per_file \
   --fail-under-line "${WIREFORGE_COVERAGE_MIN_LINE:-0}"

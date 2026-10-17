@@ -12,6 +12,7 @@ produce minimal diffs. With `dry_run` nothing is written and the result carries 
 
 from __future__ import annotations
 
+import dataclasses
 import difflib
 import io
 import json
@@ -44,6 +45,7 @@ from wireforge import (
     versioning,
     wireshark,
 )
+from wireforge import results as test_results
 from wireforge.codec import CodecError, ReferenceCodec
 from wireforge.cpp_interface import InterfaceError
 from wireforge.issues import Issue, errors_only
@@ -222,6 +224,7 @@ class BuildOptions:
 
     build_dir: Path | None = None
     coverage: bool = False
+    coverage_runtime: bool = False
     generator: str | None = None
     extra_cmake_args: tuple[str, ...] = ()
 
@@ -238,7 +241,9 @@ def run_tests(
 ) -> Result:
     """Generate the code and the test project, build it with CMake and run its tests.
 
-    With `build.coverage` the coverage target runs instead (tests plus the coverage threshold).
+    With `build.coverage` the coverage target runs instead (tests plus the coverage threshold);
+    `build.coverage_runtime` adds the runtime headers to the coverage report. The machine-readable
+    results are written to `<build_dir>/results` (`wireforge docs --results <build_dir>`).
     """
     build = build or BuildOptions()
     cmake = shutil.which("cmake")
@@ -255,6 +260,8 @@ def run_tests(
         configure += ["-G", build.generator]
     if build.coverage:
         configure.append("-DWIREFORGE_COVERAGE=ON")
+    if build.coverage_runtime:
+        configure.append("-DWIREFORGE_COVERAGE_RUNTIME=ON")
     configure += list(build.extra_cmake_args)
     steps = [configure, [cmake, "--build", str(build_dir)]]
     if build.coverage:
@@ -271,7 +278,10 @@ def run_tests(
             return Result(
                 ok=False, data={"build_dir": str(build_dir), "failed": command}, text=text
             )
-    return Result(ok=True, data={"build_dir": str(build_dir)}, text="".join(log))
+    data = {"build_dir": str(build_dir), "results_dir": str(build_dir / "results")}
+    if build.coverage:
+        log.append(f"results in {build_dir}\n")
+    return Result(ok=True, data=data, text="".join(log))
 
 
 # --- bundles ------------------------------------------------------------------------------------
@@ -896,12 +906,27 @@ def trace_report(location: Path, export: str = "markdown") -> Result:
 # --- lifecycle documents ------------------------------------------------------------------------
 
 
-def _lifecycle(location: Path, *, strict: bool) -> tuple[Result, dict[str, str]]:
+def _directory(location: Path) -> Path:
+    return location if location.is_dir() else location.parent
+
+
+def _lifecycle(
+    location: Path, *, strict: bool, results_dir: Path | None = None
+) -> tuple[Result, dict[str, str]]:
     project, issues = _load_valid(location)
     if project is None:
         return Result(ok=False, issues=issues, text=_issues_text(issues)), {}
     content_hash = bundle.build_bundle(location)["bundle"]["content_hash"]
     context = lifecycle.context(project, content_hash, load_plugins(find_plugins(location)))
+    if results_dir is not None:
+        try:
+            context = dataclasses.replace(
+                context,
+                results=test_results.load(results_dir),
+                deviations=tuple(test_results.load_deviations(_directory(location))),
+            )
+        except test_results.ResultsError as error:
+            raise ServiceError(str(error)) from error
     files = lifecycle.render(context)
     findings = lifecycle.strict_findings(context)
     found = [
@@ -918,13 +943,17 @@ def _lifecycle(location: Path, *, strict: bool) -> tuple[Result, dict[str, str]]
     return result, files
 
 
-def lifecycle_docs(location: Path, output: Path, *, strict: bool = False) -> Result:
+def lifecycle_docs(
+    location: Path, output: Path, *, strict: bool = False, results: Path | None = None
+) -> Result:
     """Write the requirements, design, test and traceability documents to `output`.
 
     Only files with the names of the documents are written; other files are left alone. With
-    `strict` the result fails when a review would reject the model (rules DS-1 to DS-4).
+    `strict` the result fails when a review would reject the model (rules DS-1 to DS-4). With
+    `results` (the build directory of a test run) the documents include the test results,
+    coverage, stack use and toolchain, and strict also applies rules DS-5 to DS-7.
     """
-    result, files = _lifecycle(location, strict=strict)
+    result, files = _lifecycle(location, strict=strict, results_dir=results)
     if not files:
         return result
     output.mkdir(parents=True, exist_ok=True)

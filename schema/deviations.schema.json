@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WireForge deviations (justifications for lines and rules that are not satisfied)",
+  "description": "Optional file `deviations.yaml` in the project directory. It is not part of the model and does not change the model hash.",
+  "type": "object",
+  "required": ["schema_version", "deviations"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "deviations": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["kind", "file", "function", "category", "rationale", "reviewer"],
+            "properties": {
+              "kind": { "const": "coverage" },
+              "file": { "type": "string", "minLength": 1, "description": "Runtime header relative to the include directory (wireforge/...), or <project>/... for generated code. `*` matches any characters." },
+              "function": { "type": "string", "minLength": 1, "description": "Demangled function name as gcov reports it; `*` matches any characters." },
+              "lines": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "minItems": 1, "uniqueItems": true, "description": "Only these lines; absent: every uncovered line of the function." },
+              "category": { "enum": ["deactivated", "defensive", "unreachable-by-design"] },
+              "rationale": { "type": "string", "minLength": 1 },
+              "reviewer": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": ["kind", "tool", "rule", "file", "category", "rationale", "reviewer"],
+            "properties": {
+              "kind": { "const": "rule" },
+              "tool": { "type": "string", "minLength": 1 },
+              "rule": { "type": "string", "minLength": 1 },
+              "file": { "type": "string", "minLength": 1 },
+              "function": { "type": "string", "minLength": 1 },
+              "category": { "enum": ["justified", "false-positive", "not-applicable"] },
+              "rationale": { "type": "string", "minLength": 1 },
+              "reviewer": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

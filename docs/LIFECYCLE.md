@@ -41,6 +41,19 @@ reject the model; each finding is printed and listed in `index.md`:
 
 With no requirements only DS-1 is reported. The documents are written in any case.
 
+## Test results and coverage
+`wireforge docs <project> -o <dir> --results <build>` adds what a test run produced (docs/CODEGEN.md, "Results of a
+test run"): `test_report.md` gets the results per executable and per requirement, the failures, the coverage of the
+generated code and of the runtime, and the uncovered lines with or without a justification from `deviations.yaml`;
+`resources.md` gets the stack use; `environment.md` the toolchain; `traceability.csv` a `result` column. The run comes
+from `wireforge test <project> -o <dir> --coverage-runtime`, which prints the build directory. A missing or damaged
+result file is an error, never an empty report. The server does not build, so its `/docs` route has no results.
+
+Strict mode adds three rules when results are given: DS-5 a failed or skipped test, DS-6 generated code below 100 %
+statement coverage or runtime coverage that was not measured, DS-7 an uncovered line without a justification. Without
+`--results`, `--strict` checks the model only and `index.md` says "Results: not provided". The generated tests alone do
+not execute every statement of the runtime, so DS-7 lists what remains; close it with tests or justify it.
+
 ## Two kinds of expectation
 Most generated tests take their expected result from the reference codec of WireForge (oracle `reference-codec`). A
 mistake in how the model is read would then be in both the codec and the generated code, and the tests would stay

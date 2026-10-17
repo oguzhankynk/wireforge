@@ -4,7 +4,9 @@
 `wireforge.generate`. The project builds one test executable per profile (with the profile's
 defines), compiles with the full warning set as errors, offers sanitizer and clang-tidy presets
 and a `coverage` target that fails below a line-coverage threshold, or below 100 percent branch or
-function coverage, of the generated code.
+function coverage, of the generated code. The coverage build also writes `<build>/results/` (JUnit
+and CTest results, coverage as JSON and Cobertura, runtime coverage on request, the toolchain) for
+`wireforge docs --results`.
 """
 
 from __future__ import annotations
@@ -66,6 +68,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(WIREFORGE_WERROR "Treat every warning as an error" ON)
 option(WIREFORGE_COVERAGE "Instrument for coverage and add the coverage target" OFF)
 option(WIREFORGE_CLANG_TIDY "Run clang-tidy on the test sources while building" OFF)
+option(WIREFORGE_COVERAGE_RUNTIME "Include the runtime headers in the coverage report" OFF)
 option(WIREFORGE_FUZZ "Build the libFuzzer targets (Clang only)" OFF)
 set(WIREFORGE_SANITIZE "" CACHE STRING "Sanitizers: address,undefined or thread")
 set(WIREFORGE_COVERAGE_MIN_LINE "@THRESHOLD@" CACHE STRING
@@ -74,6 +77,8 @@ set(WIREFORGE_COVERAGE_MIN_BRANCH "100" CACHE STRING
     "Minimum branch coverage of the generated code in percent")
 set(WIREFORGE_COVERAGE_MIN_FUNCTION "100" CACHE STRING
     "Minimum function coverage of the generated code in percent")
+set(WIREFORGE_COVERAGE_RUNTIME_MIN_LINE "100" CACHE STRING
+    "Minimum statement coverage of the runtime headers in percent")
 set(WIREFORGE_RUNTIME_INCLUDE_DIR "@RUNTIME@" CACHE PATH
     "Directory holding the WireForge runtime headers (wireforge/*.hpp)")
 get_filename_component(WIREFORGE_GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
@@ -116,7 +121,7 @@ else()
     target_link_options(wireforge_test_flags INTERFACE -fsanitize=${WIREFORGE_SANITIZE})
   endif()
   if(WIREFORGE_COVERAGE)
-    target_compile_options(wireforge_test_flags INTERFACE --coverage -O0 -g)
+    target_compile_options(wireforge_test_flags INTERFACE --coverage -O0 -g -fstack-usage)
     target_link_options(wireforge_test_flags INTERFACE --coverage)
   endif()
 endif()
@@ -165,7 +170,8 @@ function(wireforge_add_profile suffix)
   target_include_directories(${tests} PRIVATE ${includes})
   target_compile_definitions(${tests} PRIVATE ${ARGN})
   target_link_libraries(${tests} PRIVATE GTest::gtest_main Threads::Threads wireforge_test_flags)
-  gtest_discover_tests(${tests} DISCOVERY_MODE PRE_TEST)
+  gtest_discover_tests(${tests} DISCOVERY_MODE PRE_TEST
+                       XML_OUTPUT_DIR ${CMAKE_BINARY_DIR}/results/junit/${tests})
   set(diff @NAME@_diff${suffix})
   add_executable(${diff} diff_harness.cpp)
   target_include_directories(${diff} PRIVATE ${includes})
@@ -199,22 +205,79 @@ if(WIREFORGE_COVERAGE)
   endif()
   # Runs the tests, then reports the line, branch and function coverage of the generated headers
   # of @NAME@. Headers outside the generated directory (runtime, application) are not part of the
-  # report.
-  add_custom_target(coverage
+  # report unless WIREFORGE_COVERAGE_RUNTIME is ON: then a second report measures the statements of
+  # the runtime headers that were compiled into the tests. The machine-readable results are written
+  # to <build>/results (junit/, ctest.xml, coverage.json, coverage_summary.json,
+  # coverage.cobertura.xml, coverage_runtime.json, toolchain.json).
+  set(WIREFORGE_RESULTS_DIR ${CMAKE_BINARY_DIR}/results)
+  set(wireforge_coverage_steps
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${WIREFORGE_RESULTS_DIR}
     COMMAND ${CMAKE_CTEST_COMMAND} --test-dir ${CMAKE_BINARY_DIR} --output-on-failure
+            --output-junit ${WIREFORGE_RESULTS_DIR}/ctest.xml
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/coverage
     COMMAND ${WIREFORGE_GCOVR} --root ${WIREFORGE_GENERATED_DIR}
             --object-directory ${CMAKE_BINARY_DIR} --gcov-executable ${WIREFORGE_GCOV}
             --gcov-ignore-errors=source_not_found
             --filter "@NAME@/model[.]hpp" --filter "@NAME@/interfaces/"
             --txt --html-details ${CMAKE_BINARY_DIR}/coverage/index.html
+            --json ${WIREFORGE_RESULTS_DIR}/coverage.json
+            --json-summary ${WIREFORGE_RESULTS_DIR}/coverage_summary.json
+            --cobertura ${WIREFORGE_RESULTS_DIR}/coverage.cobertura.xml
             --fail-under-line ${WIREFORGE_COVERAGE_MIN_LINE}
             --fail-under-branch ${WIREFORGE_COVERAGE_MIN_BRANCH}
-            --fail-under-function ${WIREFORGE_COVERAGE_MIN_FUNCTION}
+            --fail-under-function ${WIREFORGE_COVERAGE_MIN_FUNCTION})
+  if(WIREFORGE_COVERAGE_RUNTIME)
+    get_filename_component(wireforge_runtime_abs "${WIREFORGE_RUNTIME_INCLUDE_DIR}" REALPATH)
+    list(APPEND wireforge_coverage_steps
+      COMMAND ${WIREFORGE_GCOVR} --root ${wireforge_runtime_abs}
+              --object-directory ${CMAKE_BINARY_DIR} --gcov-executable ${WIREFORGE_GCOV}
+              --gcov-ignore-errors=source_not_found
+              --filter "${wireforge_runtime_abs}/wireforge/"
+              --json ${WIREFORGE_RESULTS_DIR}/coverage_runtime.json
+              --fail-under-line ${WIREFORGE_COVERAGE_RUNTIME_MIN_LINE})
+  endif()
+  add_custom_target(coverage
+    ${wireforge_coverage_steps}
     WORKING_DIRECTORY ${WIREFORGE_GENERATED_DIR}
     DEPENDS @TARGET_NAMES@
     VERBATIM)
 endif()
+
+# Facts about the toolchain for the lifecycle documents. No path is written: the file must not
+# change when the project moves.
+execute_process(COMMAND ${CMAKE_COMMAND} --version OUTPUT_VARIABLE wireforge_cmake_version
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+string(REGEX MATCH "[0-9]+[.][0-9]+[.][0-9]+" wireforge_cmake_version "${wireforge_cmake_version}")
+set(wireforge_gcovr_version "not used")
+if(WIREFORGE_COVERAGE)
+  execute_process(COMMAND ${WIREFORGE_GCOVR} --version OUTPUT_VARIABLE wireforge_gcovr_version
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  string(REGEX MATCH "[0-9]+[.][0-9]+([.][0-9]+)?" wireforge_gcovr_version
+         "${wireforge_gcovr_version}")
+endif()
+if(WIREFORGE_COVERAGE_RUNTIME)
+  set(wireforge_runtime_dir "set")
+else()
+  set(wireforge_runtime_dir "default")
+endif()
+get_target_property(wireforge_flag_options wireforge_test_flags INTERFACE_COMPILE_OPTIONS)
+string(REPLACE ";" " " wireforge_flags "${CMAKE_CXX_FLAGS} ${wireforge_flag_options}")
+string(REGEX REPLACE "[$]<[^>]*>" "" wireforge_flags "${wireforge_flags}")
+string(REPLACE "\\"" "'" wireforge_flags "${wireforge_flags}")
+file(WRITE ${CMAKE_BINARY_DIR}/results/toolchain.json
+"{
+  \\"cxx_compiler_id\\": \\"${CMAKE_CXX_COMPILER_ID}\\",
+  \\"cxx_compiler_version\\": \\"${CMAKE_CXX_COMPILER_VERSION}\\",
+  \\"cmake_version\\": \\"${wireforge_cmake_version}\\",
+  \\"gcovr_version\\": \\"${wireforge_gcovr_version}\\",
+  \\"build_type\\": \\"${CMAKE_BUILD_TYPE}\\",
+  \\"coverage\\": \\"${WIREFORGE_COVERAGE}\\",
+  \\"coverage_runtime\\": \\"${WIREFORGE_COVERAGE_RUNTIME}\\",
+  \\"sanitize\\": \\"${WIREFORGE_SANITIZE}\\",
+  \\"runtime_include_dir\\": \\"${wireforge_runtime_dir}\\",
+  \\"cxx_flags\\": \\"${wireforge_flags}\\"
+}
+")
 """
 
 README = """\
@@ -241,7 +304,9 @@ cmake --preset asan-ubsan && cmake --build --preset asan-ubsan && ctest --preset
 cmake --preset clang-tidy && cmake --build --preset clang-tidy
 ```
 
-`WIREFORGE_RUNTIME_INCLUDE_DIR` points to the WireForge runtime headers. The `coverage` target needs
+`WIREFORGE_RUNTIME_INCLUDE_DIR` points to the WireForge runtime headers. The `coverage` target
+writes `results/` below the build directory (JUnit, CTest, coverage, toolchain); with
+`WIREFORGE_COVERAGE_RUNTIME=ON` it also measures the runtime headers. The target needs
 gcovr and fails below `WIREFORGE_COVERAGE_MIN_LINE` percent line coverage (default {threshold}) or
 below 100 percent branch and function coverage (`WIREFORGE_COVERAGE_MIN_BRANCH`,
 `WIREFORGE_COVERAGE_MIN_FUNCTION`) of the generated headers. GoogleTest 1.14 is taken from the

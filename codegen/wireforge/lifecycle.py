@@ -11,10 +11,8 @@ not qualified and the high-level requirements stay the user's.
 
 from __future__ import annotations
 
-import csv
 import hashlib
 import importlib.metadata
-import io
 import os
 import platform
 import re
@@ -23,9 +21,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from wireforge import (
+    docs_markdown as md,
+)
+from wireforge import (
     generate,
     golden,
     layout,
+    lifecycle_results,
     llr,
     test_cases,
     test_project,
@@ -33,6 +35,7 @@ from wireforge import (
     vectors,
     versioning,
 )
+from wireforge import results as test_results
 from wireforge.test_cases import OK
 
 if TYPE_CHECKING:
@@ -146,6 +149,8 @@ class DocsContext:
     layout: layout.LayoutReport
     generated_files: tuple[str, ...]
     model_files: tuple[tuple[str, str], ...]
+    results: test_results.Results | None = None
+    deviations: tuple[test_results.Deviation, ...] = ()
 
 
 NoteKey = tuple[str | None, str, str]  # profile, suite, test name
@@ -197,7 +202,7 @@ A-7|1,2|Test procedures and results correct|
  test_spec.md#tests;test_report.md#results;review_checklists.md#tests|yes
 A-7|3,4|Test coverage of high-level and low-level requirements|
  traceability.md#low-level-requirements-to-tests|yes
-A-7|7|Statement coverage|test_report.md#results|yes
+A-7|7|Statement coverage|test_report.md#coverage|yes
 A-7|8|Data and control coupling|
  interfaces_coupling.md#data-coupling;interfaces_coupling.md#control-coupling|yes
 A-7|5,6,9|MC/DC, decision coverage and object code coverage|Not at DAL C|check
@@ -308,61 +313,23 @@ CHECKLIST_HUMAN = {
 # --- small helpers --------------------------------------------------------------------------------
 
 
-def slug(text: str) -> str:
-    """Return the anchor id of a requirement id, test id or heading."""
-    return re.sub(r"[^a-z0-9-]", "-", text.lower())
-
-
-def _format() -> str:
-    return f"{versioning.FORMAT_MAJOR}.{versioning.FORMAT_MINOR}"
-
-
-def _cell(text: object) -> str:
-    return " ".join(str(text).split()).replace("|", "\\|") or "-"
-
-
-def _table(headers: Sequence[str], rows: Iterable[Sequence[object]]) -> list[str]:
-    lines = ["| " + " | ".join(headers) + " |", "|" + "---|" * len(headers)]
-    lines += ["| " + " | ".join(_cell(item) for item in row) + " |" for row in rows]
-    return lines
-
-
-def _csv(headers: Sequence[str], rows: Iterable[Sequence[object]]) -> str:
-    out = io.StringIO()
-    writer = csv.writer(out, lineterminator="\n")
-    writer.writerow(headers)
-    writer.writerows(rows)
-    return out.getvalue()
-
-
-def _anchor(ident: str) -> str:
-    return f'<a id="{slug(ident)}"></a>'
-
-
-def _link(ident: str, file: str = "requirements.md") -> str:
-    return f"[{ident}]({file}#{slug(ident)})"
-
-
-def _links(items: Iterable[str], file: str = "requirements.md") -> str:
-    return ", ".join(_link(item, file) for item in items) or "-"
-
-
 def _ids(keys: Iterable[str]) -> tuple[str, ...]:
     return tuple(llr.display_id(key) for key in keys)
 
 
 def _preamble(ctx: DocsContext, title: str) -> list[str]:
     project = ctx.project
-    rows = [
-        ("Model hash", f"`{ctx.content_hash}`"),
-        (
-            "Generator",
-            f"WireForge {versioning.TOOL_VERSION} (file format {_format()})",
-        ),
-        ("Model files", f"{len(ctx.model_files)} (see environment.md)"),
-    ]
-    heading = f"# {title} — {project.name} {project.version or ''}".rstrip()
-    return [heading, "", *_table(("Item", "Value"), rows), ""]
+    files = len(ctx.model_files)
+    return md.preamble(title, project.name, project.version, ctx.content_hash, files)
+
+
+_table = md.table
+_csv = md.csv_text
+_anchor = md.anchor
+_link = md.link
+_links = md.links
+_format = md.file_format
+slug = md.slug
 
 
 def _hlr_users(ctx: DocsContext) -> dict[str, list[str]]:
@@ -505,7 +472,7 @@ def _test_note(item: trace.ParsedTest, notes: dict[NoteKey, _Note]) -> _Note:
 def context(
     project: Project, content_hash: str, plugins: dict[str, ChecksumPlugin] | None = None
 ) -> DocsContext:
-    """Gather what the documents of a valid project are made of."""
+    """Gather what the documents of a valid project are made of (without test results)."""
     traced = trace.report(project, content_hash, plugins)
     parsed = trace.parse_tests(trace.render_test_sources(project, plugins))
     root = Path(project.source.file).parent
@@ -561,6 +528,10 @@ def strict_findings(ctx: DocsContext) -> list[StrictFinding]:
         elif rid not in vectored:
             text = f"requirement {rid} is verified by test but has no requirement vector"
             findings.append(StrictFinding("DS-4", text, pointer))
+    findings += [
+        StrictFinding(rule, text, pointer)
+        for rule, text, pointer in lifecycle_results.findings(ctx)
+    ]
     return findings
 
 
@@ -581,7 +552,8 @@ DOCUMENTS = (
         "test_spec.md",
         "Every generated test: procedure, expected result, requirements (also `test_spec.csv`).",
     ),
-    ("test_report.md", "Test results (not provided in this run)."),
+    ("test_report.md", "Test results and coverage (when a test run is given)."),
+    ("resources.md", "Memory from the layout analysis and stack use from the test run."),
     ("traceability.md", "Requirements to code to tests and back (also `traceability.csv`)."),
     ("environment.md", "Model files with hashes, tool and library versions."),
     ("code_standard.md", "Rules the generated code follows and the evidence for them."),
@@ -613,6 +585,11 @@ def _index(ctx: DocsContext, findings: list[StrictFinding]) -> str:
     ]
     lines += ["## Documents", "", *_table(("File", "Content"), DOCUMENTS), ""]
     lines += ["## Summary", "", *_table(("Item", "Count"), summary(ctx).items()), ""]
+    if ctx.results is None:
+        lines += ["Results: not provided — strict covered model checks only.", ""]
+    else:
+        counts = len(ctx.results.tests) + len(ctx.results.selftests)
+        lines += [f"Results: {counts} test results and the coverage of the run are included.", ""]
     lines += ["## Strict result", ""]
     rules = {
         "DS-1": "no requirements defined",
@@ -622,6 +599,12 @@ def _index(ctx: DocsContext, findings: list[StrictFinding]) -> str:
         "DS-3": "low-level requirement without a test",
         "DS-4": "requirement without a model element or vector",
     }
+    if ctx.results is not None:
+        rules |= {
+            "DS-5": "failed or skipped test",
+            "DS-6": "statement coverage below 100 % or runtime not measured",
+            "DS-7": "uncovered line without a justification",
+        }
     rows = []
     for rule, text in rules.items():
         count = sum(1 for item in findings if item.rule == rule)
@@ -958,17 +941,6 @@ def _test_spec(ctx: DocsContext) -> tuple[str, str]:
     )
 
 
-def _test_report(ctx: DocsContext) -> str:
-    lines = _preamble(ctx, "Test report")
-    lines += ["## Results", "", "Test results: not provided.", ""]
-    robust = sum(1 for entry in ctx.tests if entry.kind == "robustness")
-    lines += [
-        *_table(("Item", "Count"), (("tests", len(ctx.tests)), ("robustness tests", robust))),
-        "",
-    ]
-    return "\n".join(lines)
-
-
 def _traceability(ctx: DocsContext) -> tuple[str, str]:
     lines = _preamble(ctx, "Traceability")
     lines += ["## Requirements to tests", ""]
@@ -1019,11 +991,12 @@ def _traceability(ctx: DocsContext) -> tuple[str, str]:
             row.generated,
             " ".join(row.tests),
             "yes" if row.derived else "no",
+            lifecycle_results.outcome_of(ctx, row.tests),
         )
         for row in ctx.llr_rows
     ]
     return "\n".join(lines) + "\n", _csv(
-        ("llr", "kind", "parents", "code", "tests", "derived"), csv_rows
+        ("llr", "kind", "parents", "code", "tests", "derived", "result"), csv_rows
     )
 
 
@@ -1046,6 +1019,7 @@ def _environment(ctx: DocsContext) -> str:
     versions += [(name, _version(name)) for name in DEPENDENCIES]
     versions.append(("File format", _format()))
     lines += ["## Tool versions", "", *_table(("Item", "Version"), versions), ""]
+    lines += lifecycle_results.toolchain_lines(ctx)
     return "\n".join(lines)
 
 
@@ -1184,7 +1158,8 @@ def render(ctx: DocsContext) -> dict[str, str]:
         "interfaces_coupling.md": _coupling(ctx),
         "test_spec.md": spec,
         "test_spec.csv": spec_csv,
-        "test_report.md": _test_report(ctx),
+        "test_report.md": lifecycle_results.test_report(ctx),
+        "resources.md": lifecycle_results.resources(ctx),
         "traceability.md": traceability,
         "traceability.csv": traceability_csv,
         "environment.md": _environment(ctx),

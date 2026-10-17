@@ -13,9 +13,9 @@ equivalent.
 | `wireforge wireshark <project> -o <file>.lua` | Wireshark Lua dissector plugin (docs/WIRESHARK.md) |
 | `wireforge analyze <project> [--profile P] [--format markdown\|csv\|json]` | layout report / ICD (docs/LAYOUT.md) |
 | `wireforge compat <old> <new> [--interface I]` | interface compatibility and version bump check |
-| `wireforge docs <project> -o <dir> [--strict]` | requirements, design, test and traceability documents (docs/LIFECYCLE.md) |
+| `wireforge docs <project> -o <dir> [--strict] [--results <build>]` | requirements, design, test and traceability documents (docs/LIFECYCLE.md) |
 | `wireforge trace <project> [--format markdown\|csv] [-o file]` | requirements, model elements, generated code and tests (docs/SAFETY.md) |
-| `wireforge test <project> -o <dir> [--coverage] [--generator Ninja]` | generate, build and run the generated tests |
+| `wireforge test <project> -o <dir> [--coverage] [--coverage-runtime] [--generator Ninja]` | generate, build and run the generated tests; the coverage build writes `results/` for `docs --results` |
 | `wireforge export <project> -o bundle.yaml` / `wireforge import <bundle> <dir>` | single-file bundles |
 | `wireforge get <project> <pointer>` | value at a JSON pointer, e.g. `/messages/NavSolution/fields/2` |
 | `wireforge set <project> <pointer> <value> [--dry-run] [--strict]` | set a value (`-` as last index appends) |
