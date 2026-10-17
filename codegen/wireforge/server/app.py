@@ -25,12 +25,15 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from wireforge import importers, resources, service, versioning
 from wireforge.loader import SECTIONS, load_project
-from wireforge.server.oidc import OidcConfig, OidcUnavailableError, OidcVerifier
 from wireforge.server.storage import StorageError, Workspace, check_match
 from wireforge.service import EditOptions, Result, ServiceError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    # Only needed for type checking: a plain `server` install never imports this (optional
+    # `oidc` extra), so the real import is deferred to where oidc is actually configured.
+    from wireforge.server.oidc import OidcConfig, OidcVerifier
 
 PROJECT_ID = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]*$")
 MAX_WAIT_SECONDS = 60.0
@@ -137,6 +140,8 @@ def authorize(request: Request, authorization: Annotated[str | None, Header()] =
     if authorization is None or not authorization.startswith("Bearer "):
         raise HTTPException(401, "missing bearer token")
     if verifier is not None:
+        from wireforge.server.oidc import OidcUnavailableError  # noqa: PLC0415
+
         try:
             request.state.user = verifier.verify(authorization.removeprefix("Bearer "))
         except ValueError as error:
@@ -528,7 +533,11 @@ def create_app(root: Path, token: str | None = None, oidc: OidcConfig | None = N
     )
     app.state.workspace = Workspace(root)
     app.state.token = token
-    app.state.oidc_verifier = OidcVerifier(oidc) if oidc is not None else None
+    app.state.oidc_verifier = None
+    if oidc is not None:
+        from wireforge.server.oidc import OidcVerifier  # noqa: PLC0415
+
+        app.state.oidc_verifier = OidcVerifier(oidc)
     app.add_exception_handler(StorageError, _storage_error)
 
     @app.get("/api/health")

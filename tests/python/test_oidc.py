@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import io
+import json
 import time
+import urllib.error
+import urllib.request
 from typing import TYPE_CHECKING
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
 from joserfc import jwt
@@ -16,6 +19,8 @@ from wireforge.server.oidc import OidcConfig, OidcUnavailableError, OidcVerifier
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from typing_extensions import Self
+
 ISSUER = "https://idp.example"
 AUDIENCE = "wireforge"
 KEY = RSAKey.generate_key(2048, {"kid": "k1"})
@@ -24,7 +29,7 @@ OTHER_KEY = RSAKey.generate_key(2048, {"kid": "k1"})
 
 def _token(key: RSAKey = KEY, **overrides: object) -> str:
     now = int(time.time())
-    claims = {
+    claims: dict[str, object] = {
         "iss": ISSUER,
         "aud": AUDIENCE,
         "sub": "u1",
@@ -35,21 +40,34 @@ def _token(key: RSAKey = KEY, **overrides: object) -> str:
     return jwt.encode({"alg": "RS256", "kid": "k1"}, claims, key)
 
 
+class _Response(io.BytesIO):
+    """A urlopen-compatible context manager wrapping one JSON body."""
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
+
+
 @pytest.fixture
 def idp(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     """Serve the discovery document and the key set of a fake issuer; return the fetched URLs."""
     fetched: list[str] = []
 
-    def fake_get(url: str, **_: object) -> httpx.Response:
+    def fake_urlopen(url: str, **_: object) -> _Response:
         fetched.append(url)
-        request = httpx.Request("GET", url)
+        body: dict[str, object]
         if url == f"{ISSUER}/.well-known/openid-configuration":
-            return httpx.Response(200, json={"jwks_uri": f"{ISSUER}/jwks"}, request=request)
-        if url == f"{ISSUER}/jwks":
-            return httpx.Response(200, json={"keys": [KEY.as_dict(private=False)]}, request=request)
-        return httpx.Response(404, request=request)
+            body = {"jwks_uri": f"{ISSUER}/jwks"}
+        elif url == f"{ISSUER}/jwks":
+            body = {"keys": [KEY.as_dict(private=False)]}
+        else:
+            message = f"unexpected url {url}"
+            raise urllib.error.URLError(message)
+        return _Response(json.dumps(body).encode())
 
-    monkeypatch.setattr(httpx, "get", fake_get)
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
     return fetched
 
 
@@ -103,11 +121,11 @@ def test_jwks_cache(idp: list[str], monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_issuer_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
-    def refuse(url: str, **_: object) -> httpx.Response:
+    def refuse(*_: object, **__: object) -> _Response:
         message = "refused"
-        raise httpx.ConnectError(message, request=httpx.Request("GET", url))
+        raise urllib.error.URLError(message)
 
-    monkeypatch.setattr(httpx, "get", refuse)
+    monkeypatch.setattr(urllib.request, "urlopen", refuse)
     with pytest.raises(OidcUnavailableError):
         _verifier().verify(_token())
 
@@ -125,11 +143,11 @@ def test_server_with_oidc(tmp_path: Path, idp: list[str]) -> None:
 
 
 def test_server_with_unreachable_issuer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    def refuse(url: str, **_: object) -> httpx.Response:
+    def refuse(*_: object, **__: object) -> _Response:
         message = "refused"
-        raise httpx.ConnectError(message, request=httpx.Request("GET", url))
+        raise urllib.error.URLError(message)
 
-    monkeypatch.setattr(httpx, "get", refuse)
+    monkeypatch.setattr(urllib.request, "urlopen", refuse)
     client = TestClient(create_app(tmp_path, oidc=OidcConfig(ISSUER, AUDIENCE)))
     headers = {"Authorization": f"Bearer {_token()}"}
     assert client.get("/api/projects", headers=headers).status_code == 503
