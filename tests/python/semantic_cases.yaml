@@ -407,7 +407,7 @@
 # SR-19 version stamps (checked before the semantic stage)
 - name: newer_format_minor
   rule: SR-19
-  expect: supports 1.1
+  expect: supports 1.2
   patch: [{ set: [schema_minor], value: 99 }]
 - name: fragment_from_newer_format
   rule: SR-19
@@ -451,3 +451,60 @@
   patch:
     - { set: [enums, Mode, reqs], value: [HLR-X] }
     - { set: [checksums, crc32, reqs], value: [HLR-Y] }
+
+# SR-22 requirement test vectors
+- name: vector_unknown_message
+  rule: SR-22
+  expect: "vector blob_nominal: unknown message 'Nope'"
+  patch: [{ set: [vectors, blob_nominal, message], value: Nope }]
+- name: vector_unknown_interface
+  rule: SR-22
+  expect: "unknown interface 'nowhere'"
+  patch: [{ set: [vectors, blob_nominal, interface], value: nowhere }]
+- name: vector_unknown_profile
+  rule: SR-22
+  expect: "unknown profile 'huge'"
+  patch: [{ set: [vectors, blob_nominal, profile], value: huge }]
+- name: vector_message_not_on_interface
+  rule: SR-22
+  expect: message Blob is not on interface fixed
+  patch: [{ set: [vectors, blob_nominal, interface], value: fixed }]
+- name: vector_wire_only_field
+  rule: SR-22
+  expect: "field 'kind' exists only on the wire"
+  patch: [{ set: [vectors, blob_nominal, expect, fields, kind], value: 66 }]
+- name: vector_unknown_field
+  rule: SR-22
+  expect: "names unknown field 'colour'"
+  patch: [{ set: [vectors, blob_nominal, expect, fields, colour], value: 1 }]
+- name: vector_encode_with_status
+  rule: SR-22
+  expect: direction encode needs expect.fields
+  patch:
+    - { set: [vectors, blob_nominal, expect], value: { status: OutOfRange } }
+    - { set: [vectors, blob_nominal, direction], value: encode }
+- name: vector_encode_missing_field
+  rule: SR-22
+  expect: encoding needs every field, missing data
+  patch:
+    - { set: [vectors, blob_nominal, expect], value: { fields: {} } }
+    - { set: [vectors, blob_nominal, direction], value: both }
+- name: vector_value_disagrees_with_the_codec
+  rule: SR-22
+  expect: "field data[0] is 1, expected 9"
+  patch: [{ set: [vectors, blob_nominal, expect, fields, data], value: [9, 2, 3] }]
+- name: vector_status_disagrees_with_the_codec
+  rule: SR-22
+  expect: "decodes with status Ok, expected ChecksumMismatch"
+  patch: [{ set: [vectors, blob_nominal, expect], value: { status: ChecksumMismatch } }]
+- name: vector_bytes_disagree_on_encode
+  rule: SR-22
+  expect: "encodes to 42 01 02 03, expected 42 01 02 04"
+  patch:
+    - { set: [vectors, blob_nominal, direction], value: encode }
+    - { set: [vectors, blob_nominal, bytes], value: "42 01 02 04" }
+- name: vector_unknown_requirement
+  rule: SR-21
+  expect: "vector blob_nominal: unknown requirement 'HLR-X'"
+  patch: [{ set: [vectors, blob_nominal, reqs], value: [HLR-X] }]
+

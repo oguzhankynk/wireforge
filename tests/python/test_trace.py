@@ -36,7 +36,7 @@ def test_every_element_is_traced() -> None:
 def test_rows_point_at_source_and_code() -> None:
     rows = {row["element"]: row for row in _rows("01_basic_telemetry")}
     reading = rows["/messages/SensorReading"]
-    assert reading["source"] == "project.yaml:41"
+    assert reading["source"] == "project.yaml:42"
     assert reading["symbol"] == "demo::telemetry::SensorReading"
     temperature = rows["/messages/SensorReading/fields/2"]
     assert temperature["symbol"] == "demo::telemetry::SensorReading::temperature"

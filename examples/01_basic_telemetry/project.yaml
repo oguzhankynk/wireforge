@@ -20,6 +20,7 @@ requirements:
   HLR-SNS-006:
     text: The sensor link shall find the next frame after corrupted or lost data.
     source: ICD-SNS-001 §5.2
+    verification: analysis
 
 checksums:
   frameCrc: { algo: crc32, reqs: [HLR-SNS-005] }
@@ -69,3 +70,40 @@ interfaces:
           checksum: { use: frameCrc, covers: { scope: header_and_payload } }
     framing: { kind: sync_length, max_frame_size: 64, resync: true, reqs: [HLR-SNS-006] }
     messages: [SensorReading]
+
+vectors:
+  reading_nominal:
+    description: Nominal reading, payload only.
+    message: SensorReading
+    direction: both
+    bytes: "03 02 41AC0000 3F800000 00000000 BF800000 02 0001 0002"
+    expect:
+      fields:
+        sensorId: 3
+        state: ready
+        temperature: 21.5
+        accel: { x: 1.0, y: 0.0, z: -1.0 }
+        samples: [1, 2]
+    reqs: [HLR-SNS-001]
+  reading_sensor_id_out_of_range:
+    description: Sensor id 33 is above the 32 sensors of the link.
+    message: SensorReading
+    bytes: "21 02 41AC0000 3F800000 00000000 BF800000 02 0001 0002"
+    expect: { status: OutOfRange }
+    reqs: [HLR-SNS-004]
+  frame_nominal:
+    description: The same reading in a complete frame.
+    interface: sensor_to_us
+    message: SensorReading
+    bytes: "A55A 0101 0017 03 02 41AC0000 3F800000 00000000 BF800000 02 0001 0002 D86BDABD"
+    expect:
+      fields: { sensorId: 3, state: ready, samples: [1, 2] }
+    reqs: [HLR-SNS-001]
+  frame_bad_checksum:
+    description: The last checksum byte is inverted.
+    interface: sensor_to_us
+    message: SensorReading
+    bytes: "A55A 0101 0017 03 02 41AC0000 3F800000 00000000 BF800000 02 0001 0002 D86BDA42"
+    expect: { status: ChecksumMismatch }
+    reqs: [HLR-SNS-005]
+

@@ -7,6 +7,7 @@ location, so the validator and later stages can report `file:line: pointer` for 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from wireforge.issues import Issue
 
@@ -199,6 +200,27 @@ class Requirement:
 
 
 @dataclass(frozen=True)
+class Vector:
+    """A requirement test vector: bytes from the ICD and what they must decode to or encode from.
+
+    `data` is None when `text` is not valid hex (reported by the validator).
+    """
+
+    name: str
+    message: str
+    text: str
+    data: bytes | None
+    source: Source
+    interface: str | None = None
+    profile: str | None = None
+    fields: dict[str, Any] | None = None
+    status: str | None = None
+    direction: str = "decode"
+    reqs: tuple[str, ...] = ()
+    description: str | None = None
+
+
+@dataclass(frozen=True)
 class Profile:
     """Named set of define values."""
 
@@ -273,6 +295,7 @@ class Project:
     user_types: dict[str, UserType] = field(default_factory=dict)
     messages: dict[str, Struct] = field(default_factory=dict)
     interfaces: dict[str, Interface] = field(default_factory=dict)
+    vectors: dict[str, Vector] = field(default_factory=dict)
     constants: dict[str, UserConstant] = field(default_factory=dict)
     headers: list[UserHeader] = field(default_factory=list)
     include_dirs: list[tuple[str, Source]] = field(default_factory=list)

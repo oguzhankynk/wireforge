@@ -8,6 +8,7 @@ merging is where they become visible. The `requirements` catalog is a section li
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, cast
 
@@ -35,6 +36,7 @@ from wireforge.model import (
     UserConstant,
     UserHeader,
     UserType,
+    Vector,
 )
 
 if TYPE_CHECKING:
@@ -50,6 +52,7 @@ SECTIONS = (
     "user_types",
     "messages",
     "interfaces",
+    "vectors",
 )
 
 
@@ -277,6 +280,29 @@ def _requirement(name: str, raw: dict[str, Any], source: Source) -> Requirement:
     )
 
 
+def _vector(name: str, raw: dict[str, Any], source: Source) -> Vector:
+    text = raw["bytes"]
+    try:
+        data: bytes | None = bytes.fromhex(re.sub(r"[\s_]", "", text))
+    except ValueError:
+        data = None
+    expect = raw["expect"]
+    return Vector(
+        name=name,
+        message=raw["message"],
+        text=text,
+        data=data,
+        source=source,
+        interface=raw.get("interface"),
+        profile=raw.get("profile"),
+        fields=expect.get("fields"),
+        status=expect.get("status"),
+        direction=raw.get("direction", "decode"),
+        reqs=_reqs(raw),
+        description=raw.get("description"),
+    )
+
+
 def _add_entry(project: Project, section: str, name: str, where: _Where, source: Source) -> None:
     if section == "requirements":
         project.requirements[name] = _requirement(name, _mapping(where.node), source)
@@ -295,6 +321,8 @@ def _add_entry(project: Project, section: str, name: str, where: _Where, source:
         project.user_types[name] = _user_type(name, where, source)
     elif section == "messages":
         project.messages[name] = _struct(name, where, source, message=True)
+    elif section == "vectors":
+        project.vectors[name] = _vector(name, _mapping(where.node), source)
     else:
         project.interfaces[name] = _interface(name, where, source)
 

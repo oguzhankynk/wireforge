@@ -140,6 +140,7 @@ def test_render_files_and_cmake() -> None:
         "golden_test.cpp",
         "message_test.cpp",
         "interface_test.cpp",
+        "hlr_vector_test.cpp",
     }
     cmake = files["CMakeLists.txt"]
     assert (

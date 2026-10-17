@@ -126,7 +126,7 @@ An interface is one communication endpoint with a remote party (`our_to_nodeA`, 
 | Key | Meaning | Written by |
 |-----|---------|------------|
 | `schema_version` (int) | file-format **major**; any incompatible change bumps it | tool, required in every file |
-| `schema_minor` (int, default 0) | additive format changes inside a major (minor 1: `requirements`, `reqs`) | tool |
+| `schema_minor` (int, default 0) | additive format changes inside a major (minor 1: `requirements`, `reqs`; minor 2: `vectors`) | tool |
 | `generator {name, version}` | WireForge release that wrote the file (informational) | tool on save/export |
 | `version` (semver, root) | the user's project / ICD set | user |
 | `interface.version` (semver) | one interface's ICD version, may travel on the wire | user |
@@ -183,6 +183,9 @@ carry file, line and JSON pointer.
 - SR-19 Version stamps: every file passes the compatibility policy of section 11; fragments carry `schema_version`.
 - SR-20 User header paths and include directories are relative, without `..` segments (portable builds); this
   also covers a user type's `include`.
+- SR-22 Requirement test vectors (section 18) are consistent: the message, interface and profile exist, the message is on
+  the interface, `expect.fields` names fields that exist on the wire value, an encoding vector gives every field, and the
+  reference codec agrees with the vector in every profile it applies to.
 - SR-21 Every id in a `reqs` list names an entry of the `requirements` catalog (section 17). An unused catalog entry is
   not an error.
 
@@ -320,3 +323,34 @@ Every generated test records the LLRs it verifies as its first statement
 (`::testing::Test::RecordProperty("requirements", "LLR-...,LLR-...")`), so gtest writes them into its XML result and
 `wireforge trace` reads them from the test sources. The static size assertions of the layout analyzer are tests too
 (`TEST(<Message>, WireSize)`, `TEST(Interface_<I>, WireSize)`), so `SIZE` and `FRAME_MAX` have a test.
+
+## 18. Requirement test vectors
+A vector is a test you write from the ICD: bytes, and what they must decode to (or what a value must encode to). It
+verifies high-level requirements directly, with an expected result that comes from you and not from the model.
+
+```yaml
+vectors:                          # root or fragment
+  reading_nominal:
+    description: Nominal reading from ICD-SNS-001 example 3.   # optional
+    interface: sensor_to_us       # given: the bytes are a frame; absent: they are a payload
+    message: SensorReading
+    profile: ground               # optional; absent: every profile (or the single configuration)
+    direction: decode             # decode (default) | encode | both
+    bytes: "A5 5A 01 01 00 17 ..."  # hex; spaces and underscores are ignored
+    expect:
+      fields: { sensorId: 3, state: ready, temperature: 21.5 }   # or: { status: OutOfRange }
+    reqs: [HLR-SNS-004]           # required, at least one
+```
+- `expect` holds either `fields` or `status`; a status is a runtime status other than `Ok`. With `fields` the vector
+  must decode without error; fields may be a subset. Values have the shape of the decoded message: enum member names,
+  nested mappings, lists, strings for `char` arrays. Wire-only fields (constants, checksums, reserved, plain count
+  fields) cannot be named. `f32` values are rounded to 32 bits before they are compared; the comparison is exact.
+- `direction: encode` or `both` needs `fields` and a complete value (every field that is always present); the bytes
+  must be exactly what the value encodes to.
+- A project is valid only when the reference codec agrees with every vector (SR-22), so a wrong vector or a wrong
+  model is found before code is generated. The agreement does not move the oracle: the generated C++ test
+  (`hlr_vector_test.cpp`) compares with the values written in the vector. Vectors that need a custom checksum are
+  skipped with a warning when no plugin is given.
+- Vectors are separate from the golden vectors in `tests/golden/`, which the reference codec produces as a regression
+  baseline.
+

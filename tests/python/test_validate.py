@@ -5,14 +5,14 @@ from typing import Any
 import pytest
 from ruamel.yaml import YAML
 
-from wireforge import validate
+from wireforge import service, validate, vectors
 
 HERE = Path(__file__).parent
 ROOT = HERE.parents[1]
 EXAMPLES = sorted(path.parent for path in (ROOT / "examples").glob("*/project.yaml"))
 BASE = YAML(typ="safe").load((HERE / "semantic_base.yaml").read_text(encoding="utf-8"))
 CASES = YAML(typ="safe").load((HERE / "semantic_cases.yaml").read_text(encoding="utf-8"))
-RULES = [f"SR-{number}" for number in range(1, 22)]
+RULES = [f"SR-{number}" for number in range(1, 23)]
 
 
 def _apply(document: dict[str, Any], operation: dict[str, Any]) -> None:
@@ -46,13 +46,21 @@ def _write_case(tmp_path: Path, case: dict[str, Any]) -> Path:
 
 
 def test_base_project_is_valid() -> None:
-    issues = validate.validate_project(HERE / "semantic_base.yaml")
+    issues = vectors.validate_project(HERE / "semantic_base.yaml")
     assert [str(issue) for issue in issues] == []
 
 
 @pytest.mark.parametrize("project", EXAMPLES, ids=lambda path: path.name)
 def test_examples_are_semantically_valid(project: Path) -> None:
     issues = validate.validate_project(project)
+    assert [str(issue) for issue in issues] == []
+
+
+@pytest.mark.parametrize("project", EXAMPLES, ids=lambda path: path.name)
+def test_example_vectors_agree_with_the_codec(project: Path) -> None:
+    plugin_file = service.find_plugins(project)
+    plugins = service.load_plugins(plugin_file)
+    issues = vectors.validate_project(project, plugins)
     assert [str(issue) for issue in issues] == []
 
 
@@ -64,7 +72,7 @@ def test_corpus_size_and_rule_coverage() -> None:
 
 @pytest.mark.parametrize("case", CASES, ids=lambda case: case["name"])
 def test_negative_case(tmp_path: Path, case: dict[str, Any]) -> None:
-    issues = validate.validate_project(_write_case(tmp_path, case))
+    issues = vectors.validate_project(_write_case(tmp_path, case))
     text = "\n".join(str(issue) for issue in issues)
     matching = [
         issue
@@ -79,7 +87,7 @@ def test_issue_location_points_at_the_field(tmp_path: Path) -> None:
     case: dict[str, Any] = {
         "patch": [{"set": ["messages", "Command", "fields", 0, "default"], "value": 500}]
     }
-    issues = validate.validate_project(_write_case(tmp_path, case))
+    issues = vectors.validate_project(_write_case(tmp_path, case))
     assert len(issues) == 1
     assert issues[0].pointer == "/messages/Command/fields/0/default"
     assert issues[0].file.endswith("project.yaml")

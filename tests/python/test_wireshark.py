@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from wireforge import cli, golden, service, wireshark
+from wireforge import cli, golden, service, vectors, wireshark
 from wireforge.codec import CodecError, ReferenceCodec, WireNaN
 from wireforge.loader import load_project
 from wireforge.test_cases import MUTATIONS
@@ -471,3 +471,34 @@ def test_tshark_reassembles_tcp_streams(
     assert [problem for problem in problems if not problem.startswith("[Resync]")] == []
     assert len(resyncs) == (len(frames) - 1 if garbage else 0)
     assert dissected == len(frames)
+
+
+@needs_tshark
+@pytest.mark.parametrize("location", [BASIC, AVIONICS], ids=lambda path: path.name)
+def test_tshark_agrees_with_the_requirement_vectors(tmp_path: Path, location: Path) -> None:
+    """A frame vector that must decode shows no problem; one that must fail is flagged."""
+    project = _project(location)
+    plugin = tmp_path / "plugin.lua"
+    assert wireshark.generate(location, plugin).issues == []
+    runs = [item for item in vectors.run(project, _plugins(location)) if item.vector.interface]
+    assert runs
+    groups: dict[tuple[str | None, str], list[vectors.VectorRun]] = {}
+    for item in runs:
+        assert item.vector.interface is not None
+        groups.setdefault((item.profile, item.vector.interface), []).append(item)
+    failures = []
+    for (profile, interface), items in groups.items():
+        protocol = wireshark.protocol_name(project, project.interfaces[interface])
+        packets = [udp_packet(item.vector.data or b"") for item in items]
+        shown = run_tshark(tmp_path, plugin, protocol, packets, _prefs(profile))
+        assert len(shown) == len(items)
+        for item, dissection in zip(items, shown, strict=True):
+            if item.vector.status is None and dissection.problems:
+                failures.append(f"{item.vector.name}: unexpected {dissection.problems}")
+            if item.vector.status is not None and not dissection.problems:
+                failures.append(f"{item.vector.name}: {item.vector.status} not reported")
+    assert failures == []
+
+
+def _plugins(location: Path) -> dict[str, Any] | None:
+    return service.load_plugins(service.find_plugins(location))

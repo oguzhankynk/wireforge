@@ -275,3 +275,23 @@
   schema: fragment
   expect: /requirements
   doc: { schema_version: 1, requirements: { HLR-1: { text: "" } } }
+- name: vector_bytes_not_hex
+  schema: project
+  expect: /bytes
+  doc: { schema_version: 1, project: p, vectors: { v: { message: M, bytes: "0G", expect: { status: Truncated }, reqs: [R] } } }
+- name: vector_expect_both_forms
+  schema: project
+  expect: /expect
+  doc: { schema_version: 1, project: p, vectors: { v: { message: M, bytes: "00", expect: { status: Truncated, fields: {} }, reqs: [R] } } }
+- name: vector_status_unknown
+  schema: project
+  expect: /expect
+  doc: { schema_version: 1, project: p, vectors: { v: { message: M, bytes: "00", expect: { status: Ok }, reqs: [R] } } }
+- name: vector_without_reqs
+  schema: project
+  expect: reqs
+  doc: { schema_version: 1, project: p, vectors: { v: { message: M, bytes: "00", expect: { status: Truncated } } } }
+- name: vector_bad_direction
+  schema: project
+  expect: /direction
+  doc: { schema_version: 1, project: p, vectors: { v: { message: M, bytes: "00", direction: sideways, expect: { status: Truncated }, reqs: [R] } } }

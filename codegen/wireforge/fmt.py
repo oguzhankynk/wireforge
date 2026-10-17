@@ -50,6 +50,7 @@ ROOT = (
     "user_types",
     "messages",
     "interfaces",
+    "vectors",
     "bundle",
 )
 FIELD = (
@@ -138,6 +139,17 @@ ORDERS: dict[str, tuple[str, ...]] = {
     "constant": ("cpp", "description", "value", "profile_values"),
     "user_type": ("cpp", "description", "reqs", "size_bytes", "include", "style"),
     "requirement": ("text", "source", "verification"),
+    "vector": (
+        "description",
+        "interface",
+        "message",
+        "profile",
+        "direction",
+        "bytes",
+        "expect",
+        "reqs",
+    ),
+    "expect": ("fields", "status"),
 }
 # Mapping kind of the value under a key, for kinds reached by key from another kind.
 CHILDREN: dict[tuple[str, str], str] = {
@@ -155,6 +167,7 @@ CHILDREN: dict[tuple[str, str], str] = {
     ("interface", "trailer"): "part",
     ("interface", "framing"): "framing",
     ("interface", "buffers"): "buffers",
+    ("vector", "expect"): "expect",
 }
 # Kind of the entries of a section map (user-named keys).
 SECTIONS = {
@@ -166,6 +179,7 @@ SECTIONS = {
     "user_types": "user_type",
     "messages": "message",
     "interfaces": "interface",
+    "vectors": "vector",
 }
 # Kind of the elements of a sequence under a key.
 ELEMENTS = {

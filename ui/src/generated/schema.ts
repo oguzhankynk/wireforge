@@ -119,6 +119,7 @@ export interface WireForgeProjectRootFileSchemaVersion1 {
   user_includes?: UserIncludes;
   bundle?: BundleInfo;
   requirements?: Requirements;
+  vectors?: Vectors;
 }
 export interface Defaults {
   endian?: Endian;
@@ -331,4 +332,44 @@ export interface RequirementDef {
    * How the requirement is verified (default test).
    */
   verification?: "test" | "analysis" | "review";
+}
+export interface Vectors {
+  [k: string]: VectorDef;
+}
+export interface VectorDef {
+  description?: string;
+  interface?: Identifier;
+  message: Identifier;
+  profile?: Identifier;
+  /**
+   * decode (default), encode or both.
+   */
+  direction?: "decode" | "encode" | "both";
+  /**
+   * Payload (or frame, with `interface`) as hex; spaces and underscores are ignored.
+   */
+  bytes: string;
+  expect:
+    | {
+        /**
+         * Expected field values, in the shape of the decoded message.
+         */
+        fields: {
+          [k: string]: unknown;
+        };
+      }
+    | {
+        status:
+          | "BufferTooSmall"
+          | "Truncated"
+          | "OutOfRange"
+          | "CountExceedsMax"
+          | "ConstMismatch"
+          | "ChecksumMismatch"
+          | "UnknownMessageId"
+          | "InvalidLength"
+          | "TrailingBytes"
+          | "InvalidState";
+      };
+  reqs: Reqs;
 }
