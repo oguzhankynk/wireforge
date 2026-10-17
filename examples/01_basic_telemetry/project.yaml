@@ -7,8 +7,22 @@ description: Minimal sensor telemetry link (rx only).
 namespace: demo::telemetry
 defaults: { endian: big, bit_order: msb_first }
 
+requirements:
+  HLR-SNS-001:
+    text: The sensor link shall deliver every valid sensor reading to the application.
+    source: ICD-SNS-001 §3.1
+  HLR-SNS-004:
+    text: The sensor link shall reject readings outside the sensor's calibrated range.
+    source: ICD-SNS-001 §4.2
+  HLR-SNS-005:
+    text: Every frame of the sensor link shall be protected by a CRC-32.
+    source: ICD-SNS-001 §5.1
+  HLR-SNS-006:
+    text: The sensor link shall find the next frame after corrupted or lost data.
+    source: ICD-SNS-001 §5.2
+
 checksums:
-  frameCrc: { algo: crc32 }
+  frameCrc: { algo: crc32, reqs: [HLR-SNS-005] }
 
 enums:
   SensorState:
@@ -27,10 +41,11 @@ messages:
   SensorReading:
     id: 0x0101
     description: Periodic sensor sample.
+    reqs: [HLR-SNS-001]
     fields:
       - { name: sensorId, type: u8, min: 1, max: 32, default: 1 }
       - { name: state, type: SensorState, default: ready }
-      - { name: temperature, type: f32, min: -80.0, max: 150.0, default: 20.0, units: degC }
+      - { name: temperature, type: f32, min: -80.0, max: 150.0, default: 20.0, units: degC, reqs: [HLR-SNS-004] }
       - { name: accel, type: Vec3 }
       - { name: sampleCount, type: u8, max: 4 }
       - name: samples
@@ -40,6 +55,7 @@ messages:
 interfaces:
   sensor_to_us:
     version: "1.0.0"
+    reqs: [HLR-SNS-001]
     direction: rx
     header:
       fields:
@@ -51,5 +67,5 @@ interfaces:
         - name: crc
           type: u32
           checksum: { use: frameCrc, covers: { scope: header_and_payload } }
-    framing: { kind: sync_length, max_frame_size: 64, resync: true }
+    framing: { kind: sync_length, max_frame_size: 64, resync: true, reqs: [HLR-SNS-006] }
     messages: [SensorReading]

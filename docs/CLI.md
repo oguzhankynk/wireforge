@@ -13,6 +13,7 @@ equivalent.
 | `wireforge wireshark <project> -o <file>.lua` | Wireshark Lua dissector plugin (docs/WIRESHARK.md) |
 | `wireforge analyze <project> [--profile P] [--format markdown\|csv\|json]` | layout report / ICD (docs/LAYOUT.md) |
 | `wireforge compat <old> <new> [--interface I]` | interface compatibility and version bump check |
+| `wireforge trace <project> [--format markdown\|csv] [-o file]` | requirements, model elements, generated code and tests (docs/SAFETY.md) |
 | `wireforge test <project> -o <dir> [--coverage] [--generator Ninja]` | generate, build and run the generated tests |
 | `wireforge export <project> -o bundle.yaml` / `wireforge import <bundle> <dir>` | single-file bundles |
 | `wireforge get <project> <pointer>` | value at a JSON pointer, e.g. `/messages/NavSolution/fields/2` |

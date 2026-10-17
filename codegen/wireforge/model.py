@@ -87,6 +87,7 @@ class Field:
     condition: str | None = None
     description: str | None = None
     units: str | None = None
+    reqs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -109,6 +110,7 @@ class Struct:
     condition: str | None = None
     message: MessageInfo | None = None
     description: str | None = None
+    reqs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -119,6 +121,7 @@ class Enum:
     type: str
     values: dict[str, int]
     source: Source
+    reqs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -138,6 +141,7 @@ class Checksum:
     impl: str | None = None
     include: str | None = None
     size_bytes: int | None = None
+    reqs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -149,6 +153,7 @@ class Framing:
     max_frame_size: Value | None = None
     length_counts: str = "payload"
     resync: bool = False
+    reqs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -159,6 +164,7 @@ class InterfaceMessage:
     source: Source
     id: int | None = None
     condition: str | None = None
+    reqs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -178,6 +184,18 @@ class Interface:
     bit_order: str | None = None
     allow_trailing_bytes: bool = False
     description: str | None = None
+    reqs: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class Requirement:
+    """High-level requirement of the user's catalog (`requirements` section)."""
+
+    id: str
+    text: str
+    source: Source
+    reference: str | None = None
+    verification: str = "test"
 
 
 @dataclass(frozen=True)
@@ -215,6 +233,7 @@ class UserType:
     include: str | None = None
     style: str = "quote"
     description: str | None = None
+    reqs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -245,6 +264,7 @@ class Project:
     version: str | None = None
     namespace: str | None = None
     defaults: dict[str, object] = field(default_factory=dict)
+    requirements: dict[str, Requirement] = field(default_factory=dict)
     defines: dict[str, Define] = field(default_factory=dict)
     profiles: dict[str, Profile] = field(default_factory=dict)
     checksums: dict[str, Checksum] = field(default_factory=dict)

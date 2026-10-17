@@ -181,3 +181,20 @@ def test_custom_checksum_needs_plugins(tmp_path: Path, capsys: pytest.CaptureFix
     assert generate.main([str(AVIONICS), "-o", str(tmp_path), "--tests"]) == 1
     assert "cannot compute the test expectations" in capsys.readouterr().out
     assert (tmp_path / "avionics_demo" / "model.hpp").exists()
+
+
+def test_every_generated_test_records_its_requirements() -> None:
+    for name in ("01_basic_telemetry", "02_multi_interface_avionics", "03_edge_cases"):
+        project = _project(EXAMPLES / name)
+        directory = ROOT / "build" / "x" / project.name / "generated_tests"
+        files = test_project.render(project, EXAMPLES / name, directory, OPTIONS)
+        for source in ("golden_test.cpp", "message_test.cpp", "interface_test.cpp"):
+            lines = files[source].splitlines()
+            tests = [index for index, line in enumerate(lines) if line.startswith("TEST(")]
+            assert tests, f"{name}/{source}"
+            for index in tests:
+                follower = lines[index + 1].strip()
+                assert follower.startswith('::testing::Test::RecordProperty("requirements", "LLR-')
+        assert "static_assert(min_wire_size" in files["message_test.cpp"]
+        assert "WireSize) {" in files["message_test.cpp"]
+        assert "static_assert(" not in files["message_test.cpp"].split("TEST(")[0]

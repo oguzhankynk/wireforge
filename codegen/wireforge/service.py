@@ -873,7 +873,14 @@ def trace_report(location: Path, export: str = "markdown") -> Result:
     if project is None:
         return Result(ok=False, issues=issues, text=_issues_text(issues))
     content_hash = bundle.build_bundle(location)["bundle"]["content_hash"]
-    rows = trace.trace(project, content_hash, load_plugins(find_plugins(location)))
-    text = trace.to_csv(rows) if export == "csv" else trace.to_markdown(rows, project, content_hash)
-    data = {"content_hash": content_hash, "rows": [asdict(row) for row in rows]}
+    traced = trace.report(project, content_hash, load_plugins(find_plugins(location)))
+    if export == "csv":
+        text = trace.to_csv(traced.rows)
+    else:
+        text = trace.to_markdown(traced.rows, project, content_hash, traced.llrs)
+    data = {
+        "content_hash": content_hash,
+        "rows": [asdict(row) for row in traced.rows],
+        "llrs": [asdict(row) for row in traced.llrs],
+    }
     return Result(ok=True, issues=issues, data=data, text=text)

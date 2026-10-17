@@ -40,6 +40,7 @@ ROOT = (
     "namespace",
     "defaults",
     "include",
+    "requirements",
     "defines",
     "user_includes",
     "profiles",
@@ -68,11 +69,13 @@ FIELD = (
     "since",
     "deprecated",
     "description",
+    "reqs",
 )
-STRUCT = ("description", "if", "since", "deprecated", "fields")
+STRUCT = ("description", "reqs", "if", "since", "deprecated", "fields")
 MESSAGE = (
     "id",
     "description",
+    "reqs",
     "endian",
     "bit_order",
     "range_check",
@@ -84,6 +87,7 @@ MESSAGE = (
 INTERFACE = (
     "version",
     "description",
+    "reqs",
     "direction",
     "endian",
     "bit_order",
@@ -103,6 +107,7 @@ ORDERS: dict[str, tuple[str, ...]] = {
     "checksum": (
         "algo",
         "description",
+        "reqs",
         "width",
         "poly",
         "init",
@@ -114,7 +119,7 @@ ORDERS: dict[str, tuple[str, ...]] = {
         "include",
         "size_bytes",
     ),
-    "enum": ("type", "description", "values"),
+    "enum": ("type", "description", "reqs", "values"),
     "struct": STRUCT,
     "message": MESSAGE,
     "field": FIELD,
@@ -123,15 +128,16 @@ ORDERS: dict[str, tuple[str, ...]] = {
     "covers": ("scope", "from", "to"),
     "interface": INTERFACE,
     "part": ("fields",),
-    "framing": ("kind", "frame_size", "max_frame_size", "length_counts", "resync"),
+    "framing": ("kind", "frame_size", "max_frame_size", "length_counts", "resync", "reqs"),
     "buffers": ("rx_bytes", "tx_bytes"),
-    "interface_message": ("name", "id", "if"),
+    "interface_message": ("name", "id", "if", "reqs"),
     "generator": ("name", "version"),
     "bundle": ("content_hash", "source_files"),
     "user_includes": ("include_dirs", "headers", "constants", "prelude"),
     "header": ("path", "style", "if"),
     "constant": ("cpp", "description", "value", "profile_values"),
-    "user_type": ("cpp", "description", "size_bytes", "include", "style"),
+    "user_type": ("cpp", "description", "reqs", "size_bytes", "include", "style"),
+    "requirement": ("text", "source", "verification"),
 }
 # Mapping kind of the value under a key, for kinds reached by key from another kind.
 CHILDREN: dict[tuple[str, str], str] = {
@@ -152,6 +158,7 @@ CHILDREN: dict[tuple[str, str], str] = {
 }
 # Kind of the entries of a section map (user-named keys).
 SECTIONS = {
+    "requirements": "requirement",
     "profiles": "profile",
     "checksums": "checksum",
     "enums": "enum",

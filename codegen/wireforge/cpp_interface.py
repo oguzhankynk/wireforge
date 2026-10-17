@@ -83,9 +83,12 @@ def _doc(lines: list[str]) -> list[str]:
 class InterfaceHeader:
     """Writes <project>/interfaces/<interface>.hpp."""
 
-    def __init__(self, project: Project, interface: Interface, banner: Banner) -> None:
-        """Check the supported subset and prepare the field layout."""
+    def __init__(
+        self, project: Project, interface: Interface, banner: Banner, notes: list[str]
+    ) -> None:
+        """Check the supported subset and prepare the field layout; `notes` trace requirements."""
         self.project = project
+        self.notes = notes
         self.interface = interface
         self.names = Names(project)
         self.banner = banner
@@ -185,6 +188,7 @@ class InterfaceHeader:
                 "#include <utility>",
                 "",
                 f"/// @brief Interface {iface.name}.",
+                *self.notes,
                 f"namespace {namespace} {{",
                 "",
                 f"/// @brief Version {iface.version} of interface {iface.name}.",

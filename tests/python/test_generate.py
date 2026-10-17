@@ -34,6 +34,22 @@ def test_generated_code_matches_snapshots(example: Path) -> None:
         )
 
 
+@pytest.mark.parametrize("name", ["03_edge_cases", "04_user_type"])
+def test_projects_without_requirements_have_no_trace_lines(name: str) -> None:
+    files = _render(ROOT / "examples" / name)
+    assert not [path for path, text in files.items() if "Requirements:" in text]
+
+
+@pytest.mark.parametrize("name", ["01_basic_telemetry", "02_multi_interface_avionics"])
+def test_requirements_are_written_into_the_doxygen_blocks(name: str) -> None:
+    files = _render(ROOT / "examples" / name)
+    text = "\n".join(files.values())
+    assert "/// Requirements: HLR-" in text
+    assert all(
+        len(line) <= 100 for line in text.splitlines() if line.startswith("/// Requirements")
+    )
+
+
 def test_output_is_deterministic() -> None:
     first = _render(EXAMPLES[1])
     assert _render(EXAMPLES[1]) == first

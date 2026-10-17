@@ -2,7 +2,8 @@
 
 Structural problems (YAML, JSON Schema, version stamps) stop the load; semantic rules are checked
 afterwards by `wireforge.validate`. Duplicate names across files are reported here, because
-merging is where they become visible.
+merging is where they become visible. The `requirements` catalog is a section like the others and
+`reqs` lists are read into the elements that carry them; unknown ids are left to the validator.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from wireforge.model import (
     Occurs,
     Profile,
     Project,
+    Requirement,
     Source,
     Struct,
     UserConstant,
@@ -39,6 +41,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 SECTIONS = (
+    "requirements",
     "defines",
     "profiles",
     "checksums",
@@ -123,6 +126,10 @@ def _checksum_use(raw: dict[str, Any] | None) -> ChecksumUse | None:
     )
 
 
+def _reqs(raw: dict[str, Any]) -> tuple[str, ...]:
+    return tuple(raw.get("reqs", ()))
+
+
 def _field(raw: dict[str, Any], source: Source) -> Field:
     return Field(
         name=raw["name"],
@@ -140,6 +147,7 @@ def _field(raw: dict[str, Any], source: Source) -> Field:
         condition=raw.get("if"),
         description=raw.get("description"),
         units=raw.get("units"),
+        reqs=_reqs(raw),
     )
 
 
@@ -168,6 +176,7 @@ def _struct(name: str, where: _Where, source: Source, *, message: bool) -> Struc
         condition=raw.get("if"),
         message=info,
         description=raw.get("description"),
+        reqs=_reqs(raw),
     )
 
 
@@ -187,6 +196,7 @@ def _checksum(name: str, where: _Where, source: Source) -> Checksum:
         impl=raw.get("impl"),
         include=raw.get("include"),
         size_bytes=raw.get("size_bytes"),
+        reqs=_reqs(raw),
     )
 
 
@@ -200,6 +210,7 @@ def _user_type(name: str, where: _Where, source: Source) -> UserType:
         include=raw.get("include"),
         style=raw.get("style", "quote"),
         description=raw.get("description"),
+        reqs=_reqs(raw),
     )
 
 
@@ -213,7 +224,13 @@ def _interface_messages(where: _Where) -> tuple[InterfaceMessage, ...]:
         else:
             raw = _mapping(entries.node[index])
             result.append(
-                InterfaceMessage(raw["name"], source, id=raw.get("id"), condition=raw.get("if"))
+                InterfaceMessage(
+                    raw["name"],
+                    source,
+                    id=raw.get("id"),
+                    condition=raw.get("if"),
+                    reqs=_reqs(raw),
+                )
             )
     return tuple(result)
 
@@ -230,6 +247,7 @@ def _interface(name: str, where: _Where, source: Source) -> Interface:
         max_frame_size=framing_raw.get("max_frame_size"),
         length_counts=framing_raw.get("length_counts", "payload"),
         resync=bool(framing_raw.get("resync", False)),
+        reqs=_reqs(framing_raw),
     )
     return Interface(
         name=name,
@@ -245,11 +263,24 @@ def _interface(name: str, where: _Where, source: Source) -> Interface:
         bit_order=raw.get("bit_order"),
         allow_trailing_bytes=bool(raw.get("allow_trailing_bytes", False)),
         description=raw.get("description"),
+        reqs=_reqs(raw),
+    )
+
+
+def _requirement(name: str, raw: dict[str, Any], source: Source) -> Requirement:
+    return Requirement(
+        name,
+        raw["text"],
+        source,
+        reference=raw.get("source"),
+        verification=raw.get("verification", "test"),
     )
 
 
 def _add_entry(project: Project, section: str, name: str, where: _Where, source: Source) -> None:
-    if section == "defines":
+    if section == "requirements":
+        project.requirements[name] = _requirement(name, _mapping(where.node), source)
+    elif section == "defines":
         project.defines[name] = Define(name, int(where.node), source)
     elif section == "profiles":
         project.profiles[name] = Profile(name, _mapping(where.node)["defines"], source)
@@ -257,7 +288,7 @@ def _add_entry(project: Project, section: str, name: str, where: _Where, source:
         project.checksums[name] = _checksum(name, where, source)
     elif section == "enums":
         raw = _mapping(where.node)
-        project.enums[name] = Enum(name, raw["type"], raw["values"], source)
+        project.enums[name] = Enum(name, raw["type"], raw["values"], source, reqs=_reqs(raw))
     elif section == "types":
         project.types[name] = _struct(name, where, source, message=False)
     elif section == "user_types":

@@ -23,6 +23,7 @@ from wireforge.cpp import Names, Writer, guard, plain_count, string_literal, wir
 from wireforge.cpp_codec import CodecWriter, checksum_type
 from wireforge.cpp_interface import InterfaceError, InterfaceHeader
 from wireforge.issues import Issue
+from wireforge.llr import requirement_notes
 from wireforge.loader import load_project
 from wireforge.model import BUILTIN_BITS, Field, Project, Scalar, Source, Struct, UserConstant
 
@@ -102,10 +103,11 @@ def _type_order(project: Project) -> list[Struct]:
 class _ModelHeader:
     """Writes model.hpp."""
 
-    def __init__(self, project: Project, banner: Banner) -> None:
+    def __init__(self, project: Project, banner: Banner, notes: dict[str, list[str]]) -> None:
         self.project = project
         self.names = Names(project)
         self.banner = banner
+        self.notes = notes
         self.out = Writer()
         self.codec = CodecWriter(project, self.out)
 
@@ -170,6 +172,11 @@ class _ModelHeader:
         out.line("} // namespace defines")
         out.line()
 
+    def note(self, owner: str) -> None:
+        """Write the requirement trace of an element (nothing without a requirements catalog)."""
+        for text in self.notes.get(owner, ()):
+            self.out.line(text)
+
     def checksums(self) -> None:
         if not self.project.checksums:
             return
@@ -179,6 +186,7 @@ class _ModelHeader:
         out.line()
         for checksum in self.project.checksums.values():
             out.line(f"/// @brief Checksum {checksum.name} ({checksum.algo}).")
+            self.note(checksum.name)
             out.line(f"using {checksum.name} = {checksum_type(checksum)};")
             out.line(
                 f"static_assert(wireforge::is_checksum_v<{checksum.name}>, "
@@ -193,6 +201,7 @@ class _ModelHeader:
         for enum in self.project.enums.values():
             underlying = self.names.scalar(enum.type)
             out.line(f"/// @brief Enumeration {enum.name}.")
+            self.note(enum.name)
             out.line(f"enum class {enum.name} : {underlying} {{")
             out.indent()
             signed = enum.type.startswith("i")
@@ -238,6 +247,7 @@ class _ModelHeader:
         out.line(
             f"/// Defined in {source_text(self.project, item.source)} ({item.source.pointer})."
         )
+        self.note(item.name)
         out.line(f"struct {item.name} {{")
         out.indent()
         for field in item.fields:
@@ -556,13 +566,16 @@ def _constant_assert(cpp: str, value: int) -> str:
 def render(project: Project, content_hash: str) -> dict[str, str]:
     """Return the generated files of a valid project: relative path -> content."""
     banner = Banner(project.name, project.version, content_hash)
+    notes = requirement_notes(project)
     files = {
         f"{project.name}/user_prelude.hpp": _user_prelude(project, banner),
-        f"{project.name}/model.hpp": _ModelHeader(project, banner).render(),
+        f"{project.name}/model.hpp": _ModelHeader(project, banner, notes).render(),
     }
     for interface in project.interfaces.values():
         relative = f"{project.name}/interfaces/{interface.name}.hpp"
-        files[relative] = InterfaceHeader(project, interface, banner).render()
+        files[relative] = InterfaceHeader(
+            project, interface, banner, notes.get(interface.name, [])
+        ).render()
     return files
 
 

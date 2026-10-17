@@ -27,7 +27,15 @@ export type ChecksumDef = {
   impl?: string;
   include?: string;
   size_bytes?: number;
+  reqs?: Reqs;
 };
+/**
+ * Ids of the requirements (section `requirements`) this element implements.
+ *
+ * @minItems 1
+ */
+export type Reqs = [RequirementId, ...RequirementId[]];
+export type RequirementId = string;
 export type IntegerType = "u8" | "u16" | "u32" | "u64" | "i8" | "i16" | "i32" | "i64";
 /**
  * @minItems 1
@@ -65,6 +73,7 @@ export type Framing = {
   max_frame_size?: IntOrExpr;
   length_counts?: "payload" | "payload_and_trailer" | "frame";
   resync?: boolean;
+  reqs?: Reqs;
 };
 export type InterfaceMessage =
   | Identifier
@@ -73,6 +82,7 @@ export type InterfaceMessage =
       id?: number;
       if?: Expression;
       since?: Semver;
+      reqs?: Reqs;
     };
 /**
  * File-format minor version (additive changes only).
@@ -108,6 +118,7 @@ export interface WireForgeProjectRootFileSchemaVersion1 {
   generator?: Generator;
   user_includes?: UserIncludes;
   bundle?: BundleInfo;
+  requirements?: Requirements;
 }
 export interface Defaults {
   endian?: Endian;
@@ -142,6 +153,7 @@ export interface EnumDef {
   values: {
     [k: string]: number;
   };
+  reqs?: Reqs;
 }
 export interface Types {
   [k: string]: StructDef;
@@ -152,6 +164,7 @@ export interface StructDef {
   if?: Expression;
   since?: Semver;
   deprecated?: boolean;
+  reqs?: Reqs;
 }
 export interface Field {
   name: Identifier;
@@ -173,6 +186,7 @@ export interface Field {
   if?: string;
   since?: Semver;
   deprecated?: boolean;
+  reqs?: Reqs;
 }
 /**
  * Occurrence model: optional field = max 1; array = max N. No count and no fill means exactly `max` occurrences.
@@ -205,6 +219,7 @@ export interface UserTypeDef {
   include?: string;
   style?: "quote" | "angle";
   description?: string;
+  reqs?: Reqs;
 }
 export interface Messages {
   [k: string]: MessageDef;
@@ -219,6 +234,7 @@ export interface MessageDef {
   if?: Expression;
   since?: Semver;
   deprecated?: boolean;
+  reqs?: Reqs;
 }
 export interface Interfaces {
   [k: string]: InterfaceDef;
@@ -242,6 +258,7 @@ export interface InterfaceDef {
     tx_bytes?: IntOrExpr;
   };
   allow_trailing_bytes?: boolean;
+  reqs?: Reqs;
 }
 export interface TrailerDef {
   fields: FieldList;
@@ -300,4 +317,18 @@ export interface BundleInfo {
    */
   content_hash: string;
   source_files?: string[];
+}
+export interface Requirements {
+  [k: string]: RequirementDef;
+}
+export interface RequirementDef {
+  text: string;
+  /**
+   * Where the requirement comes from (free text, e.g. an ICD section).
+   */
+  source?: string;
+  /**
+   * How the requirement is verified (default test).
+   */
+  verification?: "test" | "analysis" | "review";
 }

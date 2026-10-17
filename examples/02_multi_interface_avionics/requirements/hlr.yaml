@@ -1,0 +1,17 @@
+schema_version: 1
+requirements:
+  HLR-NAV-001:
+    text: The navigation solution shall be sent to nodeA with its position inside the valid geographic range.
+    source: ICD-NAV-210 §2
+  HLR-NAV-002:
+    text: The number of tracks in a navigation solution shall not exceed the platform limit.
+    source: ICD-NAV-210 §2.4
+  HLR-NBS-001:
+    text: The status burst of nodeB shall be accepted without a header and with a variable diagnostic tail.
+    source: ICD-NBS-040 §1
+  HLR-CMD-001:
+    text: Commands to nodeC shall carry the vendor checksum.
+    source: ICD-CMD-300 §3
+  HLR-LNK-001:
+    text: Frames to nodeA shall be protected by a CRC-16 and recovered after corrupted data.
+    source: ICD-NAV-210 §5

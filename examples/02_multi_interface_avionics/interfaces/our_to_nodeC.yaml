@@ -2,6 +2,7 @@ schema_version: 1
 interfaces:
   our_to_nodeC:
     version: "1.0.0"
+    reqs: [HLR-CMD-001]
     direction: tx
     endian: big
     header:

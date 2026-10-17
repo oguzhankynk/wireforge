@@ -59,6 +59,31 @@ def test_reorders_keys_and_keeps_comments() -> None:
     assert fmt.format_text(text) == text, "idempotent"
 
 
+REQUIREMENTS = """\
+messages:
+  M:
+    reqs: [HLR-1]
+    fields:
+      - { name: a, type: u8, reqs: [HLR-1], description: first }
+    description: d
+requirements:
+  HLR-1:
+    verification: test
+    text: Text.
+schema_version: 1
+project: p
+"""
+
+
+def test_requirements_follow_the_canonical_order() -> None:
+    text = fmt.format_text(REQUIREMENTS)
+    assert text.splitlines()[:3] == ["schema_version: 1", "project: p", "requirements:"]
+    assert "    text: Text.\n    verification: test\n" in text
+    assert "    description: d\n    reqs: [HLR-1]\n    fields:" in text
+    assert "description: first, reqs: [HLR-1] }" in text
+    assert fmt.format_text(text) == text
+
+
 def test_format_file(tmp_path: Path) -> None:
     path = tmp_path / "project.yaml"
     path.write_text(SCRAMBLED, encoding="utf-8")

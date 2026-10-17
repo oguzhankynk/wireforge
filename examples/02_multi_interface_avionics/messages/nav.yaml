@@ -3,6 +3,7 @@ messages:
   NavSolution:
     id: 0x0201
     description: Position solution sent to nodeA.
+    reqs: [HLR-NAV-001]
     bit_order: lsb_first
     fields:
       - { name: flags, type: NavFlags }
@@ -15,7 +16,7 @@ messages:
         occurs: { max: 1, count: hasAlt }
       - { name: lat, type: f64, min: -90.0, max: 90.0, default: 0.0, units: deg }
       - { name: lon, type: f64, min: -180.0, max: 180.0, default: 0.0, units: deg }
-      - { name: trackCount, type: u8, max: MAX_TRACKS }
+      - { name: trackCount, type: u8, max: MAX_TRACKS, reqs: [HLR-NAV-002] }
       - name: tracks
         type: TrackRef
         occurs: { max: MAX_TRACKS, count: trackCount }

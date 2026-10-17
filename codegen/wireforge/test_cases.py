@@ -82,11 +82,15 @@ class EncodeCase:
 
 @dataclass(frozen=True)
 class DecodeCase:
-    """Payload bytes and the status deserialize() must return."""
+    """Payload bytes and the status deserialize() must return.
+
+    `path` is the codec error path (`/<field>/<index>/<field>`) of the failure, empty for `Ok`.
+    """
 
     name: str
     payload: bytes
     status: str
+    path: str = ""
 
 
 @dataclass(frozen=True)
@@ -354,7 +358,7 @@ class _ProfileOracle:
                 data = payload[:index] + bytes([change(original)]) + payload[index + 1 :]
                 found = failure(data)
                 if found[0] != OK and found not in cases:
-                    cases[found] = DecodeCase(f"byte{index}_{name}", data, found[0])
+                    cases[found] = DecodeCase(f"byte{index}_{name}", data, found[0], found[1])
         extra = [DecodeCase("extended", payload + b"\x00", status(payload + b"\x00"))]
         if payload:
             extra.insert(0, DecodeCase("truncated", payload[:-1], status(payload[:-1])))
