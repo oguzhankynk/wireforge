@@ -131,17 +131,49 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: quality/run_wireshark.sh
 
-  portability:
+  portability-analysis:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: >
-          sudo apt-get update && sudo apt-get install -y clang clang-tools ninja-build qemu-user
-          g++-s390x-linux-gnu g++-i686-linux-gnu
+      - run: sudo apt-get update && sudo apt-get install -y clang clang-tools ninja-build
       - run: pip install -e .
       - run: quality/run_portability.sh
+        env: { WIREFORGE_PORTABILITY_PART: analysis }
+
+  # One cell of the architecture matrix per job: every test suite runs under qemu.
+  portability-cross:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { triple: s390x-linux-gnu, package: g++-s390x-linux-gnu }       # 64-bit, big endian
+          - { triple: powerpc-linux-gnu, package: g++-powerpc-linux-gnu }   # 32-bit, big endian
+          - { triple: i686-linux-gnu, package: g++-i686-linux-gnu }         # 32-bit, little endian
+          - { triple: arm-linux-gnueabihf, package: g++-arm-linux-gnueabihf } # 32-bit ARM
+          - { triple: aarch64-linux-gnu, package: g++-aarch64-linux-gnu }   # 64-bit ARM
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build qemu-user ${{ matrix.package }}
+      - run: pip install -e .
+      - run: quality/run_portability.sh
+        env:
+          WIREFORGE_PORTABILITY_PART: cross
+          WIREFORGE_CROSS_TRIPLES: ${{ matrix.triple }}
+
+  # The single required check of the portability jobs.
+  portability:
+    runs-on: ubuntu-24.04
+    needs: [portability-analysis, portability-cross]
+    if: always()
+    steps:
+      - run: |
+          test "${{ needs.portability-analysis.result }}" = success
+          test "${{ needs.portability-cross.result }}" = success
 
   evidence:
     runs-on: ubuntu-24.04

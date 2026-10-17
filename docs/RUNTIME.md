@@ -95,9 +95,21 @@ whatever the transport still holds is dropped.
 (built with `WIREFORGE_NO_STD_MUTEX`). Each suite proves zero heap use with the allocation trap.
 
 ## Portability
-The runtime is verified on big-endian (s390x) and 32-bit (i686) targets: `quality/run_portability.sh` cross compiles
-every test suite with the full warning set and runs it under qemu (docs/DECISIONS.md D34). Conversions whose source
-width depends on the platform use `narrow_to<T>(value)` (`bit_utils.hpp`); counters accept any unsigned amount.
+The runtime and the generated code are verified on every combination of word size and byte order, with an x86 and an
+ARM target for little endian: `quality/run_portability.sh` cross compiles every test suite with the full warning set
+and runs it under qemu user emulation (docs/DECISIONS.md D34). The wire bytes of the golden frames are compared on every
+target.
+
+| | Little endian | Big endian |
+|---|---|---|
+| 64-bit | x86-64 (host), aarch64 | s390x |
+| 32-bit | i686, armhf (ARMv7) | powerpc |
+
+The host is also built with plain `char` unsigned (`cmake --preset unsigned-char`, the ARM default) and with
+AddressSanitizer and UBSan (which includes the alignment check). The tests run under qemu-user, not on hardware.
+Conversions whose source width depends on the platform use `narrow_to<T>(value)` (`bit_utils.hpp`); counters accept any
+unsigned amount. The runtime uses atomics of at most the size of a pointer, so targets without 64-bit atomics (32-bit
+PowerPC, Cortex-M) need no `libatomic`.
 
 ## Requirements
 `runtime/requirements.yaml` holds the requirements of the runtime (`RTR-<header>-NNN`): the text, the header and the

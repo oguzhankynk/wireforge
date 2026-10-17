@@ -1,5 +1,6 @@
 # Cross toolchain for the portability matrix: -DWIREFORGE_CROSS_TRIPLE=<triple> selects
-# <triple>-g++ (big-endian s390x-linux-gnu, 32-bit i686-linux-gnu, ...). Test binaries run under
+# <triple>-g++ (big-endian s390x-linux-gnu and powerpc-linux-gnu, 32-bit i686-linux-gnu,
+# arm-linux-gnueabihf and powerpc-linux-gnu, 64-bit ARM aarch64-linux-gnu, ...). Test binaries run under
 # qemu-<arch>[-static] through CTest's emulator, with the target libraries from the sysroot.
 # WIREFORGE_CROSS_ROOT (optional) is an extracted toolchain tree (quality/fetch_cross_toolchains.sh)
 # containing usr/bin/<triple>-g++-* and the sysroot usr/<triple>.
@@ -27,9 +28,17 @@ find_program(CMAKE_CXX_COMPILER NAMES ${WIREFORGE_CROSS_TRIPLE}-g++ ${WIREFORGE_
              ${WIREFORGE_CROSS_TRIPLE}-g++-12 ${WIREFORGE_CROSS_TRIPLE}-g++-13
              HINTS ${search_paths} REQUIRED)
 
+find_program(CMAKE_C_COMPILER NAMES ${WIREFORGE_CROSS_TRIPLE}-gcc ${WIREFORGE_CROSS_TRIPLE}-gcc-11
+             ${WIREFORGE_CROSS_TRIPLE}-gcc-12 ${WIREFORGE_CROSS_TRIPLE}-gcc-13
+             HINTS ${search_paths} REQUIRED)
+
 set(qemu_arch ${WIREFORGE_CROSS_ARCH})
 if(qemu_arch MATCHES "^i[3-6]86$")
   set(qemu_arch i386)
+elseif(qemu_arch STREQUAL "powerpc")
+  set(qemu_arch ppc)
+elseif(qemu_arch STREQUAL "powerpc64")
+  set(qemu_arch ppc64)
 endif()
 find_program(WIREFORGE_QEMU NAMES qemu-${qemu_arch}-static qemu-${qemu_arch} HINTS ${search_paths}
              REQUIRED)

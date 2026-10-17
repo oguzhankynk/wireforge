@@ -28,6 +28,13 @@
       "cacheVariables": { "WIREFORGE_SANITIZE": "thread" }
     },
     {
+      "name": "unsigned-char",
+      "displayName": "Plain char is unsigned, as on ARM",
+      "inherits": "dev",
+      "binaryDir": "${sourceDir}/build/unsigned-char",
+      "cacheVariables": { "WIREFORGE_UNSIGNED_CHAR": "ON" }
+    },
+    {
       "name": "coverage",
       "inherits": "dev",
       "binaryDir": "${sourceDir}/build/coverage",
@@ -63,6 +70,7 @@
     { "name": "release", "configurePreset": "release" },
     { "name": "asan-ubsan", "configurePreset": "asan-ubsan" },
     { "name": "tsan", "configurePreset": "tsan" },
+    { "name": "unsigned-char", "configurePreset": "unsigned-char" },
     { "name": "coverage", "configurePreset": "coverage" },
     { "name": "gcc-analyzer", "configurePreset": "gcc-analyzer" },
     { "name": "clang-everything", "configurePreset": "clang-everything" },
@@ -73,6 +81,7 @@
     { "name": "release", "configurePreset": "release", "output": { "outputOnFailure": true } },
     { "name": "asan-ubsan", "configurePreset": "asan-ubsan", "output": { "outputOnFailure": true } },
     { "name": "tsan", "configurePreset": "tsan", "output": { "outputOnFailure": true } },
+    { "name": "unsigned-char", "configurePreset": "unsigned-char", "output": { "outputOnFailure": true } },
     { "name": "coverage", "configurePreset": "coverage", "output": { "outputOnFailure": true } },
     { "name": "gcc-analyzer", "configurePreset": "gcc-analyzer", "output": { "outputOnFailure": true } },
     { "name": "clang-everything", "configurePreset": "clang-everything", "output": { "outputOnFailure": true } }
