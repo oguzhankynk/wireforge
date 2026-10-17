@@ -573,9 +573,22 @@ def _golden_test(out: Writer, assignments: _Assignments, vector: dict[str, Any])
             out.line(statement)
     encoding = encoding_literal(project, message, interface)
     mutable = header_is_written(interface.header or ())
-    opaque_check = (
-        f"EXPECT_EQ({SUPPORT}decode_status<model::{message.name}>({CSPAN}(kPayload), "
-        f"{encoding}), {STATUS}Ok);"
+    ns = f"model::{interface.name}"
+    opaque_lines = (
+        [
+            (
+                f"EXPECT_EQ({SUPPORT}decode_status<model::{message.name}>({CSPAN}(kPayload), "
+                f"{encoding}), {STATUS}Ok);"
+            ),
+            # The opaque field's own bytes can't be predicted, but a default-constructed value
+            # must still encode successfully: exercises the encode_frame() success path.
+            f"std::array<std::uint8_t, {ns}::kMaxFrameSize> default_buffer{{}};",
+            "std::size_t default_size = 0U;",
+            (
+                f"EXPECT_EQ({ns}::encode_frame(model::{message.name}{{}}, "
+                f"{SPAN}(default_buffer), default_size), {STATUS}Ok);"
+            ),
+        ]
         if opaque
         else None
     )
@@ -584,7 +597,7 @@ def _golden_test(out: Writer, assignments: _Assignments, vector: dict[str, Any])
         encoding,
         len(frame) - len(payload),
         mutable=mutable,
-        opaque_check=opaque_check,
+        opaque_lines=opaque_lines,
     ):
         out.line(text)
     out.dedent()
@@ -593,12 +606,12 @@ def _golden_test(out: Writer, assignments: _Assignments, vector: dict[str, Any])
 
 
 def _golden_checks(
-    interface: str, encoding: str, overhead: int, *, mutable: bool, opaque_check: str | None
+    interface: str, encoding: str, overhead: int, *, mutable: bool, opaque_lines: list[str] | None
 ) -> list[str]:
     ns = f"model::{interface}"
-    if opaque_check is not None:
+    if opaque_lines is not None:
         lines = [
-            opaque_check,
+            *opaque_lines,
             f"const {CSPAN} golden_frame(kFrame);",
             f"{'' if mutable else 'const '}{ns}::Header header{{}};",
             f"EXPECT_EQ({ns}::decode_header(golden_frame, header), {STATUS}Ok);",

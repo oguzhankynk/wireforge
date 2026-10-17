@@ -18,7 +18,7 @@ struct Fixed16 {
     std::int16_t raw{};
 };
 
-/// @brief Writes @p value as 2 little-endian bytes (found by ADL, like a generated struct's encode).
+/// @brief Writes @p value as 2 little-endian bytes (found by ADL, like a struct's own encode()).
 inline void encode(const Fixed16& value, wireforge::Encoder& encoder) noexcept {
     const auto bits = static_cast<std::uint16_t>(value.raw);
     const std::array<std::uint8_t, 2U> bytes{
@@ -28,11 +28,12 @@ inline void encode(const Fixed16& value, wireforge::Encoder& encoder) noexcept {
     encoder.write_bytes(wireforge::Span<const std::uint8_t>(bytes));
 }
 
-/// @brief Reads @p value from 2 little-endian bytes (found by ADL, like a generated struct's decode).
+/// @brief Reads @p value from 2 little-endian bytes (found by ADL, like a struct's own decode()).
 inline void decode(Fixed16& value, wireforge::Decoder& decoder) noexcept {
     std::array<std::uint8_t, 2U> bytes{};
     decoder.read_bytes(wireforge::Span<std::uint8_t>(bytes));
-    const auto bits = static_cast<std::uint16_t>(bytes[0] | static_cast<std::uint16_t>(bytes[1] << 8U));
+    const auto bits =
+        static_cast<std::uint16_t>(bytes[0] | static_cast<std::uint16_t>(bytes[1] << 8U));
     value.raw = static_cast<std::int16_t>(bits);
 }
 

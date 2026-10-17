@@ -163,8 +163,8 @@ public:
     /**
      * @brief Copies @p bytes onto the wire unchanged (no endian or bit-order transform).
      *
-     * For a user type's own encode(): the type owns its wire representation entirely.
-     * @return Status::BufferTooSmall when they do not fit.
+     * For a user type's own encode(): the type owns its wire representation entirely. Sets
+     * Status::BufferTooSmall (checked by status()) when they do not fit.
      */
     void write_bytes(Span<const std::uint8_t> bytes) noexcept {
         if (status_ == Status::Ok) {
@@ -266,8 +266,8 @@ public:
     /**
      * @brief Reads @p out.size() bytes unchanged (no endian or bit-order transform).
      *
-     * For a user type's own decode(): the type owns its wire representation entirely.
-     * @return Status::Truncated when fewer bytes remain.
+     * For a user type's own decode(): the type owns its wire representation entirely. Sets
+     * Status::Truncated (checked by status()) when fewer bytes remain.
      */
     void read_bytes(Span<std::uint8_t> out) noexcept {
         if (status_ == Status::Ok) {
