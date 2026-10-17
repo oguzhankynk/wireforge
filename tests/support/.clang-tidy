@@ -1,0 +1,6 @@
+# Scoped, registered exception S-001 (quality/suppressions.md):
+# the allocation trap replaces global operator new/delete and must call malloc/free itself.
+InheritParentConfig: true
+Checks: >
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-no-malloc

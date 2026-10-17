@@ -1,0 +1,288 @@
+[
+  {
+    "frame": "00000000000000000000",
+    "interface": "nodeB_to_our",
+    "message": "NodeBStatus",
+    "payload": "00000000000000000000",
+    "profile": "platformA",
+    "sample": "default",
+    "value": {
+      "channelMv": [
+        0,
+        0,
+        0
+      ],
+      "diag": [],
+      "uptimeMs": 0
+    }
+  },
+  {
+    "frame": "aaaaaaaaaaaaa9aaa8aaaaa9a8a7a6a5a4a3a2a1a09f9e9d9c9b",
+    "interface": "nodeB_to_our",
+    "message": "NodeBStatus",
+    "payload": "aaaaaaaaaaaaa9aaa8aaaaa9a8a7a6a5a4a3a2a1a09f9e9d9c9b",
+    "profile": "platformA",
+    "sample": "pattern",
+    "value": {
+      "channelMv": [
+        43690,
+        43689,
+        43688
+      ],
+      "diag": [
+        170,
+        169,
+        168,
+        167,
+        166,
+        165,
+        164,
+        163,
+        162,
+        161,
+        160,
+        159,
+        158,
+        157,
+        156,
+        155
+      ],
+      "uptimeMs": 2863311530
+    }
+  },
+  {
+    "frame": "a55a01020100170000000000000000000000000000000000000000000000ab6a",
+    "interface": "our_to_nodeA",
+    "message": "NavSolution",
+    "payload": "0000000000000000000000000000000000000000000000",
+    "profile": "platformA",
+    "sample": "default",
+    "value": {
+      "alt": [],
+      "flags": {
+        "mode": 0,
+        "spare": 0,
+        "valid": false
+      },
+      "hasAlt": false,
+      "lat": 0.0,
+      "lon": 0.0,
+      "ratio": 0.0,
+      "trackCount": 0,
+      "tracks": []
+    }
+  },
+  {
+    "frame": "a55a01020100220701336e4046800000000000405680000000000003aaaa42aaaa42aaaa423f400000f0b4",
+    "interface": "our_to_nodeA",
+    "message": "NavSolution",
+    "payload": "0701336e4046800000000000405680000000000003aaaa42aaaa42aaaa423f400000",
+    "profile": "platformA",
+    "sample": "pattern",
+    "value": {
+      "alt": [
+        13166
+      ],
+      "flags": {
+        "mode": 3,
+        "spare": 0,
+        "valid": true
+      },
+      "hasAlt": true,
+      "lat": 45.0,
+      "lon": 90.0,
+      "ratio": 0.75,
+      "trackCount": 3,
+      "tracks": [
+        {
+          "id": 43690,
+          "quality": 66
+        },
+        {
+          "id": 43690,
+          "quality": 66
+        },
+        {
+          "id": 43690,
+          "quality": 66
+        }
+      ]
+    }
+  },
+  {
+    "frame": "003000050100000001",
+    "interface": "our_to_nodeC",
+    "message": "Command",
+    "payload": "0100000001",
+    "profile": "platformA",
+    "sample": "default",
+    "value": {
+      "opcode": 0,
+      "sum": 1,
+      "target": 1
+    }
+  },
+  {
+    "frame": "0030000503aaaa0157",
+    "interface": "our_to_nodeC",
+    "message": "Command",
+    "payload": "03aaaa0157",
+    "profile": "platformA",
+    "sample": "pattern",
+    "value": {
+      "opcode": 43690,
+      "sum": 343,
+      "target": 3
+    }
+  },
+  {
+    "frame": "0000000000000000000000000000",
+    "interface": "nodeB_to_our",
+    "message": "NodeBStatus",
+    "payload": "0000000000000000000000000000",
+    "profile": "platformB",
+    "sample": "default",
+    "value": {
+      "channelMv": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "diag": [],
+      "uptimeMs": 0
+    }
+  },
+  {
+    "frame": "aaaaaaaaaaaaa9aaa8aaa7aaa6aaaaa9a8a7a6a5a4a3a2a1a09f9e9d9c9b",
+    "interface": "nodeB_to_our",
+    "message": "NodeBStatus",
+    "payload": "aaaaaaaaaaaaa9aaa8aaa7aaa6aaaaa9a8a7a6a5a4a3a2a1a09f9e9d9c9b",
+    "profile": "platformB",
+    "sample": "pattern",
+    "value": {
+      "channelMv": [
+        43690,
+        43689,
+        43688,
+        43687,
+        43686
+      ],
+      "diag": [
+        170,
+        169,
+        168,
+        167,
+        166,
+        165,
+        164,
+        163,
+        162,
+        161,
+        160,
+        159,
+        158,
+        157,
+        156,
+        155
+      ],
+      "uptimeMs": 2863311530
+    }
+  },
+  {
+    "frame": "a55a0102010018000000000000000000000000000000000000000000000000ab4e",
+    "interface": "our_to_nodeA",
+    "message": "NavSolution",
+    "payload": "000000000000000000000000000000000000000000000000",
+    "profile": "platformB",
+    "sample": "default",
+    "value": {
+      "alt": [],
+      "extra": 0,
+      "flags": {
+        "mode": 0,
+        "spare": 0,
+        "valid": false
+      },
+      "hasAlt": false,
+      "lat": 0.0,
+      "lon": 0.0,
+      "ratio": 0.0,
+      "trackCount": 0,
+      "tracks": []
+    }
+  },
+  {
+    "frame": "a55a01020100290701336e4046800000000000405680000000000005aaaa42aaaa42aaaa42aaaa42aaaa42aa3f400000bdc8",
+    "interface": "our_to_nodeA",
+    "message": "NavSolution",
+    "payload": "0701336e4046800000000000405680000000000005aaaa42aaaa42aaaa42aaaa42aaaa42aa3f400000",
+    "profile": "platformB",
+    "sample": "pattern",
+    "value": {
+      "alt": [
+        13166
+      ],
+      "extra": 170,
+      "flags": {
+        "mode": 3,
+        "spare": 0,
+        "valid": true
+      },
+      "hasAlt": true,
+      "lat": 45.0,
+      "lon": 90.0,
+      "ratio": 0.75,
+      "trackCount": 5,
+      "tracks": [
+        {
+          "id": 43690,
+          "quality": 66
+        },
+        {
+          "id": 43690,
+          "quality": 66
+        },
+        {
+          "id": 43690,
+          "quality": 66
+        },
+        {
+          "id": 43690,
+          "quality": 66
+        },
+        {
+          "id": 43690,
+          "quality": 66
+        }
+      ]
+    }
+  },
+  {
+    "frame": "003000050100000001",
+    "interface": "our_to_nodeC",
+    "message": "Command",
+    "payload": "0100000001",
+    "profile": "platformB",
+    "sample": "default",
+    "value": {
+      "opcode": 0,
+      "sum": 1,
+      "target": 1
+    }
+  },
+  {
+    "frame": "0030000503aaaa0157",
+    "interface": "our_to_nodeC",
+    "message": "Command",
+    "payload": "03aaaa0157",
+    "profile": "platformB",
+    "sample": "pattern",
+    "value": {
+      "opcode": 43690,
+      "sum": 343,
+      "target": 3
+    }
+  }
+]

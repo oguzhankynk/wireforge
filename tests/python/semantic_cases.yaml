@@ -1,0 +1,429 @@
+# Semantic negative corpus: each case patches tests/python/semantic_base.yaml and must produce an
+# issue tagged with `rule` whose text contains `expect`. Patch operations address nodes by key/index path:
+#   { set: [path...], value: X }   { del: [path...] }   { append: [path...], value: X }
+# `fragment` adds a second file (included by the root) with the given content.
+
+# SR-1 duplicates across files
+- name: duplicate_type_in_fragment
+  rule: SR-1
+  expect: already defined
+  fragment: { schema_version: 1, types: { Point: { fields: [{ name: a, type: u8 }] } } }
+- name: duplicate_message_in_fragment
+  rule: SR-1
+  expect: "'Command' is already defined"
+  fragment: { schema_version: 1, messages: { Command: { id: 7, fields: [{ name: a, type: u8 }] } } }
+
+# SR-2 names
+- name: keyword_type_name
+  rule: SR-2
+  expect: C++ keyword
+  patch: [{ set: [types, class], value: { fields: [{ name: a, type: u8 }] } }]
+- name: keyword_field_name
+  rule: SR-2
+  expect: "'int' is a C++ keyword"
+  patch: [{ set: [messages, Command, fields, 1, name], value: int }]
+- name: reserved_identifier
+  rule: SR-2
+  expect: reserved C++ identifier
+  patch: [{ set: [types, __Inner], value: { fields: [{ name: a, type: u8 }] } }]
+- name: duplicate_field
+  rule: SR-2
+  expect: duplicate field 'op'
+  patch: [{ set: [messages, Command, fields, 1, name], value: op }]
+- name: type_collides_with_message
+  rule: SR-2
+  expect: collides with type 'Status'
+  patch: [{ set: [types, Status], value: { fields: [{ name: a, type: u8 }] } }]
+- name: define_collides_with_type
+  rule: SR-2
+  expect: collides with define 'Point'
+  patch: [{ set: [defines, Point], value: 1 }]
+- name: enum_member_keyword
+  rule: SR-2
+  expect: "'delete' is a C++ keyword"
+  patch: [{ set: [enums, Mode, values, delete], value: 3 }]
+
+# SR-3 types
+- name: unknown_type
+  rule: SR-3
+  expect: unknown type 'Foo'
+  patch: [{ set: [messages, Command, fields, 1, type], value: Foo }]
+- name: message_used_as_type
+  rule: SR-3
+  expect: uses message Command as a type
+  patch: [{ set: [messages, Blob, fields, 0, type], value: Command }, { del: [messages, Blob, fields, 0, const] }]
+- name: two_type_cycle
+  rule: SR-3
+  expect: contains itself
+  patch:
+    - { set: [types, A], value: { fields: [{ name: b, type: B }] } }
+    - { set: [types, B], value: { fields: [{ name: a, type: A }] } }
+- name: self_containing_type
+  rule: SR-3
+  expect: "Point contains itself: Point -> Point"
+  patch: [{ append: [types, Point, fields], value: { name: inner, type: Point } }]
+- name: unknown_type_in_header
+  rule: SR-3
+  expect: header of interface main
+  patch: [{ set: [interfaces, main, header, fields, 1, type], value: Nope }]
+
+# SR-4 references
+- name: unknown_checksum
+  rule: SR-4
+  expect: unknown checksum 'nope'
+  patch: [{ set: [messages, Command, fields, 2, checksum, use], value: nope }]
+- name: unknown_interface_message
+  rule: SR-4
+  expect: unknown message 'Ghost'
+  patch: [{ append: [interfaces, main, messages], value: Ghost }]
+- name: unknown_enum_default
+  rule: SR-4
+  expect: "'fly' is not a member of Mode"
+  patch: [{ set: [messages, Status, fields, 5, default], value: fly }]
+- name: covers_unknown_field
+  rule: SR-4
+  expect: covers names unknown field 'nope'
+  patch: [{ set: [messages, Status, fields, 8, checksum, covers, from], value: nope }]
+
+# SR-5 expressions
+- name: expression_syntax_error
+  rule: SR-5
+  expect: invalid expression
+  patch: [{ set: [messages, Status, fields, 2, occurs, max], value: "MAX_ITEMS +" }]
+- name: expression_unknown_name
+  rule: SR-5
+  expect: unknown name 'UNKNOWN_N'
+  patch: [{ set: [messages, Status, fields, 2, occurs, max], value: UNKNOWN_N }]
+- name: condition_references_field
+  rule: SR-5
+  expect: must not reference fields
+  patch: [{ set: [messages, Status, fields, 7, if], value: "count > 1" }]
+- name: condition_names_non_define
+  rule: SR-5
+  expect: use defined(FOO)
+  patch: [{ set: [messages, Status, fields, 7, if], value: "FOO == 1" }]
+- name: condition_with_arithmetic
+  rule: SR-5
+  expect: not allowed in an if
+  patch: [{ set: [messages, Status, fields, 7, if], value: "LIMIT + 1 > 2" }]
+- name: field_in_range_expression
+  rule: SR-5
+  expect: may only be referenced by occurs.count
+  patch: [{ set: [messages, Command, fields, 1, max], value: op }]
+- name: unknown_enum_member_in_expression
+  rule: SR-5
+  expect: unknown enum member Mode.fly
+  patch: [{ set: [messages, Command, fields, 0, max], value: Mode.fly }]
+- name: sizeof_unknown_type
+  rule: SR-5
+  expect: "sizeof: unknown type 'Nope'"
+  patch: [{ set: [messages, Status, fields, 2, occurs, max], value: "sizeof(Nope)" }]
+- name: defined_in_value_expression
+  rule: SR-5
+  expect: only allowed in if
+  patch: [{ set: [messages, Status, fields, 2, occurs, max], value: "defined(LIMIT)" }]
+- name: float_literal_in_capacity
+  rule: SR-5
+  expect: "invalid expression '2.5'"
+  patch: [{ set: [messages, Status, fields, 2, occurs, max], value: "2.5" }]
+- name: struct_condition_syntax
+  rule: SR-5
+  expect: invalid if
+  patch: [{ set: [types, Point, if], value: "defined(" }]
+
+# SR-6 values
+- name: default_outside_range
+  rule: SR-6
+  expect: 500 is outside [1, 100]
+  patch: [{ set: [messages, Command, fields, 0, default], value: 500 }]
+- name: min_greater_than_max
+  rule: SR-6
+  expect: min 200 > max 100
+  patch: [{ set: [messages, Command, fields, 0, min], value: 200 }]
+- name: default_does_not_fit_type
+  rule: SR-6
+  expect: 300 does not fit u8
+  patch: [{ set: [messages, Command, fields, 1, default], value: 300 }]
+- name: bound_outside_bit_width
+  rule: SR-6
+  expect: min -9 is outside what i8 with 4 bits can hold
+  patch: [{ set: [types, Flags, fields, 2, min], value: -9 }]
+- name: float_bound_on_integer
+  rule: SR-6
+  expect: must be an integer for type u16
+  patch: [{ set: [messages, Command, fields, 0, min], value: 1.5 }]
+- name: bool_default_not_bool
+  rule: SR-6
+  expect: 3 is not a valid bool value
+  patch: [{ set: [messages, Status, fields, 3, default], value: 3 }]
+- name: const_with_occurs
+  rule: SR-6
+  expect: const cannot have occurs
+  patch: [{ set: [messages, Blob, fields, 1, const], value: 1 }]
+- name: bounds_on_struct_field
+  rule: SR-6
+  expect: min needs a scalar type
+  patch: [{ set: [messages, Status, fields, 0, min], value: 0 }]
+- name: list_default_without_occurs
+  rule: SR-6
+  expect: a list default needs occurs
+  patch: [{ set: [messages, Command, fields, 0, default], value: [1, 2] }]
+- name: string_default_too_long
+  rule: SR-6
+  expect: default has 10 elements, max is 8
+  patch: [{ set: [messages, Status, fields, 6, default], value: abcdefghij }]
+- name: const_outside_range
+  rule: SR-6
+  expect: 66 is outside [0, 10]
+  patch: [{ set: [messages, Blob, fields, 0, max], value: 10 }]
+- name: float_default_not_number
+  rule: SR-6
+  expect: "'hot' is not a valid f32 value"
+  patch: [{ set: [messages, Status, fields, 4, default], value: hot }]
+- name: f32_bound_too_large
+  rule: SR-6
+  expect: outside what f32
+  patch: [{ set: [messages, Status, fields, 4, max], value: 1.0e39 }]
+
+# SR-7 count references
+- name: count_field_after_array
+  rule: SR-7
+  expect: count field 'hasTemp' must precede points
+  patch: [{ set: [messages, Status, fields, 2, occurs, count], value: hasTemp }]
+- name: count_field_is_array
+  rule: SR-7
+  expect: count field 'points' must be a single integer or bool
+  patch: [{ set: [messages, Status, fields, 4, occurs, count], value: points }]
+- name: count_field_is_struct
+  rule: SR-7
+  expect: count field 'flags' must be a single integer or bool
+  patch: [{ set: [messages, Status, fields, 2, occurs, count], value: flags }]
+
+# SR-8 occurs
+- name: fill_not_last
+  rule: SR-8
+  expect: fill is only allowed on the last field of a message
+  patch: [{ append: [messages, Blob, fields], value: { name: tail, type: u8 } }]
+- name: fill_in_type
+  rule: SR-8
+  expect: fill is only allowed on the last field
+  patch: [{ append: [types, Point, fields], value: { name: rest, type: u8, occurs: { max: 2, fill: true } } }]
+- name: capacity_zero
+  rule: SR-8
+  expect: occurs.max must be positive
+  patch: [{ set: [messages, Status, fields, 2, occurs, max], value: 0 }]
+- name: occurs_min_above_max
+  rule: SR-8
+  expect: occurs.min must lie in 0..max
+  patch: [{ set: [messages, Status, fields, 2, occurs, min], value: 10 }]
+- name: fill_with_variable_element
+  rule: SR-8
+  expect: fill needs a constant element size
+  patch:
+    - set: [types, Var]
+      value: { fields: [{ name: n, type: u8 }, { name: v, type: u8, occurs: { max: 2, count: n } }] }
+    - { set: [messages, Blob, fields, 1, type], value: Var }
+
+# SR-9 message ids
+- name: duplicate_message_id
+  rule: SR-9
+  expect: id 0x1 of Command is already used by Status
+  patch: [{ set: [messages, Command, id], value: 1 }]
+- name: message_id_too_wide
+  rule: SR-9
+  expect: id 0x12c of Command does not fit 8 bits
+  patch: [{ set: [messages, Command, id], value: 300 }]
+- name: message_without_id
+  rule: SR-9
+  expect: message Command has no id on interface main
+  patch: [{ del: [messages, Command, id] }]
+- name: message_listed_twice
+  rule: SR-9
+  expect: message Status is listed twice
+  patch: [{ append: [interfaces, main, messages], value: Status }]
+- name: override_id_collision
+  rule: SR-9
+  expect: is already used by Status
+  patch: [{ set: [interfaces, main, messages, 2, id], value: 1 }]
+
+# SR-10 bit-fields
+- name: bit_group_not_byte_multiple
+  rule: SR-10
+  expect: totals 7 bits
+  patch: [{ set: [types, Flags, fields, 2, bits], value: 3 }, { set: [types, Flags, fields, 2, min], value: -4 }, { set: [types, Flags, fields, 2, max], value: 3 }]
+- name: bits_wider_than_type
+  rule: SR-10
+  expect: bits 9 exceeds the width of u8
+  patch: [{ set: [messages, Command, fields, 1, bits], value: 9 }]
+- name: bits_on_float
+  rule: SR-10
+  expect: bits is only allowed on integer, bool and enum fields
+  patch: [{ set: [types, Point, fields, 0, type], value: f32 }, { set: [types, Point, fields, 0, bits], value: 8 }]
+- name: bit_group_over_64
+  rule: SR-10
+  expect: exceeds 64 bits
+  patch: [{ set: [types, Wide], value: { fields: [{ name: a, type: u64, bits: 64 }, { name: b, type: u8, bits: 8 }] } }]
+- name: open_bit_group_in_message
+  rule: SR-10
+  expect: bit group starting at op totals 12 bits
+  patch: [{ set: [messages, Command, fields, 0, bits], value: 12 }]
+
+# SR-11
+- name: occurs_with_bits
+  rule: SR-11
+  expect: occurs cannot be combined with bits
+  patch: [{ set: [messages, Command, fields, 1, bits], value: 8 }, { set: [messages, Command, fields, 1, occurs], value: { max: 2 } }]
+
+# SR-12 checksums
+- name: checksum_width_mismatch
+  rule: SR-12
+  expect: has 32 bits but vendor produces 16
+  patch: [{ set: [messages, Command, fields, 2, type], value: u32 }]
+- name: checksum_field_signed
+  rule: SR-12
+  expect: must be a single unsigned integer
+  patch: [{ set: [messages, Command, fields, 2, type], value: i16 }]
+- name: covers_range_reversed
+  rule: SR-12
+  expect: must be ordered and precede the checksum field
+  patch: [{ set: [messages, Status, fields, 8, checksum, covers], value: { from: mode, to: flags } }]
+- name: payload_scope_in_message
+  rule: SR-12
+  expect: only allowed in headers/trailers
+  patch: [{ set: [messages, Command, fields, 2, checksum, covers], value: { scope: payload } }]
+- name: crc_poly_too_wide
+  rule: SR-12
+  expect: poly 0x11021 does not fit width 16
+  patch: [{ set: [checksums, crc16, poly], value: 0x11021 }]
+- name: crc_check_value_wrong
+  rule: SR-12
+  expect: does not match the computed 0x29b1
+  patch: [{ set: [checksums, crc16, check], value: 0x1234 }]
+- name: custom_checksum_too_wide
+  rule: SR-12
+  expect: size_bytes must be 1..8
+  patch: [{ set: [checksums, vendor, size_bytes], value: 9 }]
+
+# SR-13 roles
+- name: role_in_message
+  rule: SR-13
+  expect: role 'sequence' is only allowed in headers/trailers
+  patch: [{ set: [messages, Command, fields, 0, role], value: sequence }]
+- name: two_message_id_fields
+  rule: SR-13
+  expect: role message_id appears more than once
+  patch: [{ append: [interfaces, main, header, fields], value: { name: id2, type: u8, role: message_id } }]
+- name: sync_without_const
+  rule: SR-13
+  expect: sync field sync needs a const value
+  patch: [{ del: [interfaces, main, header, fields, 0, const] }]
+- name: signed_length_field
+  rule: SR-13
+  expect: payload_length field must be unsigned
+  patch: [{ set: [interfaces, main, header, fields, 2, type], value: i16 }]
+
+# SR-14 framing and dispatch
+- name: raw_interface_two_messages
+  rule: SR-14
+  expect: raw interfaces carry at most one
+  patch: [{ append: [interfaces, raw, messages], value: Command }]
+- name: sync_length_without_sync
+  rule: SR-14
+  expect: needs header fields with role sync
+  patch: [{ del: [interfaces, main, header, fields, 0, role] }]
+- name: length_prefixed_without_length
+  rule: SR-14
+  expect: needs header fields with role payload_length
+  patch: [{ set: [interfaces, fixed, framing], value: { kind: length_prefixed, max_frame_size: 16 } }]
+- name: header_without_message_id
+  rule: SR-14
+  expect: needs a header field with role message_id
+  patch: [{ append: [interfaces, fixed, messages], value: Blob }, { del: [interfaces, fixed, header, fields, 0, role] }]
+
+# SR-15 enums
+- name: enum_duplicate_value
+  rule: SR-15
+  expect: share value 1
+  patch: [{ set: [enums, Mode, values, halt], value: 1 }]
+- name: enum_value_does_not_fit
+  rule: SR-15
+  expect: Mode.huge = 300 does not fit u8
+  patch: [{ set: [enums, Mode, values, huge], value: 300 }]
+
+# SR-16 profiles
+- name: division_by_zero_in_profile
+  rule: SR-16
+  expect: in profile 'small'
+  patch: [{ set: [messages, Status, fields, 2, occurs, max], value: "MAX_ITEMS / (MAX_ITEMS - 2)" }]
+- name: frame_exceeds_max_frame_size
+  rule: SR-16
+  expect: more than 20
+  patch: [{ set: [interfaces, main, framing, max_frame_size], value: 20 }]
+- name: buffer_not_positive
+  rule: SR-16
+  expect: buffers/rx_bytes must be positive
+  patch: [{ set: [interfaces, main, buffers, rx_bytes], value: "LIMIT - 200" }]
+- name: profile_only_define_used_as_value
+  rule: SR-16
+  expect: "unknown name 'SMALL'"
+  patch: [{ set: [messages, Status, fields, 2, occurs, max], value: "SMALL * 2" }]
+- name: fixed_frame_too_small
+  rule: SR-16
+  expect: message Command needs up to 6 bytes
+  patch: [{ set: [interfaces, fixed, framing, frame_size], value: 4 }]
+
+# SR-17 layout
+- name: conditional_field_in_bit_group
+  rule: SR-17
+  expect: inside a bit group
+  patch: [{ set: [types, Flags, fields, 2, if], value: "LIMIT > 1" }]
+
+# SR-18 user constants
+- name: constant_collides_with_define
+  rule: SR-18
+  expect: constant LIMIT collides with a define
+  patch: [{ set: [user_includes, constants, LIMIT], value: { cpp: "app::kLimit", value: 1 } }]
+- name: constant_unknown_profile
+  rule: SR-18
+  expect: "unknown profile 'huge'"
+  patch: [{ set: [user_includes, constants, APP_FRAME, profile_values, huge], value: 1 }]
+- name: opaque_constant_in_layout
+  rule: SR-18
+  expect: opaque
+  patch: [{ set: [messages, Status, fields, 2, occurs, max], value: APP_RANGE }]
+- name: constant_in_condition
+  rule: SR-18
+  expect: cannot appear in if
+  patch: [{ set: [messages, Status, fields, 7, if], value: "APP_FRAME > 1" }]
+- name: constant_partial_profiles
+  rule: SR-18
+  expect: values for only some profiles
+  patch: [{ set: [user_includes, constants, PART], value: { cpp: "app::kPart", profile_values: { small: 1 } } }]
+- name: constant_collides_with_field
+  rule: SR-18
+  expect: collides with a field
+  patch: [{ set: [user_includes, constants, count], value: { cpp: "app::kCount", value: 1 } }]
+
+# SR-19 version stamps (checked before the semantic stage)
+- name: newer_format_minor
+  rule: SR-19
+  expect: supports 1.0
+  patch: [{ set: [schema_minor], value: 99 }]
+- name: fragment_from_newer_format
+  rule: SR-19
+  expect: format version 2
+  fragment: { schema_version: 2, types: { Extra: { fields: [{ name: a, type: u8 }] } } }
+
+# SR-20 portable paths
+- name: absolute_include_dir
+  rule: SR-20
+  expect: must be relative
+  patch: [{ set: [user_includes, include_dirs, 0], value: /usr/include }]
+- name: dotdot_header_path
+  rule: SR-20
+  expect: "'../limits.hpp' must be relative"
+  patch: [{ set: [user_includes, headers, 0, path], value: ../limits.hpp }]
+- name: absolute_checksum_include
+  rule: SR-20
+  expect: must be relative without '..'
+  patch: [{ set: [checksums, vendor, include], value: "C:/vendor/sum.hpp" }]

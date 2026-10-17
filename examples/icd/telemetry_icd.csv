@@ -1,0 +1,17 @@
+section,name,id,field,type,bits,occurs,count,min,max,default,units,description
+type,Vec3,,x,f32,,,,,,0.0,m/s2,X axis
+type,Vec3,,y,f32,,,,,,0.0,m/s2,Y axis
+type,Vec3,,z,f32,,,,,,0.0,m/s2,Z axis
+type,Status,,mode,u8,3,,,0,5,,,Operating mode
+type,Status,,healthy,bool,1,,,,,,,Self-test passed
+type,Status,,spare,u8,4,,,,,,,Unused bits
+message,ImuSample,0x0110,sensorId,u8,,,,1,32,1,,Sensor number
+message,ImuSample,,status,Status,,,,,,,,Mode and health
+message,ImuSample,,timestamp,u32,,,,,,,us,Sample time
+message,ImuSample,,accel,Vec3,,,,,,,,Acceleration
+message,ImuSample,,hasTemp,bool,,,,,,,,Temperature present
+message,ImuSample,,temperature,i16,,0..1,hasTemp,-400,1250,,0.1 degC,Optional temperature
+message,ImuSample,,sampleCount,u8,,,,0,8,,,Number of raw samples
+message,ImuSample,,samples,u16,,0..8,sampleCount,,,,,Raw ADC samples
+message,Heartbeat,0x0001,uptime,u32,,,,,,,s,Seconds since boot
+message,Heartbeat,,errors,u16,,4,,,,,,Error counters

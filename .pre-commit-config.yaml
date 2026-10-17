@@ -1,0 +1,29 @@
+repos:
+  - repo: local
+    hooks:
+      - id: clang-format
+        name: clang-format
+        entry: clang-format --Werror -i
+        language: system
+        files: '\.(cpp|hpp|h|cc)$'
+      - id: ruff-format
+        name: ruff format
+        entry: ruff format
+        language: system
+        types: [python]
+      - id: ruff
+        name: ruff check
+        entry: ruff check
+        language: system
+        types: [python]
+      - id: mypy
+        name: mypy --strict
+        entry: mypy
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: suppressions
+        name: suppression registry
+        entry: python3 quality/check_suppressions.py
+        language: system
+        pass_filenames: false

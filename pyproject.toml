@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wireforge"
+version = "0.1.0"
+description = "Schema-driven wire-format toolkit: C++17 code generation, validation, server and MCP."
+requires-python = ">=3.10"
+license = { text = "BUSL-1.1" }
+authors = [{ name = "Oguzhan KAYNAK" }]
+readme = "README.md"
+dependencies = [
+  "ruamel.yaml>=0.18",
+  "jsonschema>=4.21",
+  "referencing>=0.30",
+  "typing_extensions>=4.4",
+]
+
+[project.scripts]
+wireforge = "wireforge.cli:_entry"
+
+[project.optional-dependencies]
+server = ["fastapi>=0.110", "uvicorn>=0.29"]
+mcp = ["mcp>=2.3"]
+import = ["openpyxl>=3.1"]
+dev = [
+  "pytest>=8",
+  "ruff>=0.5",
+  "mypy>=1.10",
+  "types-jsonschema",
+  "gcovr>=7",
+  "clang-tidy==18.1.8",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "httpx2>=2.13",
+  "mcp>=2.3",
+  "openpyxl>=3.1",
+  "types-openpyxl",
+]
+
+[tool.setuptools]
+package-dir = { "" = "codegen" }
+packages = ["wireforge", "wireforge.server"]
+
+[tool.setuptools.package-data]
+wireforge = ["py.typed", "wireshark_runtime.lua"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["codegen", "tests/python", "quality"]
+extend-exclude = ["build", "ui/node_modules"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D203", "D213", "COM812", "ISC001", "D104", "D100", "CPY001", "S603"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/python/**" = ["S101", "PLR2004", "D103", "INP001"]
+
+[tool.mypy]
+strict = true
+python_version = "3.10"
+files = ["codegen", "quality", "tests/python"]
+mypy_path = "codegen"
+explicit_package_bases = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+filterwarnings = ["error"]
+pythonpath = ["codegen"]

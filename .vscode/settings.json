@@ -1,0 +1,11 @@
+{
+  "yaml.schemas": {
+    "schema/project.schema.json": ["examples/**/project.yaml", "**/project.yaml"],
+    "schema/fragment.schema.json": [
+      "examples/**/profiles/*.yaml",
+      "examples/**/types/*.yaml",
+      "examples/**/messages/*.yaml",
+      "examples/**/interfaces/*.yaml"
+    ]
+  }
+}

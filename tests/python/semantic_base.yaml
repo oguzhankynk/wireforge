@@ -1,0 +1,96 @@
+# Valid project exercising every semantic rule; tests/python/semantic_cases.yaml breaks it one rule at a time.
+schema_version: 1
+project: semantic_base
+version: "1.0.0"
+namespace: test::semantic
+defaults: { endian: big, bit_order: msb_first }
+
+defines:
+  MAX_ITEMS: 4
+  LIMIT: 100
+
+profiles:
+  small: { defines: { MAX_ITEMS: 2, SMALL: 1 } }
+  large: { defines: { MAX_ITEMS: 6 } }
+
+user_includes:
+  include_dirs: [app/include]
+  headers:
+    - { path: app/limits.hpp, style: quote, if: "LIMIT > 10" }
+  constants:
+    APP_FRAME: { cpp: "app::kFrame", value: 96, profile_values: { large: 128 } }
+    APP_RANGE: { cpp: "app::kRange" }
+
+checksums:
+  crc32: { algo: crc32 }
+  crc16: { algo: crc, width: 16, poly: 0x1021, init: 0xFFFF, refin: false, refout: false, xorout: 0, check: 0x29B1 }
+  vendor: { algo: custom, impl: "vendor::Sum", include: vendor/sum.hpp, size_bytes: 2 }
+
+enums:
+  Mode: { type: u8, values: { idle: 0, run: 1, stop: 2 } }
+
+types:
+  Flags:
+    fields:
+      - { name: valid, type: bool, bits: 1 }
+      - { name: mode, type: Mode, bits: 3 }
+      - { name: level, type: i8, bits: 4, min: -8, max: 7, default: 0 }
+  Point:
+    fields:
+      - { name: x, type: i32, min: -1000, max: 1000, default: 0 }
+      - { name: y, type: i32, min: APP_RANGE, max: 1000 }
+
+messages:
+  Status:
+    id: 1
+    fields:
+      - { name: flags, type: Flags }
+      - { name: count, type: u8, max: MAX_ITEMS }
+      - { name: points, type: Point, occurs: { max: MAX_ITEMS, count: count } }
+      - { name: hasTemp, type: bool }
+      - { name: temp, type: f32, min: -40.0, max: 125.0, default: 20.0, occurs: { max: 1, count: hasTemp } }
+      - { name: mode, type: Mode, default: run }
+      - { name: label, type: char, occurs: { max: 8 }, default: "abc" }
+      - { name: extra, type: u8, if: defined(SMALL) }
+      - { name: sum, type: u16, checksum: { use: crc16, covers: { from: flags, to: mode } } }
+  Command:
+    id: 2
+    fields:
+      - { name: op, type: u16, min: 1, max: LIMIT, default: 1 }
+      - { name: spare, type: u8, reserved: true }
+      - { name: crc, type: u16, checksum: { use: vendor, covers: { scope: preceding } } }
+  Blob:
+    id: 3
+    fields:
+      - { name: kind, type: u8, const: 0x42 }
+      - { name: data, type: u8, occurs: { max: 32, fill: true } }
+
+interfaces:
+  main:
+    version: "1.0.0"
+    direction: both
+    header:
+      fields:
+        - { name: sync, type: u16, const: 0xA55A, role: sync }
+        - { name: id, type: u8, role: message_id }
+        - { name: length, type: u16, role: payload_length }
+    trailer:
+      fields:
+        - { name: crc, type: u32, checksum: { use: crc32, covers: { scope: header_and_payload } } }
+    framing: { kind: sync_length, max_frame_size: APP_FRAME, resync: true }
+    buffers: { rx_bytes: 256 }
+    messages: [Status, Command, { name: Blob, id: 9 }]
+  raw:
+    version: "1.0.0"
+    direction: rx
+    header: none
+    framing: { kind: none }
+    messages: [Blob]
+  fixed:
+    version: "1.0.0"
+    direction: tx
+    header:
+      fields:
+        - { name: id, type: u8, role: message_id }
+    framing: { kind: fixed, frame_size: 16 }
+    messages: [Command]

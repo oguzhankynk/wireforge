@@ -1,0 +1,15 @@
+build/
+.venv/
+__pycache__/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+node_modules/
+ui/dist/
+coverage/
+*.profraw
+*.gcda
+*.gcno
+.plan/
+CLAUDE.md

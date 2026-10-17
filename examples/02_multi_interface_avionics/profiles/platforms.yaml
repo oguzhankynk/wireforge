@@ -1,0 +1,8 @@
+schema_version: 1
+profiles:
+  platformA:
+    description: Small target, 3 tracks / 3 channels.
+    defines: { PLATFORM_A: 1, MAX_TRACKS: 3, CHANNELS: 3 }
+  platformB:
+    description: Large target, 5 tracks / 5 channels, extra field enabled.
+    defines: { PLATFORM_B: 1, MAX_TRACKS: 5, CHANNELS: 5 }

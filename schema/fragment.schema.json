@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WireForge project fragment (included file)",
+  "description": "Fragments carry schema_version plus definition sections; project, include, defaults and user_includes live in the root file.",
+  "type": "object",
+  "properties": {
+    "defines": {
+      "$ref": "project.schema.json#/$defs/sections/properties/defines"
+    },
+    "profiles": {
+      "$ref": "project.schema.json#/$defs/sections/properties/profiles"
+    },
+    "checksums": {
+      "$ref": "project.schema.json#/$defs/sections/properties/checksums"
+    },
+    "enums": {
+      "$ref": "project.schema.json#/$defs/sections/properties/enums"
+    },
+    "types": {
+      "$ref": "project.schema.json#/$defs/sections/properties/types"
+    },
+    "messages": {
+      "$ref": "project.schema.json#/$defs/sections/properties/messages"
+    },
+    "interfaces": {
+      "$ref": "project.schema.json#/$defs/sections/properties/interfaces"
+    },
+    "schema_version": {
+      "$ref": "project.schema.json#/$defs/schemaVersion"
+    },
+    "schema_minor": {
+      "$ref": "project.schema.json#/$defs/schemaMinor"
+    },
+    "generator": {
+      "$ref": "project.schema.json#/$defs/generator"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "schema_version"
+  ]
+}

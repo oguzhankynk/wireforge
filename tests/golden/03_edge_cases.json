@@ -1,0 +1,65 @@
+[
+  {
+    "frame": "bebafeca00000000000000000000000000",
+    "interface": "loopback",
+    "message": "Everything",
+    "payload": "bebafeca00000000000000000000000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "big": 0,
+      "inner": {
+        "present": false,
+        "value": []
+      },
+      "magic": 3405691582,
+      "maybeEmpty": [],
+      "n": 0,
+      "name": "",
+      "nameLen": 0,
+      "packed": {
+        "delta": 0,
+        "flag": false,
+        "level": "low",
+        "spare": 0
+      }
+    }
+  },
+  {
+    "frame": "bebafecaaaaaaaaaaaaaaaaa0027014d01000008aaaaa9aaa8aaa7aaa6aaa5aaa4aaa3aa1057697265466f72676557697265466f72",
+    "interface": "loopback",
+    "message": "Everything",
+    "payload": "bebafecaaaaaaaaaaaaaaaaa0027014d01000008aaaaa9aaa8aaa7aaa6aaa5aaa4aaa3aa1057697265466f72676557697265466f72",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "big": 12297829382473034410,
+      "inner": {
+        "present": true,
+        "value": [
+          333
+        ]
+      },
+      "magic": 3405691582,
+      "maybeEmpty": [
+        43690,
+        43689,
+        43688,
+        43687,
+        43686,
+        43685,
+        43684,
+        43683
+      ],
+      "n": 8,
+      "name": "WireForgeWireFor",
+      "nameLen": 16,
+      "packed": {
+        "delta": 4,
+        "flag": true,
+        "level": "critical",
+        "spare": 0
+      }
+    }
+  }
+]

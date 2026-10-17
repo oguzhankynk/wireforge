@@ -1,0 +1,46 @@
+# Corner cases for the toolchain: zero-count arrays, nested optional, signed bit-fields,
+# u64, reserved bits, wire constants, no framing, bidirectional interface.
+schema_version: 1
+project: edge_cases
+version: "0.0.1"
+namespace: demo::edge
+defaults: { endian: little, bit_order: msb_first, range_check: { encode: true, decode: false } }
+
+enums:
+  Level:
+    type: u8
+    values: { low: 0, mid: 1, high: 2, critical: 3 }
+
+types:
+  Inner:
+    fields:
+      - { name: present, type: bool }
+      - { name: value, type: i32, min: -1000, max: 1000, default: 0, occurs: { max: 1, count: present } }
+  Packed:
+    description: 16 bits total, signed fields.
+    fields:
+      - { name: delta, type: i8, bits: 5, min: -16, max: 15, default: 0 }
+      - { name: level, type: Level, bits: 2 }
+      - { name: flag, type: bool, bits: 1 }
+      - { name: spare, type: u8, bits: 8, reserved: true }
+
+messages:
+  Everything:
+    id: 1
+    fields:
+      - { name: magic, type: u32, const: 0xCAFEBABE }
+      - { name: big, type: u64, min: 0, max: 0xFFFFFFFFFFFFFFFF, default: 0 }
+      - { name: packed, type: Packed }
+      - { name: inner, type: Inner }
+      - { name: n, type: u8 }
+      - { name: maybeEmpty, type: u16, occurs: { min: 0, max: 8, count: n } }
+      - { name: nameLen, type: u8 }
+      - { name: name, type: char, occurs: { max: 16, count: nameLen } }
+
+interfaces:
+  loopback:
+    version: "0.1.0"
+    direction: both
+    header: none
+    framing: { kind: none }
+    messages: [Everything]

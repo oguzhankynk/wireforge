@@ -1,0 +1,13 @@
+:root { font-family: system-ui, sans-serif; color: #1d232a; background: #f7f8fa; }
+main { display: grid; grid-template-columns: 16rem 1fr; gap: 1rem; padding: 1rem; }
+main > header { grid-column: 1 / -1; display: flex; gap: 2rem; align-items: center; }
+nav section { margin-bottom: 1rem; }
+table { border-collapse: collapse; font-size: 0.85rem; }
+td, th { border: 1px solid #d6dbe1; padding: 0.15rem; }
+td input { width: 6rem; }
+pre { background: #fff; border: 1px solid #d6dbe1; padding: 0.5rem; overflow: auto; }
+[role="alert"] { color: #b42318; }
+.workspace { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+fieldset { border: 1px solid #d6dbe1; margin: 0.5rem 0; }
+[role="tablist"] button[aria-selected="true"] { font-weight: bold; }
+.bar { height: 0.6rem; background: #3b6fd6; }

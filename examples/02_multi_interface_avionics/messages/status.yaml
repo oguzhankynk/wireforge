@@ -1,0 +1,21 @@
+schema_version: 1
+messages:
+  NodeBStatus:
+    id: 0x0010
+    description: Raw little-endian status burst from nodeB (no header on the wire).
+    endian: little
+    fields:
+      - { name: uptimeMs, type: u32 }
+      - name: channelMv
+        type: u16
+        occurs: { max: CHANNELS }          # fixed array: exactly CHANNELS entries (3 or 5 per profile)
+      - name: diag
+        type: u8
+        occurs: { max: 16, fill: true }     # fills the remaining payload
+  Command:
+    id: 0x0301
+    description: Command sent to nodeC.
+    fields:
+      - { name: target, type: u8, min: 1, max: 4, default: 1 }
+      - { name: opcode, type: u16 }
+      - { name: sum, type: u16, checksum: { use: vendorSum, covers: { scope: preceding } } }

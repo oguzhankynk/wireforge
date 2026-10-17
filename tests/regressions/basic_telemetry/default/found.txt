@@ -1,0 +1,2 @@
+# Signaling NaN in an f32 without range: the bit pattern must survive decode and encode.
+M SensorReading 2003bf2b715a7faf7305c3203168c41fdd1900

@@ -1,0 +1,69 @@
+# Layouts the examples do not cover, for the Wireshark dissector tests: bit groups wider than
+# 32 bits, 64-bit ranges, count expressions, CRCs wider than 32 bits, fixed framing and length
+# fields that count the whole frame.
+schema_version: 1
+project: dissector_cases
+version: "0.1.0"
+namespace: test::dissector
+defaults: { endian: little, bit_order: lsb_first }
+
+checksums:
+  crc64: { algo: crc, width: 64, poly: 0x42F0E1EBA9EA3693, init: 0, refin: false, refout: false, xorout: 0, check: 0x6C40DF5F0B497347 }
+  crc8: { algo: crc, width: 8, poly: 0x07, init: 0, refin: false, refout: false, xorout: 0, check: 0xF4 }
+
+enums:
+  Mode:
+    type: u8
+    values: { idle: 0, run: 5, halt: 9 }
+
+types:
+  Wide:
+    description: 48-bit group with signed, enum and bool members.
+    fields:
+      - { name: ticks, type: u32, bits: 30, max: 1000000000 }
+      - { name: offset, type: i16, bits: 12, min: -2000, max: 2000 }
+      - { name: mode, type: Mode, bits: 4 }
+      - { name: armed, type: bool, bits: 1 }
+      - { name: spare, type: u8, bits: 1, reserved: true }
+
+messages:
+  Sample:
+    id: 7
+    fields:
+      - { name: wide, type: Wide }
+      - { name: counter, type: u64, min: 10, max: 0xFFFFFFFFFFFF0000, default: 10 }
+      - { name: delta, type: i64, min: -5000000000, max: 5000000000 }
+      - { name: pairs, type: u8, max: 3 }
+      - { name: values, type: i16, occurs: { max: 6, count: pairs * (1 + 1) } }
+      - { name: label, type: char, occurs: { max: 6 } }
+      - { name: scale, type: f64, min: -1.0, max: 1.0 }
+  Beat:
+    id: 8
+    endian: big
+    bit_order: msb_first
+    fields:
+      - { name: big, type: u64, bits: 40 }
+      - { name: tag, type: u8, bits: 8, const: 0x5A }
+      - { name: crc, type: u8, checksum: { use: crc8, covers: { from: big, to: tag } } }
+
+interfaces:
+  fixed_link:
+    version: "1.0.0"
+    direction: rx
+    header:
+      fields:
+        - { name: id, type: u8, role: message_id }
+    trailer:
+      fields:
+        - { name: crc, type: u64, checksum: { use: crc64, covers: { scope: header_and_payload } } }
+    framing: { kind: fixed, frame_size: 16 }
+    messages: [Beat]
+  frame_counted:
+    version: "1.0.0"
+    direction: both
+    header:
+      fields:
+        - { name: id, type: u8, role: message_id }
+        - { name: size, type: u16, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 96, length_counts: frame }
+    messages: [Sample, Beat]

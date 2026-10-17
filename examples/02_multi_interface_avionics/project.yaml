@@ -1,0 +1,37 @@
+# Three interfaces (our -> nodeA, nodeB -> our, our -> nodeC), split over fragment files,
+# platform profiles with conditional fields/sizes, bit-fields in lsb_first order,
+# optional field, fill-payload array, parametric CRC16 and a user-defined checksum.
+schema_version: 1
+project: avionics_demo
+version: "2.1.0"
+description: Avionics-style multi-node example.
+namespace: demo::avionics
+defaults: { endian: big, bit_order: msb_first }
+include:
+  - profiles/*.yaml
+  - types/*.yaml
+  - messages/*.yaml
+  - interfaces/*.yaml
+
+defines:
+  MAX_TRACKS: 8
+  CHANNELS: 4
+
+user_includes:
+  include_dirs: [app/include]
+  headers:
+    - { path: app/limits.hpp, style: quote }
+  constants:
+    APP_MAX_FRAME:
+      cpp: app::kMaxFrameBytes
+      description: Largest frame the application link driver accepts.
+      value: 128
+      profile_values: { platformB: 192 }
+
+checksums:
+  crc16ccitt: { algo: crc, width: 16, poly: 0x1021, init: 0xFFFF, refin: false, refout: false, xorout: 0x0000, check: 0x29B1 }
+  vendorSum:
+    algo: custom
+    impl: vendor::SumChecksum
+    include: vendor_sum.hpp
+    size_bytes: 2

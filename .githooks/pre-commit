@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Formatting check of the staged C++ and Python files (enable: git config core.hooksPath .githooks).
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+mapfile -d '' cpp_files < <(git diff --cached --name-only --diff-filter=ACMR -z -- '*.cpp' '*.hpp')
+if ((${#cpp_files[@]} > 0)); then
+  clang-format --dry-run --Werror -- "${cpp_files[@]}"
+fi
+
+mapfile -d '' py_files < <(git diff --cached --name-only --diff-filter=ACMR -z -- '*.py')
+if ((${#py_files[@]} > 0)); then
+  ruff format --check -- "${py_files[@]}"
+  ruff check -- "${py_files[@]}"
+fi

@@ -1,0 +1,23 @@
+# API documentation of the C++ runtime. Run from the repository root: doxygen docs/api/Doxyfile
+# Any warning (undocumented public entity, bad @param, ...) fails quality/run_all.sh.
+PROJECT_NAME           = "WireForge runtime"
+OUTPUT_DIRECTORY       = build/doxygen
+INPUT                  = runtime/include/wireforge
+FILE_PATTERNS          = *.hpp
+RECURSIVE              = YES
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+HIDE_UNDOC_CLASSES     = NO
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = NO
+JAVADOC_AUTOBRIEF      = NO
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = NO
+WARN_AS_ERROR          = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+# Include graphs need graphviz; the reference does not depend on them, so they are off everywhere.
+HAVE_DOT               = NO

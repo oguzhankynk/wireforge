@@ -1,0 +1,47 @@
+[
+  {
+    "frame": "a55a01010013010241a0000000000000000000000000000000785c6532",
+    "interface": "sensor_to_us",
+    "message": "SensorReading",
+    "payload": "010241a0000000000000000000000000000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "accel": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "sampleCount": 0,
+      "samples": [],
+      "sensorId": 1,
+      "state": "ready",
+      "temperature": 20.0
+    }
+  },
+  {
+    "frame": "a55a0101001b150342b9000043fa000043fa000043fa000004aaaaaaa9aaa8aaa707bebe3e",
+    "interface": "sensor_to_us",
+    "message": "SensorReading",
+    "payload": "150342b9000043fa000043fa000043fa000004aaaaaaa9aaa8aaa7",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "accel": {
+        "x": 500.0,
+        "y": 500.0,
+        "z": 500.0
+      },
+      "sampleCount": 4,
+      "samples": [
+        43690,
+        43689,
+        43688,
+        43687
+      ],
+      "sensorId": 21,
+      "state": "fault",
+      "temperature": 92.5
+    }
+  }
+]

@@ -1,0 +1,3 @@
+# Unframed read longer than the frame buffer: must be rejected, not split (Link::poll).
+F nodeB_to_our 86460e21b38682930f3e742ae2f7c584345fbf40bc805bbff7cd861a6983d6
+F nodeB_to_our 40621f6adf0d002be0b5b0032df3669c802b51ce27e92d0478ee3cb5d0bfc4b4

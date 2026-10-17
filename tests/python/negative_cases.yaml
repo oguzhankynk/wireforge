@@ -1,0 +1,241 @@
+# Structural negative corpus for the JSON Schema (semantic cases: semantic_cases.yaml).
+# `expect` must appear in "<file>:<line>: <pointer>: <message>" of at least one reported issue.
+- name: missing_schema_version
+  schema: project
+  expect: schema_version
+  doc: { project: p }
+- name: wrong_schema_version
+  schema: project
+  expect: /schema_version
+  doc: { schema_version: 2, project: p }
+- name: missing_project
+  schema: project
+  expect: project
+  doc: { schema_version: 1 }
+- name: unknown_top_level_key
+  schema: project
+  expect: bogus
+  doc: { schema_version: 1, project: p, bogus: 1 }
+- name: bad_project_identifier
+  schema: project
+  expect: /project
+  doc: { schema_version: 1, project: 1bad }
+- name: bad_namespace
+  schema: project
+  expect: /namespace
+  doc: { schema_version: 1, project: p, namespace: "a::" }
+- name: bad_message_name
+  schema: project
+  expect: bad name
+  doc:
+    schema_version: 1
+    project: p
+    messages: { "bad name": { fields: [{ name: a, type: u8 }] } }
+- name: message_without_fields
+  schema: project
+  expect: fields
+  doc: { schema_version: 1, project: p, messages: { M: { id: 1 } } }
+- name: empty_fields_list
+  schema: project
+  expect: /messages/M/fields
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [] } } }
+- name: negative_message_id
+  schema: project
+  expect: /messages/M/id
+  doc: { schema_version: 1, project: p, messages: { M: { id: -1, fields: [{ name: a, type: u8 }] } } }
+- name: field_missing_name
+  schema: project
+  expect: name
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ type: u8 }] } } }
+- name: field_missing_type
+  schema: project
+  expect: type
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ name: a }] } } }
+- name: bits_zero
+  schema: project
+  expect: /bits
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ name: a, type: u8, bits: 0 }] } } }
+- name: bits_too_large
+  schema: project
+  expect: /bits
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ name: a, type: u8, bits: 65 }] } } }
+- name: bad_message_endian
+  schema: project
+  expect: /endian
+  doc: { schema_version: 1, project: p, messages: { M: { endian: middle, fields: [{ name: a, type: u8 }] } } }
+- name: bad_bit_order
+  schema: project
+  expect: /bit_order
+  doc: { schema_version: 1, project: p, messages: { M: { bit_order: left, fields: [{ name: a, type: u8 }] } } }
+- name: per_field_endian_is_forbidden
+  schema: project
+  expect: endian
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ name: a, type: u16, endian: big }] } } }
+- name: occurs_missing_max
+  schema: project
+  expect: max
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ name: a, type: u8, occurs: { count: n } }] } } }
+- name: occurs_count_and_fill
+  schema: project
+  expect: /occurs
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ name: a, type: u8, occurs: { max: 4, count: n, fill: true } }] } } }
+- name: occurs_fill_must_be_true
+  schema: project
+  expect: /fill
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ name: a, type: u8, occurs: { max: 4, fill: false } }] } } }
+- name: default_as_mapping
+  schema: project
+  expect: /default
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ name: a, type: u8, default: { x: 1 } }] } } }
+- name: unknown_role
+  schema: project
+  expect: /role
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ name: a, type: u8, role: boss }] } } }
+- name: checksum_unknown_algo
+  schema: project
+  expect: /algo
+  doc: { schema_version: 1, project: p, checksums: { c: { algo: md5 } } }
+- name: checksum_crc_missing_width
+  schema: project
+  expect: width
+  doc: { schema_version: 1, project: p, checksums: { c: { algo: crc, poly: 0x1021 } } }
+- name: checksum_crc32_with_width
+  schema: project
+  expect: width
+  doc: { schema_version: 1, project: p, checksums: { c: { algo: crc32, width: 16 } } }
+- name: checksum_custom_missing_impl
+  schema: project
+  expect: impl
+  doc: { schema_version: 1, project: p, checksums: { c: { algo: custom, include: x.hpp, size_bytes: 2 } } }
+- name: checksum_custom_with_poly
+  schema: project
+  expect: poly
+  doc: { schema_version: 1, project: p, checksums: { c: { algo: custom, impl: A, include: x.hpp, size_bytes: 2, poly: 1 } } }
+- name: checksum_covers_missing_to
+  schema: project
+  expect: covers
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ name: a, type: u8 }, { name: c, type: u8, checksum: { use: k, covers: { from: a } } }] } } }
+- name: checksum_covers_bad_scope
+  schema: project
+  expect: covers
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ name: c, type: u8, checksum: { use: k, covers: { scope: everything } } }] } } }
+- name: enum_empty_values
+  schema: project
+  expect: /values
+  doc: { schema_version: 1, project: p, enums: { E: { type: u8, values: {} } } }
+- name: enum_float_underlying_type
+  schema: project
+  expect: /type
+  doc: { schema_version: 1, project: p, enums: { E: { type: f32, values: { a: 0 } } } }
+- name: enum_value_not_integer
+  schema: project
+  expect: /values/a
+  doc: { schema_version: 1, project: p, enums: { E: { type: u8, values: { a: 1.5 } } } }
+- name: profile_without_defines
+  schema: project
+  expect: defines
+  doc: { schema_version: 1, project: p, profiles: { A: { description: x } } }
+- name: profile_define_not_integer
+  schema: project
+  expect: /defines/X
+  doc: { schema_version: 1, project: p, profiles: { A: { defines: { X: "abc" } } } }
+- name: interface_missing_version
+  schema: project
+  expect: version
+  doc: { schema_version: 1, project: p, interfaces: { I: { direction: tx, messages: [] } } }
+- name: interface_bad_semver
+  schema: project
+  expect: /version
+  doc: { schema_version: 1, project: p, interfaces: { I: { version: "1.2", direction: tx, messages: [] } } }
+- name: interface_bad_direction
+  schema: project
+  expect: /direction
+  doc: { schema_version: 1, project: p, interfaces: { I: { version: "1.0.0", direction: sideways, messages: [] } } }
+- name: interface_missing_messages
+  schema: project
+  expect: messages
+  doc: { schema_version: 1, project: p, interfaces: { I: { version: "1.0.0", direction: tx } } }
+- name: framing_fixed_without_frame_size
+  schema: project
+  expect: frame_size
+  doc: { schema_version: 1, project: p, interfaces: { I: { version: "1.0.0", direction: rx, messages: [], framing: { kind: fixed } } } }
+- name: framing_sync_length_without_max
+  schema: project
+  expect: max_frame_size
+  doc: { schema_version: 1, project: p, interfaces: { I: { version: "1.0.0", direction: rx, messages: [], framing: { kind: sync_length } } } }
+- name: framing_unknown_kind
+  schema: project
+  expect: /kind
+  doc: { schema_version: 1, project: p, interfaces: { I: { version: "1.0.0", direction: rx, messages: [], framing: { kind: magic } } } }
+- name: header_wrong_string
+  schema: project
+  expect: /header
+  doc: { schema_version: 1, project: p, interfaces: { I: { version: "1.0.0", direction: rx, messages: [], header: auto } } }
+- name: interface_message_entry_without_name
+  schema: project
+  expect: name
+  doc: { schema_version: 1, project: p, interfaces: { I: { version: "1.0.0", direction: rx, messages: [{ id: 1 }] } } }
+- name: defaults_unknown_key
+  schema: project
+  expect: bogus
+  doc: { schema_version: 1, project: p, defaults: { bogus: 1 } }
+- name: fragment_with_project_key
+  schema: fragment
+  expect: project
+  doc: { schema_version: 1, project: x }
+- name: fragment_missing_schema_version
+  schema: fragment
+  expect: schema_version
+  doc: { types: { T: { fields: [{ name: a, type: u8 }] } } }
+- name: fragment_with_include
+  schema: fragment
+  expect: include
+  doc: { schema_version: 1, include: ["a/*.yaml"] }
+- name: fragment_with_user_includes
+  schema: fragment
+  expect: user_includes
+  doc: { schema_version: 1, user_includes: { constants: {} } }
+- name: generator_wrong_name
+  schema: project
+  expect: /generator/name
+  doc: { schema_version: 1, project: p, generator: { name: other, version: 1.0.0 } }
+- name: generator_bad_version
+  schema: project
+  expect: /generator/version
+  doc: { schema_version: 1, project: p, generator: { name: wireforge, version: "1.0" } }
+- name: negative_schema_minor
+  schema: project
+  expect: /schema_minor
+  doc: { schema_version: 1, schema_minor: -1, project: p }
+- name: bundle_bad_hash
+  schema: project
+  expect: /bundle/content_hash
+  doc: { schema_version: 1, project: p, bundle: { content_hash: abc } }
+- name: user_constant_without_cpp
+  schema: project
+  expect: cpp
+  doc: { schema_version: 1, project: p, user_includes: { constants: { K: { value: 1 } } } }
+- name: user_constant_cpp_is_an_expression
+  schema: project
+  expect: /cpp
+  doc: { schema_version: 1, project: p, user_includes: { constants: { K: { cpp: "a + b", value: 1 } } } }
+- name: user_constant_value_not_integer
+  schema: project
+  expect: /value
+  doc: { schema_version: 1, project: p, user_includes: { constants: { K: { cpp: a::k, value: 1.5 } } } }
+- name: user_header_path_with_quote
+  schema: project
+  expect: /path
+  doc: { schema_version: 1, project: p, user_includes: { headers: [{ path: 'a".hpp' }] } }
+- name: user_header_bad_style
+  schema: project
+  expect: /style
+  doc: { schema_version: 1, project: p, user_includes: { headers: [{ path: a.hpp, style: curly }] } }
+- name: user_prelude_with_newline
+  schema: project
+  expect: /prelude
+  doc: { schema_version: 1, project: p, user_includes: { prelude: ["a\nb"] } }
+- name: user_includes_unknown_key
+  schema: project
+  expect: libs
+  doc: { schema_version: 1, project: p, user_includes: { libs: [] } }

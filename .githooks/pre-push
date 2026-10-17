@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Quick build and test before pushing (the full gate set is quality/run_all.sh).
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+cmake --preset dev
+cmake --build --preset dev
+ctest --preset dev
+python3 -m pytest -q

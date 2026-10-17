@@ -1,0 +1,14 @@
+schema_version: 1
+interfaces:
+  our_to_nodeC:
+    version: "1.0.0"
+    direction: tx
+    endian: big
+    header:
+      fields:
+        - { name: msgId, type: u16, role: message_id }
+        - { name: seq, type: u8, role: sequence }
+        - { name: length, type: u8, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 32 }
+    messages:
+      - { name: Command, id: 0x30 }       # per-interface id override

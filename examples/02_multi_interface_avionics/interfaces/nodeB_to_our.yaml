@@ -1,0 +1,10 @@
+schema_version: 1
+interfaces:
+  nodeB_to_our:
+    version: "2.0.0"
+    direction: rx
+    endian: little
+    header: none                 # raw dispatch: exactly one message type on this link
+    framing: { kind: none }
+    allow_trailing_bytes: false
+    messages: [NodeBStatus]

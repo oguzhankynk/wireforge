@@ -1,0 +1,19 @@
+schema_version: 1
+interfaces:
+  our_to_nodeA:
+    version: "1.2.0"
+    direction: tx
+    endian: big
+    header:
+      fields:
+        - { name: sync, type: u16, const: 0xA55A, role: sync }
+        - { name: protoVersion, type: u8, const: 1, role: protocol_version }
+        - { name: msgId, type: u16, role: message_id }
+        - { name: length, type: u16, role: payload_length }
+    trailer:
+      fields:
+        - name: crc
+          type: u16
+          checksum: { use: crc16ccitt, covers: { scope: header_and_payload } }
+    framing: { kind: sync_length, max_frame_size: APP_MAX_FRAME, resync: true }
+    messages: [NavSolution]

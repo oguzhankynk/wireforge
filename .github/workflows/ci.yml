@@ -1,0 +1,173 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, cc: gcc, cxx: g++ }
+          - { os: ubuntu-24.04, cc: clang, cxx: clang++ }
+          - { os: windows-2022, cc: cl, cxx: cl }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e .
+      - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+        env: { CC: "${{ matrix.cc }}", CXX: "${{ matrix.cxx }}" }
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure
+
+  sanitizers:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        preset: [asan-ubsan, tsan]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e .
+      - run: cmake --preset ${{ matrix.preset }}
+      - run: cmake --build --preset ${{ matrix.preset }}
+      - run: ctest --preset ${{ matrix.preset }}
+
+  static-analysis:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y cppcheck clang-tidy clang-format ninja-build doxygen
+      - run: pip install -e .
+      - run: cmake --preset gcc-analyzer && cmake --build --preset gcc-analyzer
+      - run: cmake --preset dev
+      - run: cmake --build --preset dev --target generate_basic_telemetry generate_avionics_demo generate_edge_cases
+      - run: python3 quality/run_clang_tidy.py build/dev
+      - run: quality/run_cppcheck.sh build/dev
+      - run: clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.hpp')
+      - run: doxygen docs/api/Doxyfile
+
+  python:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]"
+      - run: ruff format --check . && ruff check .
+      - run: mypy
+      - run: pytest -q
+
+  quality-registry:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python3 quality/check_suppressions.py
+
+  coverage:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install gcovr
+      - run: quality/run_coverage.sh
+
+  generated-test-projects:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - run: pip install -e ".[mcp]" gcovr
+      - run: quality/run_generated_tests.sh
+
+  wireshark:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]"
+      - run: quality/run_wireshark.sh
+
+  portability:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: >
+          sudo apt-get update && sudo apt-get install -y clang clang-tools ninja-build qemu-user
+          g++-s390x-linux-gnu g++-i686-linux-gnu
+      - run: pip install -e .
+      - run: quality/run_portability.sh
+
+  evidence:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e .
+      - run: quality/run_evidence.sh
+      - uses: actions/upload-artifact@v4
+        with: { name: evidence, path: build/evidence }
+
+  quickstart:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - run: quality/run_quickstart.sh
+
+  docker:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t wireforge .
+      - run: docker run --rm wireforge wireforge validate /opt/wireforge/examples/02_multi_interface_avionics
+      - run: >
+          docker run --rm wireforge sh -c "wireforge test /opt/wireforge/examples/01_basic_telemetry
+          -o /tmp/out --generator Ninja"
+
+  fuzz:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y clang ninja-build
+      - run: pip install -e .
+      - run: quality/run_fuzz.sh
+        env: { WIREFORGE_FUZZ_SECONDS: "60" }
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: fuzz-artifacts, path: build/fuzz/artifacts }
+
+  ui:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[server]"
+      - run: npm ci
+        working-directory: ui
+      - run: npm run typecheck && npm run lint && npm run check:types && npm test && npx vite build
+        working-directory: ui
