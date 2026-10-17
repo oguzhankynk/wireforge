@@ -23,7 +23,7 @@ GoogleTest project that proves them against a reference codec.
 | Server, web UI, MCP | docs/SERVER.md, docs/UI.md, docs/MCP.md |
 | Secure deployment and operation | docs/SERVER.md, "Deployment and operation" |
 | Importers (CSV/Excel ICD, C headers) | docs/IMPORT.md |
-| Quality, safety, traceability | quality/QUALITY_POLICY.md, docs/SAFETY.md |
+| Quality, safety, traceability | quality/QUALITY_POLICY.md, docs/SAFETY.md, docs/CODING_RULES.md |
 | Architecture and design decisions | docs/ARCHITECTURE.md, docs/DECISIONS.md |
 
 Development: see CONTRIBUTING.md (`pip install -e ".[dev]"`, `cmake --preset dev && cmake --build --preset dev && ctest

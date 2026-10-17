@@ -14,7 +14,9 @@ Applies to runtime, generated code, generated test project, and tooling.
   generated self-tests are compiled with `-fno-exceptions -fno-rtti` (`/GR-` on MSVC) in every build; MSVC `/W4 /WX`
   in the CI build matrix.
 - clang-tidy (bugprone-*, cert-*, cppcoreguidelines-*, performance-*, portability-*, misc-*, readability-*)
-- cppcheck (all checks, `--inline-suppr` disabled; optional MISRA addon)
+- cppcheck (all checks, `--inline-suppr` disabled)
+- Optional, non-gating: `quality/run_misra.sh` runs cppcheck's MISRA C:2012 addon as a rough proxy on C++ code. It is
+  not a MISRA C++ or AUTOSAR conformance check and no required check depends on it (docs/CODING_RULES.md).
 - GCC `-fanalyzer`, clang `scan-build`, MSVC `/analyze`
 - Sanitizers in tests: ASan, UBSan, TSan (separate runs), plus allocation-trap test (no heap).
 - Differential testing of generated code against the reference codec and libFuzzer targets (runtime and generated
