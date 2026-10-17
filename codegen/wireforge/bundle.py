@@ -18,7 +18,8 @@ from ruamel.yaml.error import YAMLError
 
 from wireforge import schema, vectors, versioning
 from wireforge.issues import Issue, errors_only
-from wireforge.loader import SECTIONS, load_project, to_plain
+from wireforge.loader import SECTIONS, load_project
+from wireforge.plain import to_plain
 from wireforge.validate import Validator, validate_project
 
 STAMP_KEYS = frozenset({"schema_version", "schema_minor", "generator", "bundle"})

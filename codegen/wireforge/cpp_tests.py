@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, Any
 from wireforge.cpp import Names, Writer, string_literal, wire_only
 from wireforge.cpp_codec import encoding_literal
 from wireforge.cpp_interface import header_is_written
-from wireforge.llr import Verifier, display_id
+from wireforge.llr import Verifier
 from wireforge.test_cases import CLEAR, OK, Edit, Outcome
 
 if TYPE_CHECKING:
@@ -180,11 +180,6 @@ def _record(out: Writer, ids: tuple[str, ...]) -> None:
         out.line(f'::testing::Test::RecordProperty("requirements", "{",".join(ids)}");')
 
 
-def _property(out: Writer, keys: tuple[str, ...]) -> None:
-    """Record the low-level requirements a test verifies, given as keys."""
-    _record(out, tuple(display_id(key) for key in keys))
-
-
 def _test(
     out: Writer,
     suite: str,
@@ -194,7 +189,7 @@ def _test(
 ) -> None:
     out.line(f"TEST({suite}, {name}) {{")
     out.indent()
-    _property(out, requirements)
+    _record(out, requirements)
     for text in lines:
         out.line(text)
     out.dedent()
@@ -588,7 +583,7 @@ def _golden_test(
     name = _identifier(f"{vector['interface']}_{vector['message']}_{vector['sample']}")
     out.line(f"TEST(Golden, {name}) {{")
     out.indent()
-    _property(out, verifier.golden(vector))
+    _record(out, verifier.shown(verifier.golden(vector)))
     _byte_array(out, "kPayload", payload)
     _byte_array(out, "kFrame", frame)
     # A user-type field is opaque: the value built from the golden pattern leaves it
@@ -775,7 +770,7 @@ class _MessageTests:
         out.line()
         out.line(f"TEST({name}, Defaults) {{")
         out.indent()
-        _property(out, self.verifier.defaults(cases.message))
+        _record(out, self.verifier.shown(self.verifier.defaults(cases.message)))
         self.expected(cases.default_encoded, opaque=opaque)
         out.line(f"const model::{name} value{{}};")
         out.line(f"EXPECT_EQ(validate(value), Status::{cases.default_validated});")
@@ -787,7 +782,9 @@ class _MessageTests:
         out.line()
         used: set[str] = {"Defaults", "WireSize"}
         if name in self.sizes:
-            _message_wire_size(out, self.sizes[name], self.verifier.wire_size(cases.message))
+            _message_wire_size(
+                out, self.sizes[name], self.verifier.shown(self.verifier.wire_size(cases.message))
+            )
         for case in cases.encodes:
             self.encode_case(cases.message, case, encoding, used, opaque=opaque)
         for decode in cases.decodes:
@@ -802,7 +799,7 @@ class _MessageTests:
                 name,
                 _unique_name(f"Decode_{decode.name}", used),
                 lines.lines,
-                self.verifier.decode_case(cases.message, decode),
+                self.verifier.shown(self.verifier.decode_case(cases.message, decode)),
             )
 
     def encode_case(
@@ -812,7 +809,7 @@ class _MessageTests:
         name = message.name
         out.line(f"TEST({name}, {_unique_name(_identifier(case.name), used)}) {{")
         out.indent()
-        _property(out, self.verifier.encode_case(message, case))
+        _record(out, self.verifier.shown(self.verifier.encode_case(message, case)))
         self.expected(case.encoded, opaque=opaque)
         out.line(f"model::{name} value = pattern_{name}();")
         out.line(self.assignments.edit(case.edit))
@@ -865,8 +862,10 @@ class _InterfaceTests:
             layout = self.layouts.get(profile.profile)
             if layout is not None:
                 for sized in layout.interfaces:
-                    requirements = self.verifier.interface_test(
-                        self.project.interfaces[sized.name], "WireSize"
+                    requirements = self.verifier.shown(
+                        self.verifier.interface_test(
+                            self.project.interfaces[sized.name], "WireSize"
+                        )
                     )
                     _interface_wire_size(out, sized, requirements)
             self.profile(profile)
@@ -903,9 +902,10 @@ class _InterfaceTests:
         corrupt_status: str = OK,
         decode_keys: tuple[str, ...] = (),
     ) -> tuple[str, ...]:
-        return self.verifier.interface_test(
+        keys = self.verifier.interface_test(
             cases.interface, name, corrupt_status=corrupt_status, decode_keys=decode_keys
         )
+        return self.verifier.shown(keys)
 
     @staticmethod
     def loop(cases: InterfaceCases, capacity: int) -> str:

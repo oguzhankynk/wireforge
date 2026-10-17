@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
-from wireforge import golden, schema, service, test_project
+from wireforge import golden, hlr_import, schema, service, test_project
 from wireforge.codec import ReferenceCodec
 from wireforge.loader import SECTIONS, load_project
 from wireforge.service import CodecTarget, EditOptions, Result, ServiceError
@@ -200,6 +200,22 @@ class Tools:
             self.project_dir(project), target, strict=strict, results=results
         ).to_dict()
 
+    def requirements_import(
+        self, project: str, path: str, baseline: str, tool: str | None = None
+    ) -> dict[str, Any]:
+        """Import the high-level requirements of a ReqIF or CSV file inside the workspace."""
+        source = Path(path).resolve()
+        if self.workspace.resolve() not in source.parents:
+            message = "path must be a file inside the workspace"
+            raise ServiceError(message)
+        options = hlr_import.ImportOptions(baseline, tool)
+        directory = self.project_dir(project)
+        return service.requirements_import(directory, source, options).to_dict()
+
+    def requirements_lock(self, project: str) -> dict[str, Any]:
+        """Write llr_ids.lock, which numbers the low-level requirements (append-only)."""
+        return service.requirements_lock(self.project_dir(project)).to_dict()
+
     def analyze_layout(
         self, project: str, profile: str | None = None, export: str = "markdown"
     ) -> dict[str, Any]:
@@ -282,6 +298,8 @@ TOOL_NAMES = (
     "analyze_layout",
     "wireshark_dissector",
     "lifecycle_docs",
+    "requirements_import",
+    "requirements_lock",
     "compat_check",
     "encode_sample",
     "decode_hex",

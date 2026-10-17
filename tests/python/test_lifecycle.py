@@ -4,6 +4,7 @@ import dataclasses
 import filecmp
 import re
 import shutil
+import subprocess
 import zipfile
 from io import BytesIO
 from pathlib import Path
@@ -11,7 +12,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from wireforge import bundle, golden, lifecycle, service, test_project
+from wireforge import bundle, golden, lifecycle, llr, service, test_project, vcs
 from wireforge import results as test_results
 from wireforge.loader import load_project
 
@@ -19,12 +20,19 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from wireforge.codec import ChecksumPlugin
+    from wireforge.model import Project
 
     MakeResults = Callable[..., Path]
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples"
 AVIONICS = EXAMPLES / "02_multi_interface_avionics"
 PLUGINS = golden.load_plugins(AVIONICS / "plugins" / "vendor_sum.py")
+
+
+def _project(name: str) -> Project:
+    project = load_project(EXAMPLES / name).project
+    assert project is not None
+    return project
 
 
 def _context(
@@ -323,3 +331,93 @@ def test_traceability_result_column(make_results: MakeResults, tmp_path: Path) -
     rows = lifecycle.render(ctx)["traceability.csv"].splitlines()
     layout_row = next(row for row in rows if row.startswith("LLR-Vec3.LAYOUT"))
     assert layout_row.endswith(",failed") or ",failed" in layout_row
+
+
+TAG = re.compile(r"Requirements:\s*([A-Za-z0-9_.:-]+(?:\s*[,;]\s*[A-Za-z0-9_.:-]+)*)")
+URL = "https://example.invalid/blob/{commit}/{path}#L{line}"
+
+
+def _git(directory: Path, *arguments: str) -> str:
+    git = shutil.which("git") or "git"
+    done = subprocess.run(
+        [git, "-c", "user.email=t@t", "-c", "user.name=t", *arguments],
+        cwd=directory,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return done.stdout.strip()
+
+
+def _repository(tmp_path: Path) -> Path:
+    if shutil.which("git") is None:
+        pytest.skip("needs git")
+    target = tmp_path / "basic"
+    shutil.copytree(EXAMPLES / "01_basic_telemetry", target)
+    _git(target, "init", "-q")
+    _git(target, "add", "-A")
+    _git(target, "commit", "-qm", "base")
+    return target
+
+
+def test_permalinks_point_at_the_commit(tmp_path: Path) -> None:
+    target = _repository(tmp_path)
+    options = service.DocsOptions(source_url=URL)
+    result = service.lifecycle_docs(target, tmp_path / "docs", options=options)
+    assert result.ok, result.text
+    text = (tmp_path / "docs" / "requirements.md").read_text(encoding="utf-8")
+    commit = _git(target, "rev-parse", "HEAD")
+    assert f"(https://example.invalid/blob/{commit}/project.yaml#L" in text
+    index = (tmp_path / "docs" / "index.md").read_text(encoding="utf-8")
+    assert f"| Git commit | {commit} |" in index
+
+
+def test_a_dirty_working_copy_refuses_permalinks(tmp_path: Path) -> None:
+    target = _repository(tmp_path)
+    (target / "project.yaml").write_text(
+        (target / "project.yaml").read_text(encoding="utf-8") + "\n# edited\n", encoding="utf-8"
+    )
+    with pytest.raises(service.ServiceError, match="uncommitted changes"):
+        service.lifecycle_docs(
+            target, tmp_path / "docs", options=service.DocsOptions(source_url=URL)
+        )
+    allowed = service.DocsOptions(source_url=URL, allow_dirty=True)
+    assert service.lifecycle_docs(target, tmp_path / "docs", options=allowed).ok
+    index = (tmp_path / "docs" / "index.md").read_text(encoding="utf-8")
+    assert "(uncommitted changes)" in index
+
+
+def test_permalinks_need_a_repository(tmp_path: Path) -> None:
+    target = tmp_path / "basic"
+    shutil.copytree(EXAMPLES / "01_basic_telemetry", target)
+    if shutil.which("git") is not None and vcs.root(tmp_path) is not None:
+        pytest.skip("the temporary directory is inside a repository")
+    with pytest.raises(service.ServiceError, match="git repository"):
+        service.lifecycle_docs(target, tmp_path / "d", options=service.DocsOptions(source_url=URL))
+
+
+def test_the_tag_convention_finds_every_id() -> None:
+    """The regex of the integration guide finds the requirement ids in generated code."""
+    project = _project("01_basic_telemetry")
+    notes = llr.requirement_notes(project)
+    for owner, lines in notes.items():
+        joined = " ".join(line.removeprefix("/// ") for line in lines)
+        found = TAG.search(joined)
+        assert found is not None, owner
+        ids = re.split(r"\s*[,;]\s*", found[1])
+        assert all(re.fullmatch(r"[A-Za-z0-9_.:-]+", item) for item in ids)
+        assert any(item.startswith("LLR-") for item in ids)
+
+
+def test_integration_pages_make_no_forbidden_claim() -> None:
+    forbidden = re.compile(r"\b(certified|compliant|qualified)\b", re.IGNORECASE)
+    negated = r"\b(not|no|never|isn't|aren't)\b[^.\n]{0,60}\b(certified|compliant|qualified)\b"
+    allowed = re.compile(negated, re.IGNORECASE)
+    pages = [ROOT / "docs" / "DO178C.md", *sorted((ROOT / "docs" / "integration").glob("*.md"))]
+    assert len(pages) > 5
+    for page in pages:
+        for number, line in enumerate(page.read_text(encoding="utf-8").splitlines(), start=1):
+            if forbidden.search(line):
+                assert allowed.search(line) or "unqualified" in line, (
+                    f"{page.name}:{number}: {line}"
+                )

@@ -33,6 +33,7 @@ if TYPE_CHECKING:
         Checksum,
         Enum,
         Field,
+        IdMap,
         Interface,
         Project,
         Source,
@@ -106,8 +107,13 @@ class Llr:
         return not self.parents
 
 
-def display_id(key: str) -> str:
-    """Return the id shown for a key; the only place that decides how ids look."""
+def display_id(key: str, ids: IdMap | None = None) -> str:
+    """Return the id shown for a key; the only place that decides how ids look.
+
+    With a lock file (`ids`) a numbered key shows its number, any other key shows `LLR-<key>`.
+    """
+    if ids is not None and key in ids.ids:
+        return ids.ids[key]
     return ID_PREFIX + key
 
 
@@ -507,7 +513,7 @@ def requirement_notes(project: Project) -> dict[str, list[str]]:
     notes: dict[str, list[str]] = {}
     for owner, items in owned.items():
         highs = ", ".join(sorted({parent for item in items for parent in item.parents}))
-        lows = ", ".join(display_id(item.key) for item in items)
+        lows = ", ".join(display_id(item.key, project.llr_ids) for item in items)
         text = f"Requirements: {highs}; {lows}" if highs else f"Requirements: {lows}"
         wrapped = textwrap.wrap(
             text, width=NOTE_WIDTH, break_long_words=False, break_on_hyphens=False
@@ -526,6 +532,10 @@ class Verifier:
         """Index the keys of `llrs` (derived from `project` when not given)."""
         self.project = project
         self.known = {item.key for item in (derive(project) if llrs is None else llrs)}
+
+    def shown(self, keys: tuple[str, ...]) -> tuple[str, ...]:
+        """Return the displayed ids of keys (numbers from the lock file, if the project has one)."""
+        return tuple(display_id(key, self.project.llr_ids) for key in keys)
 
     def keep(self, *keys: str) -> tuple[str, ...]:
         """Return the given keys that exist, without repeats, in the order given."""

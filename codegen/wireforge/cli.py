@@ -21,8 +21,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from wireforge import fmt, importers, resources, service, test_project, versioning
-from wireforge.loader import to_plain
+from wireforge import fmt, hlr_import, importers, resources, service, test_project, versioning
+from wireforge.plain import to_plain
 from wireforge.service import BuildOptions, CodecTarget, EditOptions, Result, ServiceError
 
 if TYPE_CHECKING:
@@ -112,9 +112,39 @@ def _docs(args: argparse.Namespace) -> Result:
     if args.project is None:
         message = "give a project, or --runtime for the documents of the runtime library"
         raise UsageError(message)
-    return service.lifecycle_docs(
-        args.project, args.output, strict=args.strict, results=args.results
+    options = service.DocsOptions(
+        tuple(part for part in args.export.split(",") if part),
+        args.source_url,
+        args.allow_dirty,
     )
+    return service.lifecycle_docs(
+        args.project, args.output, strict=args.strict, results=args.results, options=options
+    )
+
+
+def _reqs_import(args: argparse.Namespace) -> Result:
+    options = hlr_import.ImportOptions(
+        args.baseline,
+        args.tool,
+        args.id_attr,
+        args.text_attr,
+        args.csv_id_column,
+        args.csv_text_column,
+        args.force,
+    )
+    return service.requirements_import(args.project, args.file, options)
+
+
+def _reqs_lock(args: argparse.Namespace) -> Result:
+    return service.requirements_lock(args.project, args.format)
+
+
+def _reqs_rename_key(args: argparse.Namespace) -> Result:
+    return service.requirements_rename_key(args.project, args.old, args.new)
+
+
+def _reqs_list(args: argparse.Namespace) -> Result:
+    return service.requirements_list(args.project)
 
 
 def _analyze(args: argparse.Namespace) -> Result:
@@ -388,6 +418,32 @@ def _report_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]
     parser.add_argument(
         "--results", type=Path, help="build directory of a test run (--coverage --coverage-runtime)"
     )
+    parser.add_argument("--export", default="csv", help="formats besides Markdown: csv, reqif")
+    parser.add_argument("--source-url", help="permalink template with {commit}, {path} and {line}")
+    parser.add_argument("--allow-dirty", action="store_true", help="link even with local changes")
+    parser = add(
+        "reqs-import", _reqs_import, "Import the high-level requirements of a ReqIF or CSV file."
+    )
+    _project(parser)
+    parser.add_argument("file", type=Path, help=".reqif, .reqifz or .csv file of your tool")
+    parser.add_argument("--baseline", required=True, help="name of the baseline, e.g. SRS-B12")
+    parser.add_argument("--tool", help="name of your tool (default: from the ReqIF header)")
+    parser.add_argument(
+        "--id-attr", help="ReqIF attribute holding the id (default ReqIF.ForeignID)"
+    )
+    parser.add_argument("--text-attr", help="ReqIF attribute holding the text (default ReqIF.Text)")
+    parser.add_argument("--csv-id-column", default="id")
+    parser.add_argument("--csv-text-column", default="text")
+    parser.add_argument("--force", action="store_true", help="overwrite a snapshot edited by hand")
+    parser = add("reqs-lock", _reqs_lock, "Number the low-level requirements in llr_ids.lock.")
+    _project(parser)
+    parser.add_argument("--format", help="id format of a new lock file, e.g. SWLLR-{n:05d}")
+    parser = add("reqs-rename-key", _reqs_rename_key, "Keep a requirement's number after a rename.")
+    _project(parser)
+    parser.add_argument("old", help="key of the requirement before the rename")
+    parser.add_argument("new", help="key after the rename")
+    parser = add("reqs-list", _reqs_list, "List the low-level requirements and their ids.")
+    _project(parser)
     parser = add("compat", _compat, "Compare two versions of a project.")
     parser.add_argument("old", type=Path)
     parser.add_argument("new", type=Path)

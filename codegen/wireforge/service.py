@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import dataclasses
 import difflib
+import hashlib
 import io
 import json
 import math
@@ -26,6 +27,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
@@ -35,13 +37,20 @@ from wireforge import (
     fmt,
     generate,
     golden,
+    hlr_import,
     importers,
     layout,
     lifecycle,
     lifecycle_runtime,
+    llr,
+    llr_ids,
+    reqif,
+    resources,
+    runtime_reqs,
     schema,
     test_project,
     trace,
+    vcs,
     vectors,
     versioning,
     wireshark,
@@ -50,12 +59,13 @@ from wireforge import results as test_results
 from wireforge.codec import CodecError, ReferenceCodec
 from wireforge.cpp_interface import InterfaceError
 from wireforge.issues import Issue, errors_only
-from wireforge.loader import SECTIONS, load_project, to_plain
+from wireforge.loader import SECTIONS, load_project
+from wireforge.plain import to_plain
 from wireforge.validate import Validator
 
 if TYPE_CHECKING:
     from wireforge.codec import ChecksumPlugin
-    from wireforge.model import Project
+    from wireforge.model import IdMap, Project
 
 SIMPLE_FLOW_KEYS = 8
 # Pointer segments that name a section entry: /<section>/<name>.
@@ -911,12 +921,78 @@ def _directory(location: Path) -> Path:
     return location if location.is_dir() else location.parent
 
 
+@dataclass(frozen=True)
+class DocsOptions:
+    """Choices of `lifecycle_docs` beyond strict mode and results.
+
+    `export` lists extra formats (`reqif` writes `llr.reqifz`; the CSV files are always written).
+    `source_url` is a permalink template with `{commit}`, `{path}` and `{line}`; it needs a clean
+    working copy unless `allow_dirty` is set.
+    """
+
+    export: tuple[str, ...] = ()
+    source_url: str | None = None
+    allow_dirty: bool = False
+
+
+def _baseline(
+    project: Project, directory: Path, context: lifecycle.DocsContext, *, dirty: bool
+) -> tuple[tuple[str, str], ...]:
+    """Identify the baseline: commit, requirement snapshot, number lock, tool versions."""
+    rows: list[tuple[str, str]] = []
+    commit = vcs.commit(directory)
+    if commit is not None:
+        rows.append(("Git commit", commit + (" (uncommitted changes)" if dirty else "")))
+    source = project.requirements_source
+    if source:
+        origin = f"{source.get('tool')} baseline {source.get('baseline')}"
+        digest = source.get("sha256", "")[:16]
+        detail = f"{origin} ({source.get('file')}, sha256 {digest})"
+        rows.append(("High-level requirements", detail))
+    lock = directory / llr_ids.LOCK_FILE
+    if lock.exists():
+        rows.append(("Requirement numbers", f"{lock.name} sha256 {_sha256(lock)[:16]}"))
+    rows.append(("WireForge", versioning.TOOL_VERSION))
+    rows.append(("Runtime", runtime_reqs.version(resources.runtime_include())))
+    if context.results is not None:
+        chain = context.results.toolchain
+        rows.append(
+            (
+                "Compiler",
+                f"{chain.get('cxx_compiler_id', '?')} {chain.get('cxx_compiler_version', '')}",
+            )
+        )
+    return tuple(rows)
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _links(directory: Path, options: DocsOptions) -> lifecycle.SourceLinks | None:
+    if options.source_url is None:
+        return None
+    repository, commit = vcs.root(directory), vcs.commit(directory)
+    if repository is None or commit is None:
+        message = "permalinks need the project to be in a git repository"
+        raise ServiceError(message)
+    if vcs.dirty(directory) and not options.allow_dirty:
+        message = "uncommitted changes; permalinks would not match (--allow-dirty to go on)"
+        raise ServiceError(message)
+    return lifecycle.SourceLinks(options.source_url, commit, repository)
+
+
 def _lifecycle(
-    location: Path, *, strict: bool, results_dir: Path | None = None
-) -> tuple[Result, dict[str, str]]:
+    location: Path,
+    *,
+    strict: bool,
+    results_dir: Path | None = None,
+    options: DocsOptions | None = None,
+) -> tuple[Result, dict[str, str], lifecycle.DocsContext | None]:
+    options = options or DocsOptions()
     project, issues = _load_valid(location)
     if project is None:
-        return Result(ok=False, issues=issues, text=_issues_text(issues)), {}
+        return Result(ok=False, issues=issues, text=_issues_text(issues)), {}, None
     content_hash = bundle.build_bundle(location)["bundle"]["content_hash"]
     context = lifecycle.context(project, content_hash, load_plugins(find_plugins(location)))
     if results_dir is not None:
@@ -928,6 +1004,10 @@ def _lifecycle(
             )
         except test_results.ResultsError as error:
             raise ServiceError(str(error)) from error
+    directory = _directory(location)
+    links = _links(directory, options)
+    baseline = _baseline(project, directory, context, dirty=vcs.dirty(directory))
+    context = dataclasses.replace(context, links=links, baseline=baseline)
     files = lifecycle.render(context)
     findings = lifecycle.strict_findings(context)
     found = [
@@ -941,29 +1021,54 @@ def _lifecycle(
     }
     ok = not (strict and findings)
     result = Result(ok=ok, issues=[*issues, *found] if strict else issues, data=data)
-    return result, files
+    return result, files, context
 
 
 def lifecycle_docs(
-    location: Path, output: Path, *, strict: bool = False, results: Path | None = None
+    location: Path,
+    output: Path,
+    *,
+    strict: bool = False,
+    results: Path | None = None,
+    options: DocsOptions | None = None,
 ) -> Result:
     """Write the requirements, design, test and traceability documents to `output`.
 
     Only files with the names of the documents are written; other files are left alone. With
     `strict` the result fails when a review would reject the model (rules DS-1 to DS-4). With
     `results` (the build directory of a test run) the documents include the test results,
-    coverage, stack use and toolchain, and strict also applies rules DS-5 to DS-7.
+    coverage, stack use and toolchain, and strict also applies rules DS-5 to DS-7. `options`
+    adds export formats and permalinks.
     """
-    result, files = _lifecycle(location, strict=strict, results_dir=results)
-    if not files:
+    result, files, context = _lifecycle(
+        location, strict=strict, results_dir=results, options=options
+    )
+    if not files or context is None:
         return result
     output.mkdir(parents=True, exist_ok=True)
     for name, text in files.items():
         (output / name).write_text(text, encoding="utf-8", newline="\n")
-    lines = [f"wrote {len(files)} documents to {output}\n"]
+    exported = _export(context, output, _directory(location), options or DocsOptions())
+    lines = [f"wrote {len(files) + len(exported)} documents to {output}\n"]
     lines += [f"{item.message}\n" for item in result.issues if "[DS-" in item.message]
     result.text = "".join(lines)
+    result.data["files"] = sorted([*result.data["files"], *exported])
     return result
+
+
+def _export(
+    context: lifecycle.DocsContext, output: Path, directory: Path, options: DocsOptions
+) -> list[str]:
+    """Write the extra export formats and return their file names."""
+    names: list[str] = []
+    for kind in options.export:
+        if kind == "reqif":
+            reqif.write_llrs(output / "llr.reqifz", context, directory)
+            names.append("llr.reqifz")
+        elif kind != "csv":
+            message = f"unknown export format {kind!r}; choose csv or reqif"
+            raise ServiceError(message)
+    return names
 
 
 def runtime_docs(output: Path, *, strict: bool = False, results: Path | None = None) -> Result:
@@ -991,7 +1096,7 @@ def runtime_docs(output: Path, *, strict: bool = False, results: Path | None = N
 
 def lifecycle_archive(location: Path, *, strict: bool = False) -> tuple[Result, bytes]:
     """Return the documents of a project as a zip (empty bytes when the project is invalid)."""
-    result, files = _lifecycle(location, strict=strict)
+    result, files, _ = _lifecycle(location, strict=strict)
     if not files:
         return result, b""
     buffer = io.BytesIO()
@@ -999,3 +1104,124 @@ def lifecycle_archive(location: Path, *, strict: bool = False) -> tuple[Result, 
         for name, text in sorted(files.items()):
             archive.writestr(zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0)), text)
     return result, buffer.getvalue()
+
+
+# --- requirements -------------------------------------------------------------------------------
+
+
+def _write_lock(location: Path, ids: IdMap) -> Path:
+    path = _directory(location) / llr_ids.LOCK_FILE
+    path.write_text(llr_ids.dump(ids), encoding="utf-8", newline="\n")
+    return path
+
+
+def requirements_lock(location: Path, text: str | None = None) -> Result:
+    """Write `llr_ids.lock`, which numbers the low-level requirements of a valid project.
+
+    New requirements get the next numbers, requirements that are gone move to `retired`, and a
+    number is never changed or given again. `text` sets the id format of a new lock file.
+    """
+    project, issues = _load_valid(location)
+    if project is None:
+        return Result(ok=False, issues=issues, text=_issues_text(issues))
+    keys = [item.key for item in llr.derive(project)]
+    current = project.llr_ids
+    updated = llr_ids.assign(keys, current, text=text or llr_ids.DEFAULT_FORMAT)
+    before = set(current.ids) if current else set()
+    added = [key for key in updated.ids if key not in before]
+    retired = [key for key in before if key not in updated.ids]
+    path = _write_lock(location, updated)
+    data = {"file": str(path), "added": len(added), "retired": len(retired), "total": len(keys)}
+    text_out = f"{path}: {len(added)} numbered, {len(retired)} retired, {len(keys)} in total\n"
+    return Result(ok=True, issues=issues, data=data, text=text_out)
+
+
+def requirements_rename_key(location: Path, old: str, new: str) -> Result:
+    """Keep the number of a requirement when its element is renamed (`old` key to `new` key)."""
+    result = load_project(location)
+    current = result.project.llr_ids if result.project is not None else None
+    if current is None:
+        message = "the project has no llr_ids.lock; run `wireforge reqs-lock` first"
+        raise ServiceError(message)
+    try:
+        updated = llr_ids.rename(current, old, new)
+    except llr_ids.LockError as error:
+        raise ServiceError(str(error)) from error
+    path = _write_lock(location, updated)
+    return Result(ok=True, data={"file": str(path)}, text=f"{old} -> {new}: {updated.ids[new]}\n")
+
+
+def requirements_list(location: Path) -> Result:
+    """List the low-level requirements with their displayed ids, kinds and parents."""
+    project, issues = _load_valid(location)
+    if project is None:
+        return Result(ok=False, issues=issues, text=_issues_text(issues))
+    rows = [
+        {
+            "id": llr.display_id(item.key, project.llr_ids),
+            "key": item.key,
+            "kind": item.kind,
+            "parents": list(item.parents),
+            "text": item.text,
+        }
+        for item in llr.derive(project)
+    ]
+    text = "".join(f"{row['id']}\t{row['key']}\n" for row in rows)
+    return Result(ok=True, issues=issues, data={"requirements": rows}, text=text)
+
+
+def _ensure_include(root: Path, pattern: str) -> bool:
+    """Add `pattern` to the `include` list of the root file; return whether it changed."""
+    document = fmt.load(root.read_text(encoding="utf-8"))
+    if not isinstance(document, CommentedMap):
+        return False
+    includes = document.get("include")
+    if includes is None:
+        document["include"] = [pattern]
+    elif pattern in includes:
+        return False
+    else:
+        includes.insert(0, pattern)
+    fmt.canonicalize(document)
+    root.write_text(fmt.dump(document), encoding="utf-8", newline="\n")
+    return True
+
+
+def requirements_import(location: Path, file: Path, options: hlr_import.ImportOptions) -> Result:
+    """Import the high-level requirements of a ReqIF or CSV file as a baseline snapshot.
+
+    The snapshot is `requirements/hlr_snapshot.yaml`; the root file includes it. A snapshot that
+    was edited by hand is not overwritten unless `options.force` is set.
+    """
+    root = _root(location)
+    if not root.exists():
+        message = f"{root}: no such project file"
+        raise ServiceError(message)
+    target = root.parent / hlr_import.SNAPSHOT
+    try:
+        tool, requirements = hlr_import.read(file, options)
+        hlr_import.check(requirements)
+    except test_results.ResultsError as error:
+        raise ServiceError(str(error)) from error
+    if target.exists() and not options.force:
+        existing = to_plain(schema.load_yaml(target))
+        found = existing if isinstance(existing, dict) else {}
+        source = found.get("requirements_source") or {}
+        now = hlr_import.content_hash(found.get("requirements") or {})
+        if source.get("content_sha256") != now:
+            message = f"{target}: modified by hand or not a snapshot; import again with --force"
+            raise ServiceError(message)
+    document = hlr_import.snapshot(file, tool, requirements, options.baseline)
+    yaml = YAML(typ="rt")
+    yaml.default_flow_style = False
+    buffer = io.StringIO()
+    yaml.dump(document, buffer)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(fmt.format_text(buffer.getvalue()), encoding="utf-8", newline="\n")
+    included = _ensure_include(root, hlr_import.INCLUDE)
+    checked = validate(location)
+    data = {"file": str(target), "requirements": len(requirements), "tool": tool}
+    text = f"imported {len(requirements)} requirements of {options.baseline} into {target}\n"
+    return Result(
+        ok=checked.ok, issues=checked.issues, data={**data, "include": included}, text=text
+    )

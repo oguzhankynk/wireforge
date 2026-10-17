@@ -246,3 +246,18 @@ def test_lifecycle_docs_with_results_only_below_the_output(
     outside = make_results(workspace / "elsewhere")
     with pytest.raises(ToolError, match="below the workspace output"):
         _call(workspace, "lifecycle_docs", {"project": "avionics", "results_dir": str(outside)})
+
+
+def test_requirements_tools(workspace: Path) -> None:
+    sample = Path(__file__).resolve().parents[2] / "examples" / "02_multi_interface_avionics"
+    copy = workspace / "srs_sample.reqif"
+    (workspace / "avionics" / "requirements" / "hlr.yaml").unlink()
+    shutil.copy(sample / "requirements" / "srs_sample.reqif", copy)
+    arguments = {"project": "avionics", "path": str(copy), "baseline": "B1"}
+    result = _call(workspace, "requirements_import", arguments)
+    assert result["data"]["requirements"] == 5
+    locked = _call(workspace, "requirements_lock", {"project": "avionics"})
+    assert locked["ok"]
+    assert (workspace / "avionics" / "llr_ids.lock").exists()
+    with pytest.raises(ToolError, match="inside the workspace"):
+        _call(workspace, "requirements_import", {**arguments, "path": str(sample / "project.yaml")})

@@ -269,6 +269,20 @@ class UserHeader:
 
 
 @dataclass(frozen=True)
+class IdMap:
+    """Numbers of the low-level requirements (`llr_ids.lock`): key -> displayed id.
+
+    `retired` keeps the numbers of requirements that no longer exist; a number is never reused.
+    """
+
+    format: str
+    next: int
+    ids: dict[str, str]
+    retired: dict[str, str]
+    source: Source
+
+
+@dataclass(frozen=True)
 class Define:
     """Named integer constant emitted as an overridable macro."""
 
@@ -297,6 +311,8 @@ class Project:
     interfaces: dict[str, Interface] = field(default_factory=dict)
     vectors: dict[str, Vector] = field(default_factory=dict)
     constants: dict[str, UserConstant] = field(default_factory=dict)
+    llr_ids: IdMap | None = None
+    requirements_source: dict[str, str] | None = None
     headers: list[UserHeader] = field(default_factory=list)
     include_dirs: list[tuple[str, Source]] = field(default_factory=list)
     files: list[str] = field(default_factory=list)

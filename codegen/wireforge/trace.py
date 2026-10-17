@@ -152,7 +152,11 @@ class _Tracer:
         return f"{file}:{line}" if line is not None else ""
 
     def tests_of(self, llrs: list[llr.Llr]) -> tuple[str, ...]:
-        found = {test for item in llrs for test in self.by_id.get(llr.display_id(item.key), ())}
+        found = {
+            test
+            for item in llrs
+            for test in self.by_id.get(llr.display_id(item.key, self.project.llr_ids), ())
+        }
         return tuple(sorted(found))
 
     def of_element(self, element: str, *, below: str | None = None) -> list[llr.Llr]:
@@ -169,7 +173,7 @@ class _Tracer:
         own = [item for item in found if row.kind == "interface" or item.element == row.element]
         return replace(
             row,
-            llrs=tuple(llr.display_id(item.key) for item in own),
+            llrs=tuple(llr.display_id(item.key, self.project.llr_ids) for item in own),
             tests=self.tests_of(found),
         )
 
@@ -288,7 +292,7 @@ class _Tracer:
 
     def llr_rows(self) -> Iterator[LlrRow]:
         for item in self.llrs:
-            ident = llr.display_id(item.key)
+            ident = llr.display_id(item.key, self.project.llr_ids)
             yield LlrRow(
                 ident,
                 item.kind,

@@ -20,6 +20,7 @@ GoogleTest project that proves them against a reference codec.
 | Layout analysis / ICD export | docs/LAYOUT.md |
 | Wireshark dissector (Lua plugin) | docs/WIRESHARK.md |
 | Requirements, design and test documents | docs/LIFECYCLE.md |
+| Fitting into a DO-178C process, tool integration | docs/DO178C.md, docs/integration/ |
 | Server, web UI, MCP | docs/SERVER.md, docs/UI.md, docs/MCP.md |
 | Secure deployment and operation | docs/SERVER.md, "Deployment and operation" |
 | Importers (CSV/Excel ICD, C headers) | docs/IMPORT.md |

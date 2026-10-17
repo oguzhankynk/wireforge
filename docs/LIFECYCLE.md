@@ -41,6 +41,19 @@ reject the model; each finding is printed and listed in `index.md`:
 
 With no requirements only DS-1 is reported. The documents are written in any case.
 
+## Stable ids, import and export
+`wireforge reqs-lock` writes `llr_ids.lock`, which gives every low-level requirement a number (`SWLLR-00017`, or the
+`format` you choose) that never changes, is never given again and follows an element through a rename
+(`reqs-rename-key`). With the lock file the numbers show in the code comments, the test properties and every document;
+without it the ids are `LLR-<key>`. Strict rule DS-8 reports a requirement that has no number yet.
+
+`wireforge reqs-import` takes a baseline of the high-level requirements of your tool (ReqIF or CSV) as a read-only
+snapshot, `requirements/hlr_snapshot.yaml`, with the tool, the baseline name and the hash of the file; a snapshot edited
+by hand is refused. `docs --export reqif` writes `llr.reqifz`, the low-level requirements for your tool, and
+`--source-url 'https://.../{commit}/{path}#L{line}'` turns model locations into permalinks (the working copy must be
+committed). `index.md` names the baseline: commit, snapshot, number lock, tool and runtime versions. The page
+docs/DO178C.md shows the whole path; docs/integration lists what to set up per tool.
+
 ## Test results and coverage
 `wireforge docs <project> -o <dir> --results <build>` adds what a test run produced (docs/CODEGEN.md, "Results of a
 test run"): `test_report.md` gets the results per executable and per requirement, the failures, the coverage of the
