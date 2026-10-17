@@ -101,3 +101,18 @@ the wire compatibility result of the interfaces. The last section is the list of
 test that verifies a changed requirement and every test that changed. A test that uses a value derived from a limit
 changes when the limit changes, so a limit can reach more tests than its own requirement. The old baseline is read from
 git (`git archive`) into a temporary directory; the working copy is the new one.
+
+## Coding standard and rule checkers
+WireForge does not check coding rules. `docs/CODING_RULES.md` maps the categories of MISRA C++ and AUTOSAR C++14 to the
+checks that run on generated code and the runtime. A conformance claim needs the results of a licensed checker:
+`wireforge docs <project> -o <dir> --rule-findings report.sarif` (repeatable) reads SARIF 2.1.0 or cppcheck XML version 2
+and adds the section "Rule findings" to `code_standard.md`. Only findings in generated headers and in the runtime
+headers count; the number of findings elsewhere is stated. Per tool and rule, the section lists the findings that have no
+deviation and the deviations nobody used.
+
+A finding is justified in `deviations.yaml` with `kind: rule`: the tool name (case does not matter), the rule as the tool
+writes it, a file glob, optionally a function glob, the category (`justified`, `false-positive` or `not-applicable`), the
+rationale and the reviewer. `--strict` reports DS-9 for every group of findings without a deviation. Without
+`--rule-findings` the section says that no results were provided and DS-9 is not evaluated. The MCP tool `lifecycle_docs`
+takes `rule_findings`, a list of files inside the workspace. How to export a report from common tools is in
+`docs/integration/rule_checkers.md`.

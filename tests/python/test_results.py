@@ -136,7 +136,7 @@ def test_deviations_justify_by_function_wildcard_and_lines(
 ) -> None:
     (tmp_path / "deviations.yaml").write_text(DEVIATIONS, encoding="utf-8")
     deviations = results.load_deviations(tmp_path)
-    assert len(deviations) == 3, "rule deviations are not used yet"
+    assert [item.kind for item in deviations] == ["coverage", "coverage", "coverage", "rule"]
     loaded = results.load(make_results(tmp_path / "run"))
     assert loaded.runtime is not None
     unjustified, unused = results.match_coverage(loaded.runtime, deviations)

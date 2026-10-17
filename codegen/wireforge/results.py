@@ -144,6 +144,8 @@ class Deviation:
     rationale: str
     reviewer: str
     lines: tuple[int, ...] = ()
+    tool: str = ""
+    rule: str = ""
 
 
 def _need(path: Path) -> Path:
@@ -241,7 +243,7 @@ def read_coverage(path: Path) -> tuple[FileCoverage, ...]:
     return tuple(sorted(files, key=lambda item: item.file))
 
 
-def _normalize(path: str) -> str | None:
+def normalize_header(path: str) -> str | None:
     """Return the project- or runtime-relative name of a header, None for other files."""
     parts = Path(path).as_posix().split("/")
     if "interfaces" in parts and parts[-1].endswith(".hpp"):
@@ -260,7 +262,7 @@ def _stack(build_dir: Path) -> tuple[StackEntry, ...]:
             head, _, rest = text.partition("\t")
             match = SU_LINE.match(head)
             sizes = rest.split("\t")
-            name = _normalize(match["file"]) if match else None
+            name = normalize_header(match["file"]) if match else None
             if match is None or name is None or len(sizes) < SU_FIELDS:
                 continue
             entry = StackEntry(name, int(match["line"]), match["function"], int(sizes[0]), sizes[1])
@@ -292,7 +294,7 @@ def load(build_dir: Path) -> Results:
 
 
 def load_deviations(project_dir: Path) -> list[Deviation]:
-    """Read the coverage deviations of a project directory (none without `deviations.yaml`)."""
+    """Read the deviations of a project directory (none without `deviations.yaml`)."""
     path = project_dir / DEVIATIONS_FILE
     if not path.exists():
         return []
@@ -306,20 +308,22 @@ def load_deviations(project_dir: Path) -> list[Deviation]:
     entries: list[dict[str, Any]] = cast("dict[str, Any]", to_plain(document))["deviations"]
     return [
         Deviation(
-            "coverage",
+            item["kind"],
             item["file"],
-            item["function"],
+            item.get("function", "*"),
             item["category"],
             item["rationale"],
             item["reviewer"],
             tuple(item.get("lines", ())),
+            item.get("tool", ""),
+            item.get("rule", ""),
         )
         for item in entries
-        if item["kind"] == "coverage"
     ]
 
 
-def _glob(pattern: str, text: str) -> bool:
+def glob(pattern: str, text: str) -> bool:
+    """Match `text` against a pattern where `*` stands for any characters."""
     expression = ".*".join(re.escape(part) for part in pattern.split("*"))
     return re.fullmatch(expression, text) is not None
 
@@ -355,7 +359,9 @@ def match_coverage(
     for gap in gaps(coverage):
         remaining = list(gap.lines)
         for index, deviation in enumerate(deviations):
-            if not (_glob(deviation.file, gap.file) and _glob(deviation.function, gap.function)):
+            if deviation.kind != "coverage" or not (
+                glob(deviation.file, gap.file) and glob(deviation.function, gap.function)
+            ):
                 continue
             covered = [line for line in remaining if not deviation.lines or line in deviation.lines]
             if covered:
@@ -363,5 +369,9 @@ def match_coverage(
                 remaining = [line for line in remaining if line not in covered]
         if remaining:
             unjustified.append(Gap(gap.file, gap.function, tuple(remaining)))
-    unused = [item for index, item in enumerate(deviations) if index not in used]
+    unused = [
+        item
+        for index, item in enumerate(deviations)
+        if item.kind == "coverage" and index not in used
+    ]
     return unjustified, unused

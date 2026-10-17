@@ -57,6 +57,9 @@ from wireforge import (
     versioning,
     wireshark,
 )
+from wireforge import (
+    findings as rule_checkers,
+)
 from wireforge import results as test_results
 from wireforge.codec import CodecError, ReferenceCodec
 from wireforge.cpp_interface import InterfaceError
@@ -946,6 +949,7 @@ class DocsOptions:
     source_url: str | None = None
     allow_dirty: bool = False
     since: str | None = None
+    rule_findings: tuple[Path, ...] = ()
 
 
 def _baseline(
@@ -1008,16 +1012,23 @@ def _lifecycle(
         return Result(ok=False, issues=issues, text=_issues_text(issues)), {}, None
     content_hash = bundle.build_bundle(location)["bundle"]["content_hash"]
     context = lifecycle.context(project, content_hash, load_plugins(find_plugins(location)))
-    if results_dir is not None:
-        try:
+    directory = _directory(location)
+    try:
+        context = dataclasses.replace(
+            context,
+            results=test_results.load(results_dir) if results_dir is not None else None,
+            deviations=tuple(test_results.load_deviations(directory)),
+        )
+        if options.rule_findings:
+            inside, outside = rule_checkers.load(list(options.rule_findings))
             context = dataclasses.replace(
                 context,
-                results=test_results.load(results_dir),
-                deviations=tuple(test_results.load_deviations(_directory(location))),
+                rule_findings=tuple(inside),
+                rules_provided=True,
+                outside_scope=outside,
             )
-        except test_results.ResultsError as error:
-            raise ServiceError(str(error)) from error
-    directory = _directory(location)
+    except test_results.ResultsError as error:
+        raise ServiceError(str(error)) from error
     links = _links(directory, options)
     baseline = _baseline(project, directory, context, dirty=vcs.dirty(directory))
     context = dataclasses.replace(context, links=links, baseline=baseline)

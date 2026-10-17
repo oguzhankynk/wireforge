@@ -28,6 +28,7 @@ from wireforge import (
     golden,
     layout,
     lifecycle_results,
+    lifecycle_rules,
     llr,
     resources,
     runtime_reqs,
@@ -43,6 +44,7 @@ from wireforge.test_cases import OK
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
+    from wireforge import findings as rule_findings_module
     from wireforge.codec import ChecksumPlugin
     from wireforge.model import Project, Source, Struct
 
@@ -175,6 +177,9 @@ class DocsContext:
     deviations: tuple[test_results.Deviation, ...] = ()
     links: SourceLinks | None = None
     baseline: tuple[tuple[str, str], ...] = ()
+    rule_findings: tuple[rule_findings_module.RuleFinding, ...] = ()
+    rules_provided: bool = False
+    outside_scope: int = 0
 
 
 NoteKey = tuple[str | None, str, str]  # profile, suite, test name
@@ -214,7 +219,7 @@ A-4|3,10,13|Target compatibility and partitioning|Applicant|check
 A-5|1,2,5|Code complies with requirements and architecture and is traceable|
  traceability.md#requirements-to-tests;review_checklists.md#code|yes
 A-5|3,4,6|Code is verifiable, conforms to standards and is accurate|
- code_standard.md#rules;code_standard.md#evidence|yes
+ code_standard.md#rules;code_standard.md#evidence;code_standard.md#rule-findings|yes
 A-5|7|Integration output complete|Applicant|yes
 A-5|8,9|Parameter data items|N/A (no parameter data items)|check
 A-6|1,2|Object code complies and is robust with the high-level requirements|
@@ -587,7 +592,10 @@ def strict_findings(ctx: DocsContext) -> list[StrictFinding]:
     findings += _number_findings(ctx)
     findings += [
         StrictFinding(rule, text, pointer)
-        for rule, text, pointer in lifecycle_results.findings(ctx)
+        for rule, text, pointer in [
+            *lifecycle_results.findings(ctx),
+            *lifecycle_rules.findings(ctx),
+        ]
     ]
     return findings
 
@@ -668,6 +676,8 @@ def _index(ctx: DocsContext, findings: list[StrictFinding]) -> str:
         }
     if ctx.project.llr_ids is not None:
         rules["DS-8"] = "low-level requirement without a number in llr_ids.lock"
+    if ctx.rules_provided:
+        rules["DS-9"] = "coding-rule finding without a deviation"
     rows = []
     for rule, text in rules.items():
         count = sum(1 for item in findings if item.rule == rule)
@@ -1101,6 +1111,7 @@ def _code_standard(ctx: DocsContext) -> str:
     lines = _preamble(ctx, "Code standard")
     lines += ["## Rules", "", *[f"- {rule}" for rule in CODE_RULES], "", "## Evidence", ""]
     lines += [*_table(("Evidence", "Shows"), CODE_EVIDENCE), ""]
+    lines += lifecycle_rules.section(ctx)
     return "\n".join(lines)
 
 

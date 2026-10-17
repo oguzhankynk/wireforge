@@ -182,13 +182,26 @@ class Tools:
         return service.wireshark_dissector(self.project_dir(project), target).to_dict()
 
     def lifecycle_docs(
-        self, project: str, *, strict: bool = False, results_dir: str | None = None
+        self,
+        project: str,
+        *,
+        strict: bool = False,
+        results_dir: str | None = None,
+        rule_findings: list[str] | None = None,
     ) -> dict[str, Any]:
         """Write the requirements, design, test and traceability documents of a project.
 
         `results_dir` is the `build_dir` that `run_tests` returned; it must lie below the workspace
-        output, so a tool call cannot read other places.
+        output, so a tool call cannot read other places. `rule_findings` lists SARIF or cppcheck
+        XML reports of your coding-rule checker; they must lie inside the workspace.
         """
+        reports = []
+        for name in rule_findings or []:
+            report = Path(name).resolve()
+            if self.workspace.resolve() not in report.parents:
+                message = "rule_findings must be files inside the workspace"
+                raise ServiceError(message)
+            reports.append(report)
         target = self.output.parent / "docs" / project
         results = None
         if results_dir is not None:
@@ -196,8 +209,9 @@ class Tools:
             if self.output.resolve() not in results.parents:
                 message = "results_dir must be a build directory below the workspace output"
                 raise ServiceError(message)
+        options = service.DocsOptions(rule_findings=tuple(reports))
         return service.lifecycle_docs(
-            self.project_dir(project), target, strict=strict, results=results
+            self.project_dir(project), target, strict=strict, results=results, options=options
         ).to_dict()
 
     def requirements_import(

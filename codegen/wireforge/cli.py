@@ -117,6 +117,7 @@ def _docs(args: argparse.Namespace) -> Result:
         args.source_url,
         args.allow_dirty,
         args.since,
+        tuple(args.rule_findings or ()),
     )
     return service.lifecycle_docs(
         args.project, args.output, strict=args.strict, results=args.results, options=options
@@ -421,6 +422,12 @@ def _report_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]
     )
     parser.add_argument("--export", default="csv", help="formats besides Markdown: csv, reqif")
     parser.add_argument("--source-url", help="permalink template with {commit}, {path} and {line}")
+    parser.add_argument(
+        "--rule-findings",
+        type=Path,
+        action="append",
+        help="SARIF or cppcheck XML report of your coding-rule checker (repeatable)",
+    )
     parser.add_argument("--allow-dirty", action="store_true", help="link even with local changes")
     parser.add_argument("--since", metavar="REV", help="also write impact.md for a git revision")
     parser = add(
