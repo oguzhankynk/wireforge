@@ -299,13 +299,24 @@ local function decode_scalar(ctx, state, desc, tree, offset)
   return offset + desc.width, number_of(value), item
 end
 
--- Decodes one element (scalar or struct); returns the next offset, the value and the tree item.
+-- Opaque user type: raw hex only, no value interpretation (the C++ encode/decode is the user's).
+local function decode_bytes(ctx, desc, tree, offset)
+  local range = take(ctx, tree, offset, desc.width, desc.name)
+  if range == nil then return nil end
+  local item = tree:add(ctx.fields[desc.abbr], range)
+  return offset + desc.width, nil, item
+end
+
+-- Decodes one element (scalar, struct or opaque bytes); returns the next offset, value, item.
 local function decode_element(ctx, state, desc, tree, offset)
-  if desc.kind ~= "struct" then return decode_scalar(ctx, state, desc, tree, offset) end
-  local item = tree:add(ctx.fields[desc.abbr], ctx.tvb(offset, 0))
-  local finish = decode_fields(ctx, desc.fields, item, offset)
-  if finish ~= nil then item:set_len(finish - offset) end
-  return finish, nil, item
+  if desc.kind == "struct" then
+    local item = tree:add(ctx.fields[desc.abbr], ctx.tvb(offset, 0))
+    local finish = decode_fields(ctx, desc.fields, item, offset)
+    if finish ~= nil then item:set_len(finish - offset) end
+    return finish, nil, item
+  end
+  if desc.kind == "bytes" then return decode_bytes(ctx, desc, tree, offset) end
+  return decode_scalar(ctx, state, desc, tree, offset)
 end
 
 local function decode_occurs(ctx, state, desc, tree, offset)

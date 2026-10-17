@@ -201,6 +201,23 @@ class UserConstant:
 
 
 @dataclass(frozen=True)
+class UserType:
+    """A field type whose wire form is opaque.
+
+    `size_bytes` raw bytes, backed by the user's own C++ type and its own `encode`/`decode` free
+    functions (found by ADL, like a generated struct).
+    """
+
+    name: str
+    cpp: str
+    size_bytes: int
+    source: Source
+    include: str | None = None
+    style: str = "quote"
+    description: str | None = None
+
+
+@dataclass(frozen=True)
 class UserHeader:
     """Header included by the generated user prelude."""
 
@@ -233,6 +250,7 @@ class Project:
     checksums: dict[str, Checksum] = field(default_factory=dict)
     enums: dict[str, Enum] = field(default_factory=dict)
     types: dict[str, Struct] = field(default_factory=dict)
+    user_types: dict[str, UserType] = field(default_factory=dict)
     messages: dict[str, Struct] = field(default_factory=dict)
     interfaces: dict[str, Interface] = field(default_factory=dict)
     constants: dict[str, UserConstant] = field(default_factory=dict)

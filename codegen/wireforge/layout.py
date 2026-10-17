@@ -227,6 +227,9 @@ class _Analyzer:
         inner = self.project.types.get(item.type)
         if inner is not None:
             return self.struct_size(inner.fields)
+        user = self.project.user_types.get(item.type)
+        if user is not None:
+            return user.size_bytes, user.size_bytes
         base = self.project.enums[item.type].type if item.type in self.project.enums else item.type
         size = BUILTIN_BITS[base] // BYTE_BITS
         return size, size

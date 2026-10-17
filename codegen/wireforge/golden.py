@@ -72,15 +72,34 @@ class Sampler:
 
     def field(self, item: Field, value: dict[str, Any]) -> object:
         """Return the pattern value of one field (`value` holds the fields before it)."""
-        inner = self.project.types.get(item.type)
         if item.occurs is None:
-            return self.struct(inner.fields) if inner is not None else self.scalar(item, 0)
+            return self._scalar_field(item)
+        return self._array_field(item, value)
+
+    def _scalar_field(self, item: Field) -> object:
+        inner = self.project.types.get(item.type)
+        if inner is not None:
+            return self.struct(inner.fields)
+        user = self.project.user_types.get(item.type)
+        if user is not None:
+            return self._user_bytes(user.size_bytes, 0)
+        return self.scalar(item, 0)
+
+    def _array_field(self, item: Field, value: dict[str, Any]) -> object:
         count = self.length(item, value)
         if item.type == "char":
             return (CHAR_PATTERN * (count // len(CHAR_PATTERN) + 1))[:count]
+        inner = self.project.types.get(item.type)
         if inner is not None:
             return [self.struct(inner.fields) for _ in range(count)]
+        user = self.project.user_types.get(item.type)
+        if user is not None:
+            return [self._user_bytes(user.size_bytes, index) for index in range(count)]
         return [self.scalar(item, index) for index in range(count)]
+
+    def _user_bytes(self, size_bytes: int, index: int) -> bytes:
+        """Deterministic, position-distinct byte pattern for an opaque user type."""
+        return bytes((index + offset) % 256 for offset in range(size_bytes))
 
     def scalar(self, item: Field, index: int) -> object:
         """Return the pattern value of element `index` of a scalar field."""
@@ -153,9 +172,24 @@ def vectors(
     return result
 
 
+def _jsonable(value: object) -> object:
+    """Replace raw bytes (an opaque user type's value) with a JSON-safe, unambiguous wrapper.
+
+    `__bytes_hex__` can never collide with a field name: SR-2 rejects any identifier containing
+    `__`.
+    """
+    if isinstance(value, bytes):
+        return {"__bytes_hex__": value.hex()}
+    if isinstance(value, dict):
+        return {key: _jsonable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_jsonable(item) for item in value]
+    return value
+
+
 def render(project: Project, plugins: dict[str, ChecksumPlugin] | None = None) -> str:
     """Golden vectors as canonical JSON text."""
-    return json.dumps(vectors(project, plugins), indent=2, sort_keys=True) + "\n"
+    return json.dumps(_jsonable(vectors(project, plugins)), indent=2, sort_keys=True) + "\n"
 
 
 def load_plugins(path: Path) -> dict[str, ChecksumPlugin]:

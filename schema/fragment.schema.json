@@ -19,6 +19,9 @@
     "types": {
       "$ref": "project.schema.json#/$defs/sections/properties/types"
     },
+    "user_types": {
+      "$ref": "project.schema.json#/$defs/sections/properties/user_types"
+    },
     "messages": {
       "$ref": "project.schema.json#/$defs/sections/properties/messages"
     },

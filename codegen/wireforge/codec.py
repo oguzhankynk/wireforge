@@ -294,13 +294,25 @@ class ReferenceCodec:
 
     def _default_field(self, item: Field) -> object:
         if item.occurs is None:
-            if item.type in self.project.types:
-                return self._default_struct(self.project.types[item.type].fields)
-            return self._zero(item) if item.default is None else item.default
+            return self._default_scalar_field(item)
+        return self._default_array_field(item)
+
+    def _default_scalar_field(self, item: Field) -> object:
+        user = self.project.user_types.get(item.type)
+        if user is not None:
+            return bytes(user.size_bytes)
+        if item.type in self.project.types:
+            return self._default_struct(self.project.types[item.type].fields)
+        return self._zero(item) if item.default is None else item.default
+
+    def _default_array_field(self, item: Field) -> object:
         if item.type == "char":
             return str(item.default or "")
         if self._dynamic(item):
             return list(item.default) if isinstance(item.default, list) else []
+        user = self.project.user_types.get(item.type)
+        if user is not None:
+            return [bytes(user.size_bytes) for _ in range(self._capacity(item))]
         if item.type in self.project.types:
             single = self._default_struct(self.project.types[item.type].fields)
             return [dict(single) for _ in range(self._capacity(item))]
@@ -517,6 +529,12 @@ class ReferenceCodec:
     def _encode_element(
         self, out: bytearray, item: Field, value: object, path: str, ctx: _Ctx
     ) -> None:
+        user = self.project.user_types.get(item.type)
+        if user is not None:
+            if not isinstance(value, bytes) or len(value) != user.size_bytes:
+                _fail("InvalidState", path, f"{item.name} needs exactly {user.size_bytes} bytes")
+            out += value
+            return
         inner = self.project.types.get(item.type)
         if inner is not None:
             self._encode_struct(out, inner.fields, value, path, ctx)
@@ -665,6 +683,9 @@ class ReferenceCodec:
             _fail("CountExceedsMax", path, text)
 
     def _element_size(self, item: Field) -> int:
+        user = self.project.user_types.get(item.type)
+        if user is not None:
+            return user.size_bytes
         inner = self.project.types.get(item.type)
         if inner is None:
             return BUILTIN_BITS[self._base(item)] // BYTE_BITS
@@ -695,6 +716,9 @@ class ReferenceCodec:
         return text if self._dynamic(item) else text.rstrip("\0")
 
     def _decode_element(self, reader: _Reader, item: Field, path: str, ctx: _Ctx) -> object:
+        user = self.project.user_types.get(item.type)
+        if user is not None:
+            return bytes(reader.take(user.size_bytes, path))
         inner = self.project.types.get(item.type)
         if inner is not None:
             return self._decode_struct(reader, inner.fields, path, ctx)

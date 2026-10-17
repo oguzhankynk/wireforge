@@ -161,6 +161,18 @@ public:
     }
 
     /**
+     * @brief Copies @p bytes onto the wire unchanged (no endian or bit-order transform).
+     *
+     * For a user type's own encode(): the type owns its wire representation entirely. Sets
+     * Status::BufferTooSmall (checked by status()) when they do not fit.
+     */
+    void write_bytes(Span<const std::uint8_t> bytes) noexcept {
+        if (status_ == Status::Ok) {
+            check(writer_.write_bytes(bytes));
+        }
+    }
+
+    /**
      * @brief Writes the checksum C of the bytes written in [@p begin, @p end).
      */
     template <typename C> void write_checksum(std::size_t begin, std::size_t end) noexcept {
@@ -248,6 +260,18 @@ public:
     void skip(std::size_t count) noexcept {
         if (status_ == Status::Ok) {
             check(reader_.skip(count));
+        }
+    }
+
+    /**
+     * @brief Reads @p out.size() bytes unchanged (no endian or bit-order transform).
+     *
+     * For a user type's own decode(): the type owns its wire representation entirely. Sets
+     * Status::Truncated (checked by status()) when fewer bytes remain.
+     */
+    void read_bytes(Span<std::uint8_t> out) noexcept {
+        if (status_ == Status::Ok) {
+            check(reader_.read_bytes(out));
         }
     }
 
