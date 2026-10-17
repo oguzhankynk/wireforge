@@ -180,7 +180,8 @@ def _case(element: Node, executable: str, name: str, classname: str) -> TestResu
     return TestResult(ident, executable, outcome, requirements, message)
 
 
-def _gtest(directory: Path) -> tuple[TestResult, ...]:
+def read_gtest(directory: Path) -> tuple[TestResult, ...]:
+    """Read the GoogleTest XML files below `directory`; the folder name is the executable."""
     if not directory.is_dir() or not any(directory.rglob("*.xml")):
         message = f"{directory}: no GoogleTest results (junit/<executable>/*.xml)"
         raise ResultsError(message)
@@ -203,7 +204,8 @@ def _selftests(path: Path) -> tuple[TestResult, ...]:
     )
 
 
-def _coverage(path: Path) -> tuple[FileCoverage, ...]:
+def read_coverage(path: Path) -> tuple[FileCoverage, ...]:
+    """Read a gcovr JSON report."""
     files: list[FileCoverage] = []
     entries = _json(path).get("files", [])
     if not entries:
@@ -268,10 +270,10 @@ def load(build_dir: Path) -> Results:
     runtime_file = results / "coverage_runtime.json"
     toolchain = {str(key): str(value) for key, value in _json(results / "toolchain.json").items()}
     return Results(
-        _gtest(results / "junit"),
+        read_gtest(results / "junit"),
         _selftests(results / "ctest.xml"),
-        _coverage(results / "coverage.json"),
-        _coverage(runtime_file) if runtime_file.exists() else None,
+        read_coverage(results / "coverage.json"),
+        read_coverage(runtime_file) if runtime_file.exists() else None,
         _stack(build_dir),
         toolchain,
     )

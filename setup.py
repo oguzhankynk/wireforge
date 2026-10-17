@@ -21,6 +21,9 @@ DATA = {
 }
 
 
+FILES = {"runtime/requirements.yaml": ROOT / "runtime" / "requirements.yaml"}
+
+
 class BuildWithData(build_py):
     """Copy the data directories into the built package."""
 
@@ -31,6 +34,9 @@ class BuildWithData(build_py):
         for name, source in DATA.items():
             if source.is_dir():
                 shutil.copytree(source, target / name, dirs_exist_ok=True)
+        for name, source in FILES.items():
+            (target / name).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target / name)
 
 
 setup(cmdclass={"build_py": BuildWithData})

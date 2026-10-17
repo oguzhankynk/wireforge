@@ -20,6 +20,7 @@ static_assert(!wireforge::less(std::numeric_limits<std::uint64_t>::max(), std::i
 static_assert(wireforge::less(1.5, 2), "floating point");
 
 TEST(Validation, RangeChecks) {
+    ::testing::Test::RecordProperty("requirements", "RTR-validation-001");
     EXPECT_EQ(wireforge::check_range(std::uint8_t{5}, 1U, 10U), Status::Ok);
     EXPECT_EQ(wireforge::check_range(std::uint8_t{0}, 1U, 10U), Status::OutOfRange);
     EXPECT_EQ(wireforge::check_range(std::int16_t{-5}, -4, 4), Status::OutOfRange);
@@ -33,6 +34,7 @@ TEST(Validation, RangeChecks) {
 }
 
 TEST(Validation, BitWidthChecks) {
+    ::testing::Test::RecordProperty("requirements", "RTR-validation-002");
     EXPECT_EQ(wireforge::check_bits(std::uint8_t{7}, 3U), Status::Ok);
     EXPECT_EQ(wireforge::check_bits(std::uint8_t{8}, 3U), Status::OutOfRange);
     EXPECT_EQ(wireforge::check_bits(std::int8_t{-16}, 5U), Status::Ok);
@@ -46,6 +48,7 @@ TEST(Validation, BitWidthChecks) {
 }
 
 TEST(Validation, CountsAndCombination) {
+    ::testing::Test::RecordProperty("requirements", "RTR-validation-003");
     EXPECT_EQ(wireforge::check_count(2U, 1U, 3U), Status::Ok);
     EXPECT_EQ(wireforge::check_count(0U, 1U, 3U), Status::CountExceedsMax);
     EXPECT_EQ(wireforge::check_count_equals(4U, 4), Status::Ok);
@@ -69,6 +72,7 @@ struct Item {
 }
 
 TEST(Validation, EachElement) {
+    ::testing::Test::RecordProperty("requirements", "RTR-validation-004");
     std::array<Item, 3> items{};
     EXPECT_EQ(wireforge::validate_each(items), Status::Ok);
     items.at(1).value = -1;
@@ -79,6 +83,7 @@ TEST(Validation, EachElement) {
 }
 
 TEST(Containers, ListAndTextConstructors) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-001,RTR-static_vector-004");
     const wireforge::StaticVector<int, 3> values{1, 2, 3, 4};
     EXPECT_EQ(values.size(), 3U) << "values beyond the capacity are dropped";
     EXPECT_EQ(values[2], 3);

@@ -146,6 +146,7 @@ template <typename Link> Status send_counters(Link& link, std::uint32_t count) {
 }
 
 TEST_F(LinkTest, LoopbackSendAndPoll) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-001");
     wireforge::LoopbackTransport<256> transport;
     TestLink<wireforge::LoopbackTransport<256>> link(transport, decoder(), dispatcher());
     ASSERT_EQ(send_counters(link, 5U), Status::Ok);
@@ -156,6 +157,7 @@ TEST_F(LinkTest, LoopbackSendAndPoll) {
 }
 
 TEST_F(LinkTest, LoopbackDeliversInOrderAndCounts) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-002");
     wireforge::LoopbackTransport<256> transport;
     TestLink<wireforge::LoopbackTransport<256>> link(transport, decoder(), dispatcher());
     ASSERT_EQ(send_counters(link, 5U), Status::Ok);
@@ -170,6 +172,7 @@ TEST_F(LinkTest, LoopbackDeliversInOrderAndCounts) {
 }
 
 TEST_F(LinkTest, GarbageAndUnknownIdsAreReported) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-003");
     wireforge::LoopbackTransport<256> transport;
     TestLink<wireforge::LoopbackTransport<256>> link(transport, decoder(), dispatcher());
     const std::array<std::uint8_t, 3> garbage{0x00U, 0xA5U, 0x11U};
@@ -184,6 +187,7 @@ TEST_F(LinkTest, GarbageAndUnknownIdsAreReported) {
 }
 
 TEST_F(LinkTest, EncoderErrorAndFullTransport) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-004");
     wireforge::LoopbackTransport<20> transport; // holds one frame (18 bytes) only
     TestLink<wireforge::LoopbackTransport<20>> link(transport, decoder(), dispatcher());
     const auto failing = [](Span<std::uint8_t> /*buffer*/, std::size_t& /*size*/) {
@@ -214,6 +218,7 @@ private:
 };
 
 TEST_F(LinkTest, WorksThroughITransport) {
+    ::testing::Test::RecordProperty("requirements", "RTR-transport-001");
     DriverAdapter adapter;
     wireforge::ITransport& transport = adapter;
     TestLink<wireforge::ITransport> link(transport, decoder(), dispatcher());
@@ -235,6 +240,7 @@ private:
 };
 
 TEST(UnframedLink, EachReadIsOneFrame) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-005");
     SizeRecorder recorder;
     wireforge::RawDispatcher<> dispatcher(2U);
     ASSERT_EQ(dispatcher.set_handler(MessageHandler::from_callable(recorder)), Status::Ok);
@@ -254,6 +260,7 @@ TEST(UnframedLink, EachReadIsOneFrame) {
 }
 
 TEST(UnframedLink, OversizedReadIsRejected) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-006");
     SizeRecorder recorder;
     wireforge::RawDispatcher<> dispatcher(0U);
     ASSERT_EQ(dispatcher.set_handler(MessageHandler::from_callable(recorder)), Status::Ok);
@@ -292,6 +299,7 @@ void send_with_flow_control(Link& link, Transport& transport) {
 }
 
 TEST_F(LinkTest, SenderAndPollerOnTwoThreads) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-007");
     using Transport = wireforge::LoopbackTransport<128>;
     Transport transport;
     TestLink<Transport> link(transport, decoder(), dispatcher());
@@ -309,6 +317,7 @@ TEST_F(LinkTest, SenderAndPollerOnTwoThreads) {
 }
 
 TEST_F(LinkTest, NoHeapAllocation) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-005");
     wireforge::LoopbackTransport<256> transport;
     TestLink<wireforge::LoopbackTransport<256>> link(transport, decoder(), dispatcher());
     const wireforge::testing::AllocationTrap trap;

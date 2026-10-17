@@ -21,7 +21,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from wireforge import layout
+from wireforge import layout, runtime_reqs
 from wireforge.model import BUILTIN_BITS, INTEGER_TYPES
 from wireforge.test_cases import CLEAR, OK
 from wireforge.validate import Validator
@@ -67,6 +67,7 @@ KINDS: tuple[str, ...] = (
 )
 # Requirements the runtime tests verify; the generated tests of a project do not cover them.
 RUNTIME_VERIFIED = frozenset({"DISPATCH_UNKNOWN"})
+GENERATED_ONLY = runtime_reqs.GENERATED_ONLY
 ID_PREFIX = "LLR-"
 NOTE_WIDTH = 96  # 100 columns minus the `/// ` prefix
 _NUMBER = re.compile(r"-?(\d+|0[xX][0-9a-fA-F]+)")
@@ -97,6 +98,7 @@ class Llr:
     parents: tuple[str, ...]
     source: Source
     runtime_verified: bool = False
+    realized_by: tuple[str, ...] = ()
 
     @property
     def derived(self) -> bool:
@@ -172,7 +174,8 @@ class _Deriver:
     ) -> None:
         kind = key.rsplit(".", 1)[1]
         verified = kind in RUNTIME_VERIFIED
-        self.found.append(Llr(key, kind, element, text, parents, source, verified))
+        runtime = () if kind in GENERATED_ONLY else runtime_reqs.realized_by_kind().get(kind, ())
+        self.found.append(Llr(key, kind, element, text, parents, source, verified, runtime))
 
     def value(self, raw: Value) -> str:
         """Write a number as given and an expression as given plus its value per profile."""

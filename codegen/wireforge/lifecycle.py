@@ -29,6 +29,8 @@ from wireforge import (
     layout,
     lifecycle_results,
     llr,
+    resources,
+    runtime_reqs,
     test_cases,
     test_project,
     trace,
@@ -513,7 +515,7 @@ def strict_findings(ctx: DocsContext) -> list[StrictFinding]:
     findings += [
         StrictFinding("DS-3", f"{row.id} has no test", row.element)
         for row in ctx.llr_rows
-        if not row.tests and not row.runtime_verified
+        if not row.tests and not (row.runtime_verified and row.realized_by)
     ]
     used = {rid for row in ctx.rows for rid in row.requirements}
     used |= {parent for item in ctx.llrs for parent in item.parents}
@@ -570,7 +572,9 @@ def summary(ctx: DocsContext) -> dict[str, int]:
         "derived low-level requirements": sum(item.derived for item in ctx.llrs),
         "tests": len(ctx.tests),
         "low-level requirements without a test": sum(
-            1 for row in ctx.llr_rows if not row.tests and not row.runtime_verified
+            1
+            for row in ctx.llr_rows
+            if not row.tests and not (row.runtime_verified and row.realized_by)
         ),
     }
 
@@ -649,10 +653,19 @@ def _requirements(ctx: DocsContext) -> tuple[str, str]:
             f"`{row.element}`",
             ", ".join(row.parents) or "derived",
             "yes" if row.derived else "no",
+            ", ".join(row.realized_by) or "-",
         )
         for row in ctx.llr_rows
     ]
-    lines += _table(("ID", "Kind", "Text", "Element", "Parents", "Derived"), low)
+    lines += _table(("ID", "Kind", "Text", "Element", "Parents", "Derived", "Runtime"), low)
+    runtime = runtime_reqs.version(resources.runtime_include())
+    lines += [
+        "",
+        (
+            "The Runtime column names the requirements of the runtime library "
+            f"(runtime/requirements.yaml, runtime version {runtime}) that realize the requirement."
+        ),
+    ]
     derived = [row for row in ctx.llr_rows if row.derived]
     lines += ["", "## Derived requirements", ""]
     if project.requirements:

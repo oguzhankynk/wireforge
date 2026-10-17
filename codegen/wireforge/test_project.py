@@ -29,7 +29,7 @@ VECTOR_NOTE = (
     "written there (not against the reference codec).\n"
 )
 DIRECTORY = "generated_tests"
-DEFAULT_COVERAGE = 90
+DEFAULT_COVERAGE = 100
 RUNTIME_INCLUDE = resources.runtime_include()
 SOURCES = ("golden_test.cpp", "message_test.cpp", "interface_test.cpp")
 VECTOR_SOURCE = "hlr_vector_test.cpp"

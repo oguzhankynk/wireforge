@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WireForge runtime requirements",
+  "description": "Requirements of the runtime library, written and reviewed by people (runtime/requirements.yaml).",
+  "type": "object",
+  "required": ["schema_version", "component", "requirements"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "component": { "type": "string", "minLength": 1 },
+    "requirements": {
+      "type": "object",
+      "propertyNames": { "pattern": "^RTR-[a-z0-9_]+-[0-9]{3}$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["text", "header", "code", "verification"],
+        "properties": {
+          "text": { "type": "string", "minLength": 1 },
+          "header": { "type": "string", "pattern": "^[a-z0-9_]+[.]hpp$" },
+          "code": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true, "description": "Symbols searched for in the header." },
+          "realizes": {
+            "type": "array",
+            "items": { "enum": ["VALUES", "ALGORITHM", "LAYOUT", "SIZE", "TRUNCATED", "TRAILING", "DEFAULT", "RANGE", "ENUM", "BITS", "COUNT", "CHARS", "CONST", "CHECKSUM", "FRAME_ENCODE", "FRAME_SYNC", "FRAME_LENGTH", "FRAME_RESYNC", "FRAME_MAX", "DISPATCH", "DISPATCH_UNKNOWN", "RAW"] },
+            "uniqueItems": true,
+            "description": "Kinds of generated low-level requirements this runtime behaviour implements."
+          },
+          "verification": { "enum": ["test", "analysis", "review"] },
+          "retired": { "type": "boolean", "description": "The requirement is dropped; its id is never reused." }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

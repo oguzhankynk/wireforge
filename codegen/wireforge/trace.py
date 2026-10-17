@@ -89,6 +89,7 @@ class LlrRow:
     generated: str
     tests: tuple[str, ...]
     runtime_verified: bool
+    realized_by: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -298,6 +299,7 @@ class _Tracer:
                 self.location(item),
                 self.tests_of([item]),
                 item.runtime_verified,
+                item.realized_by,
             )
 
 

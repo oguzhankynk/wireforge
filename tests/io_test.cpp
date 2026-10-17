@@ -64,6 +64,7 @@ void check_width_round_trip(std::size_t width, Endian endian) {
 }
 
 TEST(ByteIo, BigAndLittleEndianForEveryWidth) {
+    ::testing::Test::RecordProperty("requirements", "RTR-byte_io-001");
     for (std::size_t width = 1U; width <= 8U; ++width) {
         SCOPED_TRACE(width);
         check_width_round_trip(width, Endian::Big);
@@ -82,6 +83,7 @@ void check_signed_round_trip(std::int64_t value, std::size_t width, Endian endia
 }
 
 TEST(ByteIo, SignedExtremesRoundTrip) {
+    ::testing::Test::RecordProperty("requirements", "RTR-byte_io-002");
     for (std::size_t width = 1U; width <= 8U; ++width) {
         const unsigned bits = wireforge::width_bits(width);
         const auto max_value = static_cast<std::int64_t>(wireforge::low_mask(bits - 1U));
@@ -95,6 +97,7 @@ TEST(ByteIo, SignedExtremesRoundTrip) {
 }
 
 TEST(ByteIo, NegativeValueBytesAreTwosComplement) {
+    ::testing::Test::RecordProperty("requirements", "RTR-byte_io-002");
     Bytes buffer{};
     ByteWriter writer{Span<std::uint8_t>(buffer)};
     ASSERT_EQ(writer.write_signed(-2, 2U, Endian::Big), Status::Ok);
@@ -103,6 +106,7 @@ TEST(ByteIo, NegativeValueBytesAreTwosComplement) {
 }
 
 TEST(ByteIo, OutOfRangeValuesAreRejectedWithoutSideEffects) {
+    ::testing::Test::RecordProperty("requirements", "RTR-byte_io-003");
     Bytes buffer{};
     ByteWriter writer{Span<std::uint8_t>(buffer)};
     EXPECT_EQ(writer.write_unsigned(0x100U, 1U, Endian::Big), Status::OutOfRange);
@@ -116,6 +120,7 @@ TEST(ByteIo, OutOfRangeValuesAreRejectedWithoutSideEffects) {
 }
 
 TEST(ByteIo, OverflowLeavesWriterUnchanged) {
+    ::testing::Test::RecordProperty("requirements", "RTR-byte_io-004");
     std::array<std::uint8_t, 3> buffer{};
     ByteWriter writer{Span<std::uint8_t>(buffer)};
     ASSERT_EQ(writer.write_unsigned(0xAAU, 1U, Endian::Big), Status::Ok);
@@ -133,6 +138,7 @@ TEST(ByteIo, OverflowLeavesWriterUnchanged) {
 }
 
 TEST(ByteIo, TruncatedInputLeavesReaderUnchanged) {
+    ::testing::Test::RecordProperty("requirements", "RTR-byte_io-005");
     const std::array<std::uint8_t, 3> buffer{0x01U, 0x02U, 0x03U};
     ByteReader reader{Span<const std::uint8_t>(buffer)};
     std::uint64_t value = 99U;
@@ -155,6 +161,7 @@ TEST(ByteIo, TruncatedInputLeavesReaderUnchanged) {
 }
 
 TEST(ByteIo, UnalignedOffsetsWork) {
+    ::testing::Test::RecordProperty("requirements", "RTR-byte_io-006");
     Bytes buffer{};
     ByteWriter writer{Span<std::uint8_t>(buffer)};
     ASSERT_EQ(writer.write_unsigned(0x7U, 1U, Endian::Big), Status::Ok);
@@ -170,6 +177,7 @@ TEST(ByteIo, UnalignedOffsetsWork) {
 }
 
 TEST(ByteIo, PatchAndPeekInsideWrittenRegion) {
+    ::testing::Test::RecordProperty("requirements", "RTR-byte_io-007");
     Bytes buffer{};
     ByteWriter writer{Span<std::uint8_t>(buffer)};
     ASSERT_EQ(writer.write_fill(0U, 4U), Status::Ok);
@@ -192,6 +200,7 @@ TEST(ByteIo, PatchAndPeekInsideWrittenRegion) {
 }
 
 TEST(ByteIo, FloatsUseIeeeBitPatterns) {
+    ::testing::Test::RecordProperty("requirements", "RTR-byte_io-008");
     Bytes buffer{};
     ByteWriter writer{Span<std::uint8_t>(buffer)};
     ASSERT_EQ(writer.write_f32(1.0F, Endian::Big), Status::Ok);
@@ -214,6 +223,7 @@ TEST(ByteIo, FloatsUseIeeeBitPatterns) {
 }
 
 TEST(ByteIo, FloatSpecialValuesSurvive) {
+    ::testing::Test::RecordProperty("requirements", "RTR-byte_io-008");
     Bytes buffer{};
     ByteWriter writer{Span<std::uint8_t>(buffer)};
     ASSERT_EQ(writer.write_f32(std::numeric_limits<float>::quiet_NaN(), Endian::Little),
@@ -230,6 +240,7 @@ TEST(ByteIo, FloatSpecialValuesSurvive) {
 }
 
 TEST(BitUtils, SignHelpers) {
+    ::testing::Test::RecordProperty("requirements", "RTR-bit_utils-001");
     EXPECT_EQ(wireforge::sign_extend(0x7U, 3U), -1);
     EXPECT_EQ(wireforge::sign_extend(0x3U, 3U), 3);
     EXPECT_EQ(wireforge::sign_extend(0x4U, 3U), -4);
@@ -282,6 +293,7 @@ std::array<std::uint64_t, 3> unpack_group(const std::array<std::uint8_t, 2>& wir
 }
 
 TEST(BitGroups, StraddlingFieldsInBothOrdersAndEndians) {
+    ::testing::Test::RecordProperty("requirements", "RTR-bit_utils-002");
     // msb_first container: 101 1010101 101010 = 0xB56A; lsb_first: c<<10 | b<<3 | a = 0xAAAD.
     const std::array<GroupCase, 4> cases{{
         {BitOrder::MsbFirst, Endian::Big, {0xB5U, 0x6AU}},
@@ -297,6 +309,7 @@ TEST(BitGroups, StraddlingFieldsInBothOrdersAndEndians) {
 }
 
 TEST(BitGroups, MsbFirstSingleByteFillsFromBitSeven) {
+    ::testing::Test::RecordProperty("requirements", "RTR-bit_utils-002");
     BitPacker packer(8U, BitOrder::MsbFirst);
     ASSERT_EQ(packer.put(1U, 1U), Status::Ok);
     ASSERT_EQ(packer.put(0U, 7U), Status::Ok);
@@ -308,6 +321,7 @@ TEST(BitGroups, MsbFirstSingleByteFillsFromBitSeven) {
 }
 
 TEST(BitGroups, SignedFieldsAreSignExtended) {
+    ::testing::Test::RecordProperty("requirements", "RTR-bit_utils-003");
     BitPacker packer(8U, BitOrder::MsbFirst);
     ASSERT_EQ(packer.put_signed(-3, 4U), Status::Ok);
     ASSERT_EQ(packer.put_signed(7, 4U), Status::Ok);
@@ -323,6 +337,7 @@ TEST(BitGroups, SignedFieldsAreSignExtended) {
 }
 
 TEST(BitGroups, FullWidthSixtyFourBitGroup) {
+    ::testing::Test::RecordProperty("requirements", "RTR-bit_utils-002");
     BitPacker packer(64U, BitOrder::LsbFirst);
     ASSERT_EQ(packer.put(kPattern, 64U), Status::Ok);
     Bytes buffer{};
@@ -337,6 +352,7 @@ TEST(BitGroups, FullWidthSixtyFourBitGroup) {
 }
 
 TEST(BitGroups, MisuseIsReported) {
+    ::testing::Test::RecordProperty("requirements", "RTR-bit_utils-004");
     BitPacker packer(8U, BitOrder::MsbFirst);
     EXPECT_EQ(packer.put(8U, 3U), Status::OutOfRange);
     EXPECT_EQ(packer.put_signed(4, 3U), Status::OutOfRange);
@@ -349,6 +365,7 @@ TEST(BitGroups, MisuseIsReported) {
 }
 
 TEST(BitGroups, InvalidGroupSizesAreRejected) {
+    ::testing::Test::RecordProperty("requirements", "RTR-bit_utils-004");
     const Bytes buffer{};
     for (const unsigned total : {0U, 12U, 72U}) {
         BitPacker invalid(total, BitOrder::MsbFirst);
@@ -362,6 +379,7 @@ TEST(BitGroups, InvalidGroupSizesAreRejected) {
 }
 
 TEST(BitGroups, TruncatedGroupIsReported) {
+    ::testing::Test::RecordProperty("requirements", "RTR-bit_utils-004");
     const std::array<std::uint8_t, 1> one{0U};
     ByteReader short_reader{Span<const std::uint8_t>(one)};
     BitUnpacker unpacker(0U, 8U, BitOrder::MsbFirst);
@@ -370,6 +388,7 @@ TEST(BitGroups, TruncatedGroupIsReported) {
 }
 
 TEST(ByteIo, NoHeapAllocation) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-005");
     const wireforge::testing::AllocationTrap trap;
     Bytes buffer{};
     ByteWriter writer{Span<std::uint8_t>(buffer)};
@@ -384,6 +403,7 @@ TEST(ByteIo, NoHeapAllocation) {
 }
 
 TEST(StatusNames, EveryCodeHasAName) {
+    ::testing::Test::RecordProperty("requirements", "RTR-status-001");
     EXPECT_STREQ(wireforge::to_string(Status::Ok), "Ok");
     EXPECT_STREQ(wireforge::to_string(Status::BufferTooSmall), "BufferTooSmall");
     EXPECT_STREQ(wireforge::to_string(Status::Truncated), "Truncated");

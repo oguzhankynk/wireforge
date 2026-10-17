@@ -104,6 +104,14 @@ def _wireshark(args: argparse.Namespace) -> Result:
 
 
 def _docs(args: argparse.Namespace) -> Result:
+    if args.runtime:
+        if args.project is not None:
+            message = "give a project or --runtime, not both"
+            raise UsageError(message)
+        return service.runtime_docs(args.output, results=args.results, strict=args.strict)
+    if args.project is None:
+        message = "give a project, or --runtime for the documents of the runtime library"
+        raise UsageError(message)
     return service.lifecycle_docs(
         args.project, args.output, strict=args.strict, results=args.results
     )
@@ -371,7 +379,10 @@ def _report_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]
     parser.add_argument("--format", choices=("markdown", "csv"), default="markdown")
     parser.add_argument("-o", "--output", type=Path)
     parser = add("docs", _docs, "Write requirements, design, test and traceability documents.")
-    _project(parser)
+    parser.add_argument("project", type=Path, nargs="?", help="project directory or root file")
+    parser.add_argument(
+        "--runtime", action="store_true", help="document the runtime library instead of a project"
+    )
     parser.add_argument("-o", "--output", type=Path, required=True, help="directory to write")
     parser.add_argument("--strict", action="store_true", help="fail when a review would reject")
     parser.add_argument(

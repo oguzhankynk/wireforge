@@ -60,14 +60,17 @@ template <bool Table> void expect_catalog() {
 }
 
 TEST(Crc, CatalogCheckValuesWithTable) {
+    ::testing::Test::RecordProperty("requirements", "RTR-checksum-001");
     expect_catalog<true>();
 }
 
 TEST(Crc, CatalogCheckValuesTableless) {
+    ::testing::Test::RecordProperty("requirements", "RTR-checksum-001");
     expect_catalog<false>();
 }
 
 TEST(Crc, AliasesAndSizes) {
+    ::testing::Test::RecordProperty("requirements", "RTR-checksum-002");
     EXPECT_EQ(wireforge::Crc32::compute(check_input()), 0xCBF43926U);
     EXPECT_EQ(wireforge::Crc16CcittFalse::compute(check_input()), 0x29B1U);
     EXPECT_EQ(wireforge::Crc32::kSize, 4U);
@@ -77,6 +80,7 @@ TEST(Crc, AliasesAndSizes) {
 }
 
 TEST(Crc, IncrementalUpdateMatchesOneShot) {
+    ::testing::Test::RecordProperty("requirements", "RTR-checksum-003");
     for (std::size_t split = 0U; split <= kCheckInput.size(); ++split) {
         auto state = wireforge::Crc32::init();
         wireforge::Crc32::update(state, check_input().first(split));
@@ -86,6 +90,7 @@ TEST(Crc, IncrementalUpdateMatchesOneShot) {
 }
 
 TEST(Crc, EmptyInputGivesInitXorOut) {
+    ::testing::Test::RecordProperty("requirements", "RTR-checksum-003");
     EXPECT_EQ(wireforge::Crc32::compute(Span<const std::uint8_t>()), 0U);
     EXPECT_EQ(wireforge::Crc16CcittFalse::compute(Span<const std::uint8_t>()), 0xFFFFU);
 }
@@ -111,6 +116,7 @@ struct Fletcher16 {
 static_assert(wireforge::is_checksum_v<Fletcher16>, "custom checksum satisfies the contract");
 
 TEST(CustomChecksum, Fletcher16CheckValue) {
+    ::testing::Test::RecordProperty("requirements", "RTR-checksum-004");
     EXPECT_EQ(wireforge::compute_checksum<Fletcher16>(check_input()), 0x1EDEU);
 }
 
@@ -143,6 +149,7 @@ static_assert(Fletcher16::kSize == 2U && MissingFinalize::kSize == 1U && WrongSi
 static_assert(!wireforge::is_checksum_v<int>, "not a checksum");
 
 TEST(Checksum, NoHeapAllocation) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-005");
     const wireforge::testing::AllocationTrap trap;
     EXPECT_EQ(wireforge::Crc32::compute(check_input()), 0xCBF43926U);
     EXPECT_EQ(Crc32C<false>::compute(check_input()), 0xE3069283U);

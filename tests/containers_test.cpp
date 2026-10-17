@@ -39,6 +39,7 @@ static_assert(std::is_constructible_v<Span<const int>, Span<int>>, "adds const")
 static_assert(!std::is_constructible_v<Span<int>, Span<const int>>, "never drops const");
 
 TEST(Span, ViewsAndSubspans) {
+    ::testing::Test::RecordProperty("requirements", "RTR-span-001");
     std::array<std::uint8_t, 5> bytes{1U, 2U, 3U, 4U, 5U};
     const Span<std::uint8_t> view(bytes);
     EXPECT_EQ(view.size(), 5U);
@@ -55,6 +56,7 @@ TEST(Span, ViewsAndSubspans) {
 }
 
 TEST(Span, ConstConversionAndHelpers) {
+    ::testing::Test::RecordProperty("requirements", "RTR-span-002");
     std::array<std::uint8_t, 5> bytes{9U, 2U, 3U, 4U, 5U};
     const Span<const std::uint8_t> read_only{Span<std::uint8_t>(bytes)};
     const std::size_t total = std::accumulate(read_only.begin(), read_only.end(), std::size_t{0U});
@@ -66,6 +68,7 @@ TEST(Span, ConstConversionAndHelpers) {
 }
 
 TEST(StaticVector, PushResizeAndCapacity) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-001");
     StaticVector<std::uint16_t, 3> values;
     EXPECT_EQ(values.capacity(), 3U);
     EXPECT_TRUE(values.empty());
@@ -92,6 +95,7 @@ TEST(StaticVector, PushResizeAndCapacity) {
 }
 
 TEST(StaticVector, OptionalFieldIsCapacityOne) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-002");
     StaticVector<double, 1> optional;
     EXPECT_TRUE(optional.empty());
     ASSERT_EQ(optional.push_back(1.5), Status::Ok);
@@ -100,6 +104,7 @@ TEST(StaticVector, OptionalFieldIsCapacityOne) {
 }
 
 TEST(StaticVector, EqualityIgnoresUnusedStorage) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-003");
     StaticVector<int, 4> lhs;
     StaticVector<int, 4> rhs;
     ASSERT_EQ(lhs.push_back(1), Status::Ok);
@@ -114,6 +119,7 @@ TEST(StaticVector, EqualityIgnoresUnusedStorage) {
 }
 
 TEST(FixedString, AssignResizeAndView) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-004");
     FixedString<5> text;
     EXPECT_EQ(text.capacity(), 5U);
     EXPECT_TRUE(text.empty());
@@ -172,12 +178,14 @@ template <typename Lock> void hammer_counter(std::uint32_t& counter) {
 }
 
 TEST(Lock, StdMutexLockSerializesThreads) {
+    ::testing::Test::RecordProperty("requirements", "RTR-lock-001");
     std::uint32_t counter = 0U;
     hammer_counter<wireforge::StdMutexLock>(counter);
     EXPECT_EQ(counter, 4000U);
 }
 
 TEST(Lock, NullLockGuardIsUsable) {
+    ::testing::Test::RecordProperty("requirements", "RTR-lock-002");
     wireforge::NullLock lock;
     std::uint32_t counter = 0U;
     {
@@ -188,6 +196,7 @@ TEST(Lock, NullLockGuardIsUsable) {
 }
 
 TEST(Lock, RelaxedCounterAcrossThreads) {
+    ::testing::Test::RecordProperty("requirements", "RTR-lock-003");
     wireforge::RelaxedCounter counter;
     const auto work = [&counter]() {
         for (int index = 0; index < 1000; ++index) {
@@ -205,6 +214,7 @@ TEST(Lock, RelaxedCounterAcrossThreads) {
 }
 
 TEST(Containers, NoHeapAllocation) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-005");
     const wireforge::testing::AllocationTrap trap;
     StaticVector<std::uint32_t, 64> values;
     for (std::uint32_t index = 0U; index < 64U; ++index) {

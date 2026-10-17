@@ -132,11 +132,13 @@ Outcome run_whole(const FrameFormat& format, const Bytes& stream) {
 }
 
 TEST(FrameDecoder, FormatIsValid) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-001");
     EXPECT_TRUE(FrameDecoder<Crc32>(kSyncLength).valid());
     EXPECT_TRUE(FrameDecoder<>(kSyncLength).valid());
 }
 
 TEST(FrameDecoder, DeliversOneFrame) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-002");
     const Bytes frame = make_frame(7U, {1U, 2U, 3U});
     const Outcome outcome = run_whole(kSyncLength, frame);
     ASSERT_EQ(outcome.frames.size(), 1U);
@@ -145,6 +147,7 @@ TEST(FrameDecoder, DeliversOneFrame) {
 }
 
 TEST(FrameDecoder, ChunkingDoesNotChangeTheResult) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-002");
     const Bytes stream = concat({make_frame(1U, {}), make_frame(2U, {9U, 8U, 7U, 6U}),
                                  make_frame(3U, Bytes(40U, 0x5AU)), make_frame(4U, {0xA5U})});
     FrameDecoder<Crc32> whole_decoder(kSyncLength);
@@ -166,6 +169,7 @@ TEST(FrameDecoder, ChunkingDoesNotChangeTheResult) {
 }
 
 TEST(FrameDecoder, SkipsGarbageBetweenFrames) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-003");
     const Bytes garbage{0x00U, 0xA5U, 0x13U, 0xA5U, 0xA5U, 0xFFU};
     const Bytes first = make_frame(1U, {1U});
     const Bytes second = make_frame(2U, {2U, 2U});
@@ -180,6 +184,7 @@ TEST(FrameDecoder, SkipsGarbageBetweenFrames) {
 }
 
 TEST(FrameDecoder, BadChecksumIsReportedAndFollowingFrameRecovered) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-004");
     Bytes corrupt = make_frame(1U, {1U, 2U, 3U});
     corrupt.at(7) ^= 0x01U;
     const Bytes good = make_frame(2U, {4U});
@@ -193,6 +198,7 @@ TEST(FrameDecoder, BadChecksumIsReportedAndFollowingFrameRecovered) {
 }
 
 TEST(FrameDecoder, OversizedLengthIsRejected) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-005");
     Bytes bogus;
     append_unsigned(bogus, kSync, 2U, Endian::Big);
     append_unsigned(bogus, 1U, 2U, Endian::Big);
@@ -208,6 +214,7 @@ TEST(FrameDecoder, OversizedLengthIsRejected) {
 }
 
 TEST(FrameDecoder, WithoutResyncAnErrorDropsBufferedBytes) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-006");
     Bytes corrupt = make_frame(1U, {1U});
     corrupt.back() ^= 0xFFU;
     const Bytes good = make_frame(2U, {2U});
@@ -224,6 +231,7 @@ TEST(FrameDecoder, WithoutResyncAnErrorDropsBufferedBytes) {
 }
 
 TEST(FrameDecoder, OutputBufferTooSmall) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-007");
     const Bytes frame = make_frame(1U, Bytes(20U, 1U));
     StaticSpscByteRing<64> ring;
     ASSERT_EQ(ring.write(Span<const std::uint8_t>(frame.data(), frame.size())), frame.size());
@@ -236,6 +244,7 @@ TEST(FrameDecoder, OutputBufferTooSmall) {
 }
 
 TEST(FrameDecoder, FrameLargerThanRingIsRejected) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-005");
     const Bytes frame = make_frame(1U, Bytes(30U, 1U));
     StaticSpscByteRing<16> ring;
     ASSERT_EQ(ring.write(Span<const std::uint8_t>(frame.data(), 16U)), 16U);
@@ -246,6 +255,7 @@ TEST(FrameDecoder, FrameLargerThanRingIsRejected) {
 }
 
 TEST(FrameDecoder, FixedFramingWithSyncAndPayloadChecksum) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-008");
     // Header: sync u8 0x7E; payload 3 bytes; trailer: CRC-16 over the payload, little endian.
     using Crc16 = wireforge::Crc16CcittFalse;
     const FrameFormat format{FramingKind::Fixed,
@@ -274,6 +284,7 @@ TEST(FrameDecoder, FixedFramingWithSyncAndPayloadChecksum) {
 }
 
 TEST(FrameDecoder, LengthPrefixedCountingWholeFrame) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-009");
     // Header: length u8 counting the whole frame; no sync, no checksum.
     const FrameFormat format{FramingKind::LengthPrefixed,
                              Endian::Big,
@@ -299,6 +310,7 @@ TEST(FrameDecoder, LengthPrefixedCountingWholeFrame) {
 }
 
 TEST(FrameDecoder, LengthCountingPayloadAndTrailer) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-009");
     FrameFormat format = kSyncLength;
     format.length_counts = LengthCounts::PayloadAndTrailer;
     Bytes frame = make_frame(1U, {5U, 6U});
@@ -313,6 +325,7 @@ TEST(FrameDecoder, LengthCountingPayloadAndTrailer) {
 }
 
 TEST(FrameDecoder, InvalidFormatsAreRejected) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-001");
     FrameFormat no_sync = kSyncLength;
     no_sync.sync = {0U, 0U};
     FrameFormat no_length = kSyncLength;
@@ -335,6 +348,7 @@ TEST(FrameDecoder, InvalidFormatsAreRejected) {
 }
 
 TEST(FrameDecoder, WorksWithLockedRingAndResetsCounters) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-010");
     std::array<std::uint8_t, 64> storage{};
     wireforge::LockedByteRing<> ring{Span<std::uint8_t>(storage)};
     const Bytes frame = make_frame(9U, {1U});
@@ -350,6 +364,7 @@ TEST(FrameDecoder, WorksWithLockedRingAndResetsCounters) {
 }
 
 TEST(FrameDecoder, NoHeapAllocation) {
+    ::testing::Test::RecordProperty("requirements", "RTR-static_vector-005");
     const Bytes stream = concat({Bytes{0x01U, 0x02U}, make_frame(1U, {1U, 2U})});
     StaticSpscByteRing<64> ring;
     FrameDecoder<Crc32> decoder(kSyncLength);

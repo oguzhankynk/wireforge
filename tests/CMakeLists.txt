@@ -23,7 +23,8 @@ if(WIREFORGE_BUILD_TESTS)
     add_executable(${name} ${ARGN})
     target_link_libraries(${name} PRIVATE wireforge::runtime wireforge_test_support
       GTest::gtest_main Threads::Threads wireforge_warnings wireforge_instrumentation)
-    gtest_discover_tests(${name} DISCOVERY_MODE PRE_TEST)
+    gtest_discover_tests(${name} DISCOVERY_MODE PRE_TEST
+                         XML_OUTPUT_DIR ${CMAKE_BINARY_DIR}/results/junit/${name})
   endfunction()
 
   wireforge_add_test(smoke_test smoke_test.cpp)
