@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from wireforge import generate, golden, test_cases, test_project
+import pytest
+
+from wireforge import generate, golden, service, test_cases, test_project
 from wireforge.loader import load_project
 
 if TYPE_CHECKING:
-    import pytest
-
     from wireforge.model import Project
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -199,3 +200,50 @@ def test_every_generated_test_records_its_requirements() -> None:
         assert "static_assert(min_wire_size" in files["message_test.cpp"]
         assert "WireSize) {" in files["message_test.cpp"]
         assert "static_assert(" not in files["message_test.cpp"].split("TEST(")[0]
+
+
+def test_cmake_writes_results_for_the_lifecycle_documents() -> None:
+    project = _project(EXAMPLES / "01_basic_telemetry")
+    directory = ROOT / "build" / "x" / project.name / "generated_tests"
+    cmake = test_project.render(project, EXAMPLES / "01_basic_telemetry", directory)[
+        "CMakeLists.txt"
+    ]
+    assert "XML_OUTPUT_DIR ${CMAKE_BINARY_DIR}/results/junit/${tests}" in cmake
+    assert "-fstack-usage" in cmake
+    assert "option(WIREFORGE_COVERAGE_RUNTIME" in cmake
+    assert "WIREFORGE_COVERAGE_RUNTIME_MIN_LINE" in cmake
+    assert "--output-junit ${WIREFORGE_RESULTS_DIR}/ctest.xml" in cmake
+    for name in ("coverage.json", "coverage_summary.json", "coverage.cobertura.xml"):
+        assert name in cmake
+    assert "coverage_runtime.json" in cmake
+    assert "results/toolchain.json" in cmake
+
+
+def test_cmake_runs_and_writes_the_results(tmp_path: Path) -> None:
+    if (
+        shutil.which("cmake") is None
+        or shutil.which("gcovr") is None
+        or shutil.which("ninja") is None
+    ):
+        pytest.skip("needs cmake, ninja and gcovr")
+    arguments = ["-DWIREFORGE_COVERAGE_RUNTIME_MIN_LINE=0"]
+    googletest = ROOT / "build" / "dev" / "_deps" / "googletest-src"
+    if googletest.is_dir():  # reuse the sources of the main build instead of downloading them
+        arguments.append(f"-DFETCHCONTENT_SOURCE_DIR_GOOGLETEST={googletest}")
+    result = service.run_tests(
+        EXAMPLES / "01_basic_telemetry",
+        tmp_path / "out",
+        None,
+        service.BuildOptions(
+            coverage_runtime=True,
+            coverage=True,
+            generator="Ninja",
+            extra_cmake_args=tuple(arguments),
+        ),
+    )
+    if not result.ok:
+        pytest.skip(f"the coverage build is not available here: {result.text[-300:]}")
+    results_dir = Path(result.data["results_dir"])
+    for name in ("coverage.json", "coverage_runtime.json", "toolchain.json", "ctest.xml"):
+        assert (results_dir / name).exists(), name
+    assert list((results_dir / "junit").rglob("*.xml"))

@@ -4,10 +4,13 @@
 # the thresholds (line: WIREFORGE_GENERATED_COVERAGE_MIN_LINE, branch and function: 100).
 # Then compares the generated C++ with the reference codec on random, boundary and stored inputs
 # (tests/regressions/<project>/<profile>/), per profile. Finally the zip the server offers for
-# download is built and tested like a user would.
+# download is built and tested like a user would. The result documents of every example (test
+# results, coverage of the generated code and the runtime, stack use) are written to
+# build/evidence-results/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 out="build/generated-projects"
+rm -rf build/evidence-results
 threshold="${WIREFORGE_GENERATED_COVERAGE_MIN_LINE:-95}"
 values="${WIREFORGE_DIFFERENTIAL_VALUES:-100}"
 gtest=()
@@ -23,11 +26,16 @@ quality/examples.sh | while read -r example name plugin_file; do
   project="${out}/${name}/generated_tests"
   build="${project}/build/coverage"
   echo "-- ${project}"
+  # The runtime headers are measured too; their threshold is left open here because the generated
+  # tests alone do not reach every runtime statement. `wireforge docs` below reports the gaps.
   cmake -S "${project}" -B "${build}" -G Ninja -DCMAKE_BUILD_TYPE=Debug -DWIREFORGE_COVERAGE=ON \
+    -DWIREFORGE_COVERAGE_RUNTIME=ON -DWIREFORGE_COVERAGE_RUNTIME_MIN_LINE=0 \
     "${gtest[@]}" > /dev/null
   cmake --build "${build}"
   find "${build}" -name '*.gcda' -delete
   cmake --build "${build}" --target coverage
+  PYTHONPATH=codegen python3 -m wireforge.cli docs "${example}" \
+    -o "build/evidence-results/docs_${name}" --results "${build}"
   for harness in "${build}/${name}"_diff*; do
     suffix="${harness##*/${name}_diff}"
     profile=()
