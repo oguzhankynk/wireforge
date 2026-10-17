@@ -226,6 +226,43 @@ TEST_F(LinkTest, WorksThroughITransport) {
     EXPECT_EQ(link.poll().frames, 1U);
 }
 
+// A frame whose CRC is wrong, then a good one: the poll reports the first and delivers the second.
+template <typename L> void corrupt_frame_is_reported(L& link, std::uint32_t value) {
+    const auto corrupt = [value](Span<std::uint8_t> buffer, std::size_t& size) {
+        const Status status = CounterEncoder(kStatusId, value)(buffer, size);
+        buffer[7] ^= 0x01U;
+        return status;
+    };
+    ASSERT_EQ(link.send(corrupt), Status::Ok);
+    ASSERT_EQ(link.send(CounterEncoder(kCommandId, value)), Status::Ok);
+    const wireforge::PollResult result = link.poll();
+    EXPECT_EQ(result.errors, 1U);
+    EXPECT_EQ(result.last_error, Status::ChecksumMismatch);
+    EXPECT_EQ(result.frames, 1U);
+}
+
+TEST_F(LinkTest, ChecksumErrorsAreReportedOnEveryTransport) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-003");
+    wireforge::LoopbackTransport<256> large;
+    TestLink<wireforge::LoopbackTransport<256>> on_large(large, decoder(), dispatcher());
+    corrupt_frame_is_reported(on_large, 1U);
+    wireforge::LoopbackTransport<20> small; // one frame only: the second send is cut
+    TestLink<wireforge::LoopbackTransport<20>> on_small(small, decoder(), dispatcher());
+    const auto corrupt = [](Span<std::uint8_t> buffer, std::size_t& size) {
+        const Status status = CounterEncoder(kStatusId, 5U)(buffer, size);
+        buffer[7] ^= 0x01U;
+        return status;
+    };
+    ASSERT_EQ(on_small.send(corrupt), Status::Ok);
+    const wireforge::PollResult result = on_small.poll();
+    EXPECT_EQ(result.errors, 1U);
+    EXPECT_EQ(result.last_error, Status::ChecksumMismatch);
+    DriverAdapter adapter;
+    wireforge::ITransport& transport = adapter;
+    TestLink<wireforge::ITransport> through(transport, decoder(), dispatcher());
+    corrupt_frame_is_reported(through, 2U);
+}
+
 class SizeRecorder {
 public:
     Status operator()(const wireforge::RawMessage& message) {

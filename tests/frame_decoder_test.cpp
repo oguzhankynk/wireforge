@@ -379,4 +379,81 @@ TEST(FrameDecoder, NoHeapAllocation) {
     EXPECT_EQ(trap.allocations(), 0U);
 }
 
+// Feeds `stream` into `ring` (as far as it fits, draining the decoder between writes) and returns
+// the statuses of all rejected frames; `out` is the destination of the delivered frames.
+template <typename Ring>
+std::vector<Status> feed(FrameDecoder<Crc32>& decoder, Ring& ring, const Bytes& stream,
+                         Span<std::uint8_t> out, std::size_t& delivered) {
+    std::vector<Status> errors;
+    std::size_t position = 0U;
+    while (position < stream.size()) {
+        const std::size_t written =
+            ring.write(Span<const std::uint8_t>(stream.data(), stream.size()).subspan(position));
+        position += written;
+        for (;;) {
+            std::size_t frame_size = 0U;
+            const Status status = decoder.next(ring, out, frame_size);
+            if (status == Status::Truncated) {
+                break;
+            }
+            if (status == Status::Ok) {
+                ++delivered;
+            } else {
+                errors.push_back(status);
+            }
+        }
+        if (written == 0U) {
+            break;
+        }
+    }
+    return errors;
+}
+
+// Drives a decoder over a ring of any type and size through every outcome of next(): garbage
+// before a frame, a good frame, a wrong checksum, an impossible length, an output buffer that is
+// too small, and a frame cut short.
+template <typename Ring> void exercise_every_outcome(Ring& ring) {
+    FrameDecoder<Crc32> decoder(kSyncLength);
+    std::array<std::uint8_t, kMaxFrame> out{};
+    std::array<std::uint8_t, 8> small{};
+    std::size_t delivered = 0U;
+    Bytes corrupt = make_frame(2U, {1U, 2U});
+    corrupt.at(7) ^= 0x01U;
+    Bytes bogus;
+    append_unsigned(bogus, kSync, 2U, Endian::Big);
+    append_unsigned(bogus, 1U, 2U, Endian::Big);
+    append_unsigned(bogus, 500U, 2U, Endian::Big);
+    const Bytes good = make_frame(1U, {7U});
+    const Bytes large = make_frame(3U, Bytes(20U, 1U));
+    const Bytes cut(good.begin(), good.begin() + 8);
+    static_cast<void>(feed(decoder, ring, concat({Bytes{0x01U, 0x02U, 0x03U}, good}),
+                           Span<std::uint8_t>(out), delivered));
+    static_cast<void>(feed(decoder, ring, corrupt, Span<std::uint8_t>(out), delivered));
+    static_cast<void>(feed(decoder, ring, bogus, Span<std::uint8_t>(out), delivered));
+    static_cast<void>(feed(decoder, ring, large, Span<std::uint8_t>(small), delivered));
+    static_cast<void>(feed(decoder, ring, cut, Span<std::uint8_t>(out), delivered));
+    static_cast<void>(feed(decoder, ring, good, Span<std::uint8_t>(out), delivered));
+    const wireforge::FrameCounters& counters = decoder.counters();
+    const std::uint64_t outcomes = counters.frames.load() + counters.length_errors.load() +
+                                   counters.checksum_errors.load() +
+                                   counters.overflow_errors.load();
+    EXPECT_GT(outcomes, 0U);
+    EXPECT_EQ(counters.frames.load(), delivered);
+}
+
+TEST(FrameDecoder, EveryOutcomeOnRingsOfEachType) {
+    ::testing::Test::RecordProperty("requirements", "RTR-frame_decoder-004");
+    StaticSpscByteRing<8> tiny;
+    StaticSpscByteRing<16> small;
+    StaticSpscByteRing<64> medium;
+    StaticSpscByteRing<128> large;
+    std::array<std::uint8_t, 64> storage{};
+    wireforge::LockedByteRing<> locked{Span<std::uint8_t>(storage)};
+    exercise_every_outcome(tiny);
+    exercise_every_outcome(small);
+    exercise_every_outcome(medium);
+    exercise_every_outcome(large);
+    exercise_every_outcome(locked);
+}
+
 } // namespace

@@ -118,3 +118,9 @@ report, traceability, environment) of the runtime; `quality/run_coverage.sh` wri
 and CI publishes it. A project's documents name the runtime requirements that realize their low-level requirements
 and the runtime version, and do not copy the dossier (docs/LIFECYCLE.md).
 
+The `coverage` job of CI measures the runtime headers with the runtime tests and the tests of the generated code of the
+examples (the differential harness, the fuzz targets replayed with golden inputs mutated at every byte and cut at
+every length, and all read lengths of a link) and fails below the line coverage it states in `ci.yml`. Template
+instances are counted one by one, as gcovr reports them, so a `Link` or `FrameDecoder` instance that is only compiled
+lowers the figure. Gaps are closed with tests; there are no exclusions.
+

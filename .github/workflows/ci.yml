@@ -100,8 +100,9 @@ jobs:
       - run: pip install -e . gcovr
       - run: quality/run_coverage.sh
         env:
-          # Measured line coverage of the runtime headers by the repository's own tests, rounded down.
-          WIREFORGE_COVERAGE_MIN_LINE: "83"
+          # Measured line coverage of the runtime headers by the repository's own tests and the
+          # tests of the examples' generated code, rounded down.
+          WIREFORGE_COVERAGE_MIN_LINE: "91"
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: evidence-runtime, path: build/evidence-runtime }

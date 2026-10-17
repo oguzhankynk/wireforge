@@ -1518,7 +1518,7 @@ void round_trip(Span<const std::uint8_t> input, const wireforge::Encoding& encod
 template <typename Loop> void stream(Loop& loop, Span<const std::uint8_t> input) noexcept {
     std::size_t offset = 0U;
     while (offset < input.size()) {
-        const std::size_t chunk = 1U + (input[offset] % 16U);
+        const std::size_t chunk = 1U + (input[offset] % 255U);
         static_cast<void>(loop.link.send_frame(input.subspan(offset, chunk)));
         static_cast<void>(loop.link.poll());
         offset += chunk;
