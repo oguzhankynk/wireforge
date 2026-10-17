@@ -28,10 +28,16 @@ from wireforge.service import BuildOptions, CodecTarget, EditOptions, Result, Se
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from wireforge.server.oidc import OidcConfig
+
 EXIT_OK = 0
 EXIT_FAILED = 1
 EXIT_USAGE = 2
 EXIT_ERROR = 3
+
+
+class UsageError(ServiceError):
+    """Arguments that parse but do not fit together (exit code 2)."""
 
 
 def _yaml_value(text: str) -> object:
@@ -158,6 +164,27 @@ def _encode(args: argparse.Namespace) -> Result:
     return service.encode(args.project, value, _codec_target(args))
 
 
+def _oidc_config(args: argparse.Namespace) -> OidcConfig | None:
+    """Return the `OidcConfig` the serve options ask for, or None."""
+    if not args.oidc_issuer:
+        return None
+    if args.token:
+        message = "--token and --oidc-issuer are mutually exclusive"
+        raise UsageError(message)
+    if not args.oidc_audience:
+        message = "--oidc-issuer needs --oidc-audience"
+        raise UsageError(message)
+    try:  # optional dependencies: pip install 'wireforge[server,oidc]'
+        oidc = importlib.import_module("wireforge.server.oidc")
+    except ImportError as error:
+        message = f"OIDC needs the oidc extra: pip install 'wireforge[oidc]' ({error})"
+        raise ServiceError(message) from error
+    config: OidcConfig = oidc.OidcConfig(
+        args.oidc_issuer, args.oidc_audience, args.oidc_jwks_cache_seconds
+    )
+    return config
+
+
 def _serve(args: argparse.Namespace) -> Result:
     try:  # optional dependencies: pip install 'wireforge[server]'
         uvicorn = importlib.import_module("uvicorn")
@@ -165,7 +192,8 @@ def _serve(args: argparse.Namespace) -> Result:
     except ImportError as error:
         message = f"the server needs the server extra: pip install 'wireforge[server]' ({error})"
         raise ServiceError(message) from error
-    app = server.create_app(args.workspace, args.token)
+    oidc = _oidc_config(args)
+    app = server.create_app(args.workspace, args.token, oidc)
     if args.openapi is not None:
         args.openapi.write_text(json.dumps(app.openapi(), indent=2) + "\n", encoding="utf-8")
         return Result(ok=True, data={"openapi": str(args.openapi)}, text=f"wrote {args.openapi}\n")
@@ -305,7 +333,16 @@ def _commands(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--token", help="require this bearer token")
+    _oidc_options(parser)
     parser.add_argument("--openapi", type=Path, help="write the OpenAPI document and exit")
+
+
+def _oidc_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--oidc-issuer", help="require an OIDC JWT of this issuer (not with --token)"
+    )
+    parser.add_argument("--oidc-audience", help="audience the JWT must carry (with --oidc-issuer)")
+    parser.add_argument("--oidc-jwks-cache-seconds", type=int, default=3600)
 
 
 def _report_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]) -> None:
@@ -395,6 +432,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     handler: Handler = args.handler
     try:
         result = handler(args)
+    except UsageError as error:
+        _emit(
+            Result(ok=False, data={"error": str(error)}, text=f"error: {error}\n"),
+            as_json=args.json,
+        )
+        return EXIT_USAGE
     except (ServiceError, OSError) as error:
         result = Result(ok=False, data={"error": str(error)}, text=f"error: {error}\n")
         _emit(result, as_json=args.json)

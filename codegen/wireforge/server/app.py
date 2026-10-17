@@ -25,6 +25,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from wireforge import importers, resources, service, versioning
 from wireforge.loader import SECTIONS, load_project
+from wireforge.server.oidc import OidcConfig, OidcUnavailableError, OidcVerifier
 from wireforge.server.storage import StorageError, Workspace, check_match
 from wireforge.service import EditOptions, Result, ServiceError
 
@@ -128,11 +129,22 @@ def workspace(request: Request) -> Workspace:
 
 
 def authorize(request: Request, authorization: Annotated[str | None, Header()] = None) -> None:
-    """Check the bearer token when the application has one."""
+    """Check the OIDC bearer JWT or the shared bearer token, whichever the application has."""
+    verifier: OidcVerifier | None = request.app.state.oidc_verifier
     token: str | None = request.app.state.token
-    if token is None:
+    if verifier is None and token is None:
         return
-    if authorization is None or not secrets.compare_digest(authorization, f"Bearer {token}"):
+    if authorization is None or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "missing bearer token")
+    if verifier is not None:
+        try:
+            request.state.user = verifier.verify(authorization.removeprefix("Bearer "))
+        except ValueError as error:
+            raise HTTPException(401, str(error)) from error
+        except OidcUnavailableError as error:
+            raise HTTPException(503, str(error)) from error
+        return
+    if not secrets.compare_digest(authorization, f"Bearer {token}"):
         raise HTTPException(401, "missing or wrong bearer token")
 
 
@@ -504,8 +516,11 @@ def _storage_error(request: Request, error: Exception) -> Response:
     return JSONResponse({"detail": str(error)}, status_code=status)
 
 
-def create_app(root: Path, token: str | None = None) -> FastAPI:
-    """Return the application serving the projects below `root` (bearer `token` if given)."""
+def create_app(root: Path, token: str | None = None, oidc: OidcConfig | None = None) -> FastAPI:
+    """Return the application serving the projects below `root`.
+
+    Requests need the bearer `token` or, with `oidc`, a JWT of that issuer and audience.
+    """
     app = FastAPI(
         title="WireForge",
         version=versioning.TOOL_VERSION,
@@ -513,6 +528,7 @@ def create_app(root: Path, token: str | None = None) -> FastAPI:
     )
     app.state.workspace = Workspace(root)
     app.state.token = token
+    app.state.oidc_verifier = OidcVerifier(oidc) if oidc is not None else None
     app.add_exception_handler(StorageError, _storage_error)
 
     @app.get("/api/health")

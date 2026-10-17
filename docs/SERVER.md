@@ -17,7 +17,10 @@ types are generated from it. Code: `wireforge.server` (`storage.py`, `app.py`).
 - External changes: `GET /api/projects/{id}/wait?etag=E&timeout=S` long-polls until the project ETag differs from `E`
   (`200` with the new ETags) or the timeout passes (`304`); clients reload the changed files.
 - Authentication: with `--token T` every `/api` route except `/api/health` needs `Authorization: Bearer T` (`401`
-  otherwise). See [Deployment and operation](#deployment-and-operation) for the limits.
+  otherwise). With `--oidc-issuer`/`--oidc-audience` it needs a JWT of that issuer instead (signature from the issuer's
+  JWKS, `iss`, `aud`, `exp`/`nbf` with 60 s skew; `401` otherwise, `503` when the issuer cannot be reached); the
+  `sub` and `email` claims live only for the request and are never stored. The JWKS is cached in memory for
+  `--oidc-jwks-cache-seconds` (default 3600). See [Deployment and operation](#deployment-and-operation) for the limits.
 
 ## Routes
 | Route | Meaning | CLI equivalent |
@@ -59,9 +62,11 @@ The server is a team tool for a trusted network, not a hardened multi-tenant ser
   **without a token**; anyone who reaches the port can read and change every project. Outside a single-user machine
   start it with a token:
   `docker run -p 8000:8000 -v "$PWD/projects:/workspace" wireforge wireforge serve --workspace /workspace --host 0.0.0.0 --token "$WIREFORGE_TOKEN"`.
-- **One shared token, no users.** `--token` is a single bearer secret compared in constant time. There are no user
-  accounts, roles, OIDC or audit log; every token holder may read and write every project. Rotate it by restarting
-  the server with a new value.
+- **Shared token or OIDC, no roles.** `--token` is a single bearer secret compared in constant time; rotate it by
+  restarting the server with a new value. `--oidc-issuer URL --oidc-audience A` instead requires a JWT signed by that
+  issuer (`pip install "wireforge[server,oidc]"`). The two options exclude each other. Either way there are no roles,
+  per-project permissions or audit log (git history is the audit trail): every authenticated caller may read and
+  write every project.
 - **TLS.** The server speaks plain HTTP. Put it behind a reverse proxy that terminates TLS and limits request sizes
   (imports and file writes carry whole documents).
 - **Token in the UI URL.** The web UI reads the token from `?token=<T>`, so it can end up in browser history and proxy
