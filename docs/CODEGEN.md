@@ -235,6 +235,7 @@ the sync value and a correct checksum, the ring always gets free space).
 
 Gates: `quality/run_generated_tests.sh` runs the differential test for every example and profile;
 `quality/run_fuzz.sh` builds all fuzz targets with Clang and runs each for `WIREFORGE_FUZZ_SECONDS` (20 locally, 60 in
-CI), seeded with `tests/regressions/fuzz/<target>/` and the golden vectors; a crash leaves its input in
+CI, 900 in the nightly `fuzz-nightly` workflow), `WIREFORGE_FUZZ_JOBS` targets at a time (default: the number of CPUs),
+seeded with `tests/regressions/fuzz/<target>/` and the golden vectors; a crash leaves its input in
 `build/fuzz/artifacts/`.
 
