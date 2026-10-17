@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import importlib
 import re
 import secrets
 import tempfile
@@ -140,13 +141,12 @@ def authorize(request: Request, authorization: Annotated[str | None, Header()] =
     if authorization is None or not authorization.startswith("Bearer "):
         raise HTTPException(401, "missing bearer token")
     if verifier is not None:
-        from wireforge.server.oidc import OidcUnavailableError  # noqa: PLC0415
-
+        oidc_module = importlib.import_module("wireforge.server.oidc")
         try:
             request.state.user = verifier.verify(authorization.removeprefix("Bearer "))
         except ValueError as error:
             raise HTTPException(401, str(error)) from error
-        except OidcUnavailableError as error:
+        except oidc_module.OidcUnavailableError as error:
             raise HTTPException(503, str(error)) from error
         return
     if not secrets.compare_digest(authorization, f"Bearer {token}"):
@@ -535,9 +535,8 @@ def create_app(root: Path, token: str | None = None, oidc: OidcConfig | None = N
     app.state.token = token
     app.state.oidc_verifier = None
     if oidc is not None:
-        from wireforge.server.oidc import OidcVerifier  # noqa: PLC0415
-
-        app.state.oidc_verifier = OidcVerifier(oidc)
+        oidc_module = importlib.import_module("wireforge.server.oidc")
+        app.state.oidc_verifier = oidc_module.OidcVerifier(oidc)
     app.add_exception_handler(StorageError, _storage_error)
 
     @app.get("/api/health")

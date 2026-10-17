@@ -8,3 +8,4 @@ fails CI when code and registry disagree in either direction.
 |----|------|--------|-------|---------------|----------|
 | S-001 | tests/support/.clang-tidy | config-override | 1 | Allocation trap replaces global operator new/delete and must call malloc/free; disables owning-memory/no-malloc for that directory only. | project lead |
 | S-002 | pyproject.toml | per-file-ignores | 1 | pytest assertions (S101) and literal expected values (PLR2004) in tests/python only. | project lead |
+| S-003 | codegen/wireforge/server/oidc.py | noqa | 1 | `urlopen` fetches the operator-supplied `--oidc-issuer`'s discovery document and JWKS, not request input; there is no caller-controlled scheme to restrict. | project lead |
