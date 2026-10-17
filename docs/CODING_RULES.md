@@ -22,7 +22,7 @@ copy before you rely on it.
 | Concurrency | | Lock policies, SPSC rings with acquire/release, TSan stress tests | `tsan` gate |
 | Deterministic, reviewable generated code | | Snapshots, deterministic generator, zero-warning compile of generated code, Doxygen for every public entity | `tests/python/snapshots`, doxygen gate |
 | Requirements to code to tests traceability | | `Defined in` and `Requirements:` comments, `requirements`/`reqs` in the model, derived low-level requirements, trace report, requirement ids recorded by every generated test | `trace_<project>.md` |
-| Correctness of the codec | | Reference codec as oracle: golden vectors, boundary and mutation tests, differential testing, fuzzing, line coverage of generated code (gate 95 %, examples at 100 %) | `run_generated_tests.sh`, `run_fuzz.sh` |
+| Correctness of the codec | | Reference codec as oracle: golden vectors, boundary and mutation tests, differential testing, fuzzing, line coverage of generated code (gate 100 %, examples at 100 %) | `run_generated_tests.sh`, `run_fuzz.sh` |
 | No suppressed findings | | Every suppression registered (`quality/suppressions.md`), checked in CI | `check_suppressions.py` |
 
 ## MISRA C++:2023 topics
