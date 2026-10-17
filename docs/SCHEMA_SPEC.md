@@ -126,7 +126,7 @@ An interface is one communication endpoint with a remote party (`our_to_nodeA`, 
 | Key | Meaning | Written by |
 |-----|---------|------------|
 | `schema_version` (int) | file-format **major**; any incompatible change bumps it | tool, required in every file |
-| `schema_minor` (int, default 0) | additive format changes inside a major | tool |
+| `schema_minor` (int, default 0) | additive format changes inside a major (minor 1: `requirements`, `reqs`) | tool |
 | `generator {name, version}` | WireForge release that wrote the file (informational) | tool on save/export |
 | `version` (semver, root) | the user's project / ICD set | user |
 | `interface.version` (semver) | one interface's ICD version, may travel on the wire | user |
@@ -183,6 +183,8 @@ carry file, line and JSON pointer.
 - SR-19 Version stamps: every file passes the compatibility policy of section 11; fragments carry `schema_version`.
 - SR-20 User header paths and include directories are relative, without `..` segments (portable builds); this
   also covers a user type's `include`.
+- SR-21 Every id in a `reqs` list names an entry of the `requirements` catalog (section 17). An unused catalog entry is
+  not an error.
 
 Implementation notes (`wireforge.validate`, D21-D23): every issue carries `[SR-n]`, file, line and JSON pointer.
 SR-10 also limits a bit group to 64 bits (D19) and checks pure bit-field types where they are used; SR-12 verifies the
@@ -278,3 +280,43 @@ produce the same bytes and statuses (golden vectors in `tests/golden/`, regenera
   that does not match the frame is `InvalidLength`; `fixed` framing needs exactly `frame_size` bytes (no padding is ever
   added) and every frame must fit `max_frame_size`. Decoding verifies the trailer checksum before looking up the id.
 - Leftover payload bytes are `TrailingBytes` unless the interface sets `allow_trailing_bytes`.
+
+## 17. Requirements and traceability
+The model can carry the user's high-level requirements (HLR) and tie model elements to them. WireForge derives the
+low-level requirements (LLR) from the model itself and links both to the generated tests.
+
+```yaml
+requirements:                      # root or fragment; ids are unique across files (SR-1)
+  HLR-SNS-004:
+    text: The sensor link shall reject readings outside the sensor's calibrated range.
+    source: ICD-SNS-001 §4.2       # optional, free text
+    verification: test             # optional: test (default) | analysis | review
+```
+- An id starts with a letter, continues with letters, digits and `_ . : -`, and has at most 64 characters.
+- `reqs: [ID, ...]` (at least one id, no repeats) is accepted on a field, `types` entry, message, enum, checksum, user
+  type, interface, its `framing` and an interface message given in object form. An unknown id is SR-21; a requirement
+  that no element uses is allowed. Projects without `requirements` or `reqs` behave exactly as before.
+- The `requirements` section and the `reqs` lists are part of the model hash, so editing a requirement text changes
+  the hash in the banner of the generated code.
+- A file that uses these keys needs format 1.1; an older WireForge rejects it (SR-19).
+
+**Low-level requirements** are never stored. `wireforge.llr.derive()` writes down what the model implies; each has a key
+built from names only (`SensorReading.temperature.RANGE`) and the displayed id `LLR-<key>`:
+
+| Kind | Derived for |
+|------|-------------|
+| `VALUES`, `ALGORITHM` | every enum, every checksum |
+| `LAYOUT`, `SIZE`, `TRUNCATED`, `TRAILING` | every type (`LAYOUT`) and message (all four) |
+| `DEFAULT`, `RANGE`, `ENUM`, `BITS`, `COUNT`, `CHARS`, `CONST`, `CHECKSUM` | a field with that attribute (`<Owner>.<field>.<KIND>`, `<Interface>.header.<field>.<KIND>` for frame fields); `RANGE`, `ENUM` and `BITS` only where range checking is on |
+| `FRAME_ENCODE`, `FRAME_MAX`, `DISPATCH`, `RAW` | every interface |
+| `FRAME_SYNC`, `FRAME_LENGTH`, `FRAME_RESYNC`, `DISPATCH_UNKNOWN` | an interface with a sync field, a length (field or framing), framing other than `none`, a `message_id` field |
+
+The fields of a nested type belong to the type (`Vec3.x.RANGE`), not to each message that uses it. An LLR inherits the
+HLRs of the elements it comes from (its field, its struct, the enum or checksum it uses, the interface and its
+framing); one without any is *derived*. `DISPATCH_UNKNOWN` is verified by the runtime tests, not by the tests generated
+for a project.
+
+Every generated test records the LLRs it verifies as its first statement
+(`::testing::Test::RecordProperty("requirements", "LLR-...,LLR-...")`), so gtest writes them into its XML result and
+`wireforge trace` reads them from the test sources. The static size assertions of the layout analyzer are tests too
+(`TEST(<Message>, WireSize)`, `TEST(Interface_<I>, WireSize)`), so `SIZE` and `FRAME_MAX` have a test.

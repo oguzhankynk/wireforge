@@ -2,7 +2,8 @@
 
 Every issue is tagged with its rule id (`[SR-n]`). Duplicates across files (SR-1) are reported by
 the loader and version stamps (SR-19) by the structural stage. Expressions are evaluated once per
-variant: each profile, or the plain defines when the project has no profiles.
+variant: each profile, or the plain defines when the project has no profiles. `reqs` lists are
+checked against the `requirements` catalog (SR-21).
 """
 
 from __future__ import annotations
@@ -292,7 +293,54 @@ class Validator:
         for interface in self.project.interfaces.values():
             self._interface(interface)
         self._user_includes()
+        self._requirement_refs()
         return self.issues
+
+    # --- requirement references -------------------------------------------------------------------
+
+    def _requirement_refs(self) -> None:
+        """SR-21: every `reqs` entry names a requirement of the catalog."""
+        project = self.project
+        for owner, source, reqs, suffix in self._requirement_users():
+            for index, rid in enumerate(reqs):
+                if rid not in project.requirements:
+                    self.report(
+                        source,
+                        "SR-21",
+                        f"{owner}: unknown requirement {rid!r}",
+                        f"{suffix}/reqs/{index}",
+                    )
+
+    def _requirement_users(self) -> Iterable[tuple[str, Source, tuple[str, ...], str]]:
+        """Every element that can carry `reqs`: (description, source, ids, pointer suffix)."""
+        project = self.project
+        for enum in project.enums.values():
+            yield f"enum {enum.name}", enum.source, enum.reqs, ""
+        for checksum in project.checksums.values():
+            yield f"checksum {checksum.name}", checksum.source, checksum.reqs, ""
+        for user_type in project.user_types.values():
+            yield f"user type {user_type.name}", user_type.source, user_type.reqs, ""
+        for kind, structs in (("type", project.types), ("message", project.messages)):
+            for struct_ in structs.values():
+                yield f"{kind} {struct_.name}", struct_.source, struct_.reqs, ""
+        for owner, fields in self._all_field_lists():
+            for item in fields:
+                yield f"{owner}: field {item.name}", item.source, item.reqs, ""
+        for interface in project.interfaces.values():
+            yield f"interface {interface.name}", interface.source, interface.reqs, ""
+            yield (
+                f"interface {interface.name}",
+                interface.source,
+                interface.framing.reqs,
+                "/framing",
+            )
+            for entry in interface.messages:
+                yield (
+                    f"interface {interface.name}: message {entry.name}",
+                    entry.source,
+                    entry.reqs,
+                    "",
+                )
 
     # --- names ------------------------------------------------------------------------------------
 

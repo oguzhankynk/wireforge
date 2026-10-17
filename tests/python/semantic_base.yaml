@@ -5,6 +5,9 @@ version: "1.0.0"
 namespace: test::semantic
 defaults: { endian: big, bit_order: msb_first }
 
+requirements:
+  HLR-1: { text: The command channel shall carry operator commands., source: ICD §2, verification: test }
+
 defines:
   MAX_ITEMS: 4
   LIMIT: 100
@@ -55,8 +58,9 @@ messages:
       - { name: sum, type: u16, checksum: { use: crc16, covers: { from: flags, to: mode } } }
   Command:
     id: 2
+    reqs: [HLR-1]
     fields:
-      - { name: op, type: u16, min: 1, max: LIMIT, default: 1 }
+      - { name: op, type: u16, min: 1, max: LIMIT, default: 1, reqs: [HLR-1] }
       - { name: spare, type: u8, reserved: true }
       - { name: crc, type: u16, checksum: { use: vendor, covers: { scope: preceding } } }
   Blob:

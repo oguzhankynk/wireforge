@@ -49,7 +49,11 @@ def test_versions_agree() -> None:
 
 def test_cli_version_and_cmake_dir(capsys: pytest.CaptureFixture[str]) -> None:
     assert cli.main(["version"]) == cli.EXIT_OK
-    assert capsys.readouterr().out == f"wireforge {versioning.TOOL_VERSION} (file format 1.0)\n"
+    file_format = f"{versioning.FORMAT_MAJOR}.{versioning.FORMAT_MINOR}"
+    assert (
+        capsys.readouterr().out
+        == f"wireforge {versioning.TOOL_VERSION} (file format {file_format})\n"
+    )
     assert cli.main(["cmake-dir"]) == cli.EXIT_OK
     assert Path(capsys.readouterr().out.strip()) == resources.cmake_dir()
 

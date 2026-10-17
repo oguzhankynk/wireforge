@@ -13,6 +13,10 @@ The expectations come from the reference codec (`wireforge.golden` vectors and
 - `test_support.hpp`, `wire_support.hpp`: assertion and byte helpers;
 - `diff_harness.cpp`: line-based harness of `wireforge.differential`;
 - `fuzz_target.cpp`: libFuzzer target over every message and interface.
+
+Every test records the ids of the requirements it verifies (`RecordProperty("requirements", ...)`,
+see `wireforge.llr`); the trace report reads them back from the sources and gtest writes them into
+its XML result.
 """
 
 from __future__ import annotations
@@ -23,12 +27,13 @@ from typing import TYPE_CHECKING, Any
 from wireforge.cpp import Names, Writer, string_literal, wire_only
 from wireforge.cpp_codec import encoding_literal
 from wireforge.cpp_interface import header_is_written
+from wireforge.llr import Verifier, display_id
 from wireforge.test_cases import CLEAR, OK, Edit, Outcome
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from wireforge.layout import LayoutReport, ProfileLayout
+    from wireforge.layout import InterfaceLayout, LayoutReport, MessageLayout, ProfileLayout
     from wireforge.model import Field, Interface, Project, Struct
     from wireforge.test_cases import (
         EncodeCase,
@@ -167,9 +172,23 @@ def _close_profile(out: Writer, profile: str | None) -> None:
         out.line()
 
 
-def _test(out: Writer, suite: str, name: str, lines: Iterator[str] | list[str]) -> None:
+def _property(out: Writer, keys: tuple[str, ...]) -> None:
+    """Record the requirements a test verifies (nothing for an empty list)."""
+    if keys:
+        ids = ",".join(display_id(key) for key in keys)
+        out.line(f'::testing::Test::RecordProperty("requirements", "{ids}");')
+
+
+def _test(
+    out: Writer,
+    suite: str,
+    name: str,
+    lines: Iterator[str] | list[str],
+    requirements: tuple[str, ...] = (),
+) -> None:
     out.line(f"TEST({suite}, {name}) {{")
     out.indent()
+    _property(out, requirements)
     for text in lines:
         out.line(text)
     out.dedent()
@@ -542,16 +561,19 @@ def golden_test_source(project: Project, vectors: list[dict[str, Any]]) -> str:
     """Every golden vector must round-trip and loop back as a frame."""
     out = Writer()
     assignments = _Assignments(project)
+    verifier = Verifier(project)
     _header(out, project, [*_interface_includes(project), "handlers.hpp", "test_support.hpp"])
     for vector in vectors:
         _open_profile(out, vector["profile"])
-        _golden_test(out, assignments, vector)
+        _golden_test(out, assignments, verifier, vector)
         _close_profile(out, vector["profile"])
     out.line("} // namespace")
     return out.text()
 
 
-def _golden_test(out: Writer, assignments: _Assignments, vector: dict[str, Any]) -> None:
+def _golden_test(
+    out: Writer, assignments: _Assignments, verifier: Verifier, vector: dict[str, Any]
+) -> None:
     project = assignments.project
     message = project.messages[vector["message"]]
     interface = project.interfaces[vector["interface"]]
@@ -560,6 +582,7 @@ def _golden_test(out: Writer, assignments: _Assignments, vector: dict[str, Any])
     name = _identifier(f"{vector['interface']}_{vector['message']}_{vector['sample']}")
     out.line(f"TEST(Golden, {name}) {{")
     out.indent()
+    _property(out, verifier.golden(vector))
     _byte_array(out, "kPayload", payload)
     _byte_array(out, "kFrame", frame)
     # A user-type field is opaque: the value built from the golden pattern leaves it
@@ -651,34 +674,38 @@ def _layouts(report: LayoutReport | None) -> dict[str | None, ProfileLayout]:
     return {} if report is None else {profile.profile: profile for profile in report.profiles}
 
 
-def _message_size_asserts(out: Writer, layout: ProfileLayout) -> None:
-    for message in layout.messages:
-        tag = f"wireforge::type_tag<model::{message.name}>"
-        out.line(
+def _message_wire_size(out: Writer, message: MessageLayout, requirements: tuple[str, ...]) -> None:
+    tag = f"wireforge::type_tag<model::{message.name}>"
+    lines = [
+        (
             f"static_assert(min_wire_size({tag}) == {message.size_min}U, "
             '"minimum size of the layout analyzer");'
-        )
-        out.line(
+        ),
+        (
             f"static_assert(max_wire_size({tag}) == {message.size_max}U, "
             '"maximum size of the layout analyzer");'
-        )
-    out.line()
+        ),
+    ]
+    _test(out, message.name, "WireSize", lines, requirements)
 
 
-def _interface_size_asserts(out: Writer, layout: ProfileLayout) -> None:
-    for interface in layout.interfaces:
-        ns = f"model::{interface.name}"
-        checks = (
-            ("kHeaderSize", interface.header_size),
-            ("kTrailerSize", interface.trailer_size),
-            ("max_payload_size()", interface.max_payload),
-            ("kMaxFrameSize", interface.max_frame),
-            ("kRxBufferBytes", interface.rx_buffer),
-            ("kTxBufferBytes", interface.tx_buffer),
-        )
-        for name, value in checks:
-            out.line(f'static_assert({ns}::{name} == {value}U, "{name} of the layout analyzer");')
-    out.line()
+def _interface_wire_size(
+    out: Writer, interface: InterfaceLayout, requirements: tuple[str, ...]
+) -> None:
+    ns = f"model::{interface.name}"
+    checks = (
+        ("kHeaderSize", interface.header_size),
+        ("kTrailerSize", interface.trailer_size),
+        ("max_payload_size()", interface.max_payload),
+        ("kMaxFrameSize", interface.max_frame),
+        ("kRxBufferBytes", interface.rx_buffer),
+        ("kTxBufferBytes", interface.tx_buffer),
+    )
+    lines = [
+        f'static_assert({ns}::{name} == {value}U, "{name} of the layout analyzer");'
+        for name, value in checks
+    ]
+    _test(out, f"Interface_{_identifier(interface.name)}", "WireSize", lines, requirements)
 
 
 class _MessageTests:
@@ -689,6 +716,8 @@ class _MessageTests:
         self.assignments = _Assignments(project)
         self.out = Writer()
         self.layouts = _layouts(layout)
+        self.sizes: dict[str, MessageLayout] = {}
+        self.verifier = Verifier(project)
 
     def render(self, profiles: tuple[ProfileCases, ...]) -> str:
         out = self.out
@@ -698,8 +727,7 @@ class _MessageTests:
         for profile in profiles:
             _open_profile(out, profile.profile)
             layout = self.layouts.get(profile.profile)
-            if layout is not None:
-                _message_size_asserts(out, layout)
+            self.sizes = {} if layout is None else {item.name: item for item in layout.messages}
             self.profile(profile)
             _close_profile(out, profile.profile)
         out.line("} // namespace")
@@ -741,6 +769,7 @@ class _MessageTests:
         out.line()
         out.line(f"TEST({name}, Defaults) {{")
         out.indent()
+        _property(out, self.verifier.defaults(cases.message))
         self.expected(cases.default_encoded, opaque=opaque)
         out.line(f"const model::{name} value{{}};")
         out.line(f"EXPECT_EQ(validate(value), Status::{cases.default_validated});")
@@ -750,9 +779,11 @@ class _MessageTests:
         out.dedent()
         out.line("}")
         out.line()
-        used: set[str] = {"Defaults"}
+        used: set[str] = {"Defaults", "WireSize"}
+        if name in self.sizes:
+            _message_wire_size(out, self.sizes[name], self.verifier.wire_size(cases.message))
         for case in cases.encodes:
-            self.encode_case(name, case, encoding, used, opaque=opaque)
+            self.encode_case(cases.message, case, encoding, used, opaque=opaque)
         for decode in cases.decodes:
             lines = Writer(depth=0)
             _byte_array(lines, "kPayload", decode.payload)
@@ -760,14 +791,22 @@ class _MessageTests:
                 f"EXPECT_EQ({SUPPORT}decode_status<model::{name}>({CSPAN}(kPayload), "
                 f"{encoding}), Status::{decode.status});"
             )
-            _test(out, name, _unique_name(f"Decode_{decode.name}", used), lines.lines)
+            _test(
+                out,
+                name,
+                _unique_name(f"Decode_{decode.name}", used),
+                lines.lines,
+                self.verifier.decode_case(cases.message, decode),
+            )
 
     def encode_case(
-        self, name: str, case: EncodeCase, encoding: str, used: set[str], *, opaque: bool
+        self, message: Struct, case: EncodeCase, encoding: str, used: set[str], *, opaque: bool
     ) -> None:
         out = self.out
+        name = message.name
         out.line(f"TEST({name}, {_unique_name(_identifier(case.name), used)}) {{")
         out.indent()
+        _property(out, self.verifier.encode_case(message, case))
         self.expected(case.encoded, opaque=opaque)
         out.line(f"model::{name} value = pattern_{name}();")
         out.line(self.assignments.edit(case.edit))
@@ -809,6 +848,7 @@ class _InterfaceTests:
         self.project = project
         self.out = Writer()
         self.layouts = _layouts(layout)
+        self.verifier = Verifier(project)
 
     def render(self, profiles: tuple[ProfileCases, ...]) -> str:
         out = self.out
@@ -818,7 +858,11 @@ class _InterfaceTests:
             _open_profile(out, profile.profile)
             layout = self.layouts.get(profile.profile)
             if layout is not None:
-                _interface_size_asserts(out, layout)
+                for sized in layout.interfaces:
+                    requirements = self.verifier.interface_test(
+                        self.project.interfaces[sized.name], "WireSize"
+                    )
+                    _interface_wire_size(out, sized, requirements)
             self.profile(profile)
             _close_profile(out, profile.profile)
         out.line("} // namespace")
@@ -844,6 +888,18 @@ class _InterfaceTests:
             self.raw(cases, suite)
             self.raw_and_decoded(cases, suite)
             self.raw_decode_errors(cases, messages, suite)
+
+    def requirements(
+        self,
+        cases: InterfaceCases,
+        name: str,
+        *,
+        corrupt_status: str = OK,
+        decode_keys: tuple[str, ...] = (),
+    ) -> tuple[str, ...]:
+        return self.verifier.interface_test(
+            cases.interface, name, corrupt_status=corrupt_status, decode_keys=decode_keys
+        )
 
     @staticmethod
     def loop(cases: InterfaceCases, capacity: int) -> str:
@@ -877,7 +933,13 @@ class _InterfaceTests:
             lines.line("EXPECT_EQ(polled.errors, 0U);")
         for index, _ in cases.frames:
             lines.line(f"EXPECT_EQ(loop.recorder.count({index}U), 1U);")
-        _test(self.out, suite, "DispatchesEveryMessage", lines.lines)
+        _test(
+            self.out,
+            suite,
+            "DispatchesEveryMessage",
+            lines.lines,
+            self.requirements(cases, "DispatchesEveryMessage"),
+        )
 
     def bytewise(self, cases: InterfaceCases, suite: str) -> None:
         lines = Writer()
@@ -891,7 +953,13 @@ class _InterfaceTests:
         lines.line("EXPECT_EQ(result.frames_early, 0U);")
         lines.line("EXPECT_EQ(result.frames, 1U);")
         lines.line("EXPECT_EQ(result.errors, 0U);")
-        _test(self.out, suite, "DeliversByteByByte", lines.lines)
+        _test(
+            self.out,
+            suite,
+            "DeliversByteByByte",
+            lines.lines,
+            self.requirements(cases, "DeliversByteByByte"),
+        )
 
     def garbage(self, cases: InterfaceCases, suite: str) -> None:
         lines = Writer()
@@ -905,7 +973,13 @@ class _InterfaceTests:
         lines.line("const wireforge::PollResult polled = loop.link.poll();")
         lines.line("EXPECT_EQ(polled.frames, 1U);")
         lines.line("EXPECT_EQ(polled.errors, 0U);")
-        _test(self.out, suite, "SkipsBytesBeforeSync", lines.lines)
+        _test(
+            self.out,
+            suite,
+            "SkipsBytesBeforeSync",
+            lines.lines,
+            self.requirements(cases, "SkipsBytesBeforeSync"),
+        )
 
     def corrupt(self, cases: InterfaceCases, suite: str) -> None:
         lines = Writer()
@@ -930,7 +1004,9 @@ class _InterfaceTests:
         if cases.exact:
             lines.line(f"ASSERT_EQ(loop.link.send_frame({CSPAN}(kFrame)), {STATUS}Ok);")
             lines.line("EXPECT_EQ(loop.link.poll().frames, 1U);")
-        _test(self.out, suite, "RejectsCorruptedFrame", lines.lines)
+        status = cases.corrupt_status
+        requirements = self.requirements(cases, "RejectsCorruptedFrame", corrupt_status=status)
+        _test(self.out, suite, "RejectsCorruptedFrame", lines.lines, requirements)
 
     def raw(self, cases: InterfaceCases, suite: str) -> None:
         ns = f"model::{cases.interface.name}"
@@ -951,7 +1027,13 @@ class _InterfaceTests:
             lines.line(f"EXPECT_TRUE({SUPPORT}same_bytes(loop.recorder.payload(), {payload}));")
         lines.line(f"EXPECT_EQ(loop.recorder.raw_count(), {len(cases.frames)}U);")
         lines.line("EXPECT_EQ(loop.recorder.decoded_count(), 0U);")
-        _test(self.out, suite, "DeliversRawBytesWithoutDecoding", lines.lines)
+        _test(
+            self.out,
+            suite,
+            "DeliversRawBytesWithoutDecoding",
+            lines.lines,
+            self.requirements(cases, "DeliversRawBytesWithoutDecoding"),
+        )
 
     def raw_and_decoded(self, cases: InterfaceCases, suite: str) -> None:
         lines = Writer()
@@ -964,7 +1046,13 @@ class _InterfaceTests:
         lines.line("EXPECT_EQ(polled.errors, 0U);")
         lines.line("EXPECT_EQ(loop.recorder.raw_count(), 1U);")
         lines.line("EXPECT_EQ(loop.recorder.decoded_count(), 1U);")
-        _test(self.out, suite, "RawCanForwardToDecoder", lines.lines)
+        _test(
+            self.out,
+            suite,
+            "RawCanForwardToDecoder",
+            lines.lines,
+            self.requirements(cases, "RawCanForwardToDecoder"),
+        )
 
     def raw_decode_errors(
         self, cases: InterfaceCases, messages: dict[str, MessageCases], suite: str
@@ -987,7 +1075,11 @@ class _InterfaceTests:
             lines.line(f"const wireforge::RawMessage raw{{{CSPAN}(kPayload), {CSPAN}(kPayload)}};")
             lines.line(f"EXPECT_EQ(recorder.on{entry.name}Raw(raw), {STATUS}{failing.status});")
             lines.line("EXPECT_EQ(recorder.decoded_count(), 0U);")
-            _test(self.out, suite, f"RawDecodeErrorOf{entry.name}", lines.lines)
+            keys = self.verifier.decode_case(self.project.messages[entry.name], failing)
+            name = f"RawDecodeErrorOf{entry.name}"
+            _test(
+                self.out, suite, name, lines.lines, self.requirements(cases, name, decode_keys=keys)
+            )
 
     def too_small(self, cases: InterfaceCases, suite: str) -> None:
         interface = cases.interface
@@ -1009,7 +1101,13 @@ class _InterfaceTests:
                 f"          {STATUS}BufferTooSmall);",
                 "EXPECT_EQ(size, 0U);",
             ]
-        _test(self.out, suite, "EncodeFrameNeedsRoom", lines)
+        _test(
+            self.out,
+            suite,
+            "EncodeFrameNeedsRoom",
+            lines,
+            self.requirements(cases, "EncodeFrameNeedsRoom"),
+        )
 
 
 def interface_test_source(

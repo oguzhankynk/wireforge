@@ -36,7 +36,7 @@ def test_every_element_is_traced() -> None:
 def test_rows_point_at_source_and_code() -> None:
     rows = {row["element"]: row for row in _rows("01_basic_telemetry")}
     reading = rows["/messages/SensorReading"]
-    assert reading["source"] == "project.yaml:27"
+    assert reading["source"] == "project.yaml:41"
     assert reading["symbol"] == "demo::telemetry::SensorReading"
     temperature = rows["/messages/SensorReading/fields/2"]
     assert temperature["symbol"] == "demo::telemetry::SensorReading::temperature"
@@ -45,8 +45,51 @@ def test_rows_point_at_source_and_code() -> None:
     assert "(wire only)" in str(count["symbol"])
     assert (
         rows["/interfaces/sensor_to_us"]["generated"]
-        == "basic_telemetry/interfaces/sensor_to_us.hpp:24"
+        == "basic_telemetry/interfaces/sensor_to_us.hpp:29"
     )
+
+
+def _llrs(example: str) -> list[dict[str, object]]:
+    result = service.trace_report(EXAMPLES / example)
+    assert result.ok
+    llrs = result.data["llrs"]
+    assert isinstance(llrs, list)
+    return llrs
+
+
+# NavMode is declared but no message uses it, so no generated test can exercise its members.
+UNUSED = {"02_multi_interface_avionics": {"LLR-NavMode.VALUES"}}
+
+
+def test_llrs_have_tests() -> None:
+    for example in ("01_basic_telemetry", "02_multi_interface_avionics"):
+        untested = {row["id"] for row in _llrs(example) if not row["tests"]}
+        runtime = {row["id"] for row in _llrs(example) if row["runtime_verified"]}
+        assert untested == runtime | UNUSED.get(example, set()), example
+
+
+def test_requirements_flow_from_model_to_tests() -> None:
+    rows = {row["element"]: row for row in _rows("01_basic_telemetry")}
+    temperature = rows["/messages/SensorReading/fields/2"]
+    assert temperature["requirements"] == ("HLR-SNS-004",)
+    assert "LLR-SensorReading.temperature.RANGE" in str(temperature["llrs"])
+    assert rows["/messages/SensorReading"]["requirements"] == ("HLR-SNS-001",)
+    llrs = {row["id"]: row for row in _llrs("01_basic_telemetry")}
+    range_llr = llrs["LLR-SensorReading.temperature.RANGE"]
+    assert range_llr["parents"] == ("HLR-SNS-001", "HLR-SNS-004")
+    assert not range_llr["derived"]
+    assert "SensorReading.temperature_below_min" in str(range_llr["tests"])
+    assert llrs["LLR-Vec3.LAYOUT"]["derived"]
+    assert llrs["LLR-SensorReading.SIZE"]["tests"] == ("SensorReading.WireSize",)
+
+
+def test_markdown_lists_gaps() -> None:
+    text = service.trace_report(EXAMPLES / "02_multi_interface_avionics").text
+    assert "LLRs without tests: LLR-NavMode.VALUES." in text
+    assert "LLRs verified by the runtime tests: LLR-" in text
+    assert "Requirements without model elements: none." in text
+    plain = service.trace_report(EXAMPLES / "03_edge_cases").text
+    assert "Requirements without model elements" not in plain
 
 
 def test_exports_and_cli(tmp_path: Path) -> None:
@@ -54,7 +97,7 @@ def test_exports_and_cli(tmp_path: Path) -> None:
     assert text.startswith("# Trace report edge_cases 0.0.1")
     assert "Messages and interfaces without tests: none." in text
     csv = service.trace_report(EXAMPLES / "03_edge_cases", "csv").text
-    assert csv.startswith("element,kind,source,symbol,generated,tests\n")
+    assert csv.startswith("element,kind,source,symbol,generated,requirements,llrs,tests\n")
     output = tmp_path / "trace.md"
     assert cli.main(["trace", str(EXAMPLES / "01_basic_telemetry"), "-o", str(output)]) == 0
     assert output.read_text(encoding="utf-8").startswith("# Trace report")

@@ -239,3 +239,39 @@
   schema: project
   expect: libs
   doc: { schema_version: 1, project: p, user_includes: { libs: [] } }
+- name: requirement_id_pattern
+  schema: project
+  expect: /requirements
+  doc: { schema_version: 1, project: p, requirements: { "1-bad": { text: x } } }
+- name: requirement_id_too_long
+  schema: project
+  expect: /requirements
+  doc: { schema_version: 1, project: p, requirements: { "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA": { text: x } } }
+- name: requirement_without_text
+  schema: project
+  expect: text
+  doc: { schema_version: 1, project: p, requirements: { HLR-1: { source: x } } }
+- name: requirement_bad_verification
+  schema: project
+  expect: /verification
+  doc: { schema_version: 1, project: p, requirements: { HLR-1: { text: x, verification: demo } } }
+- name: requirement_unknown_key
+  schema: project
+  expect: priority
+  doc: { schema_version: 1, project: p, requirements: { HLR-1: { text: x, priority: 1 } } }
+- name: reqs_empty
+  schema: project
+  expect: /reqs
+  doc: { schema_version: 1, project: p, messages: { M: { reqs: [], fields: [{ name: a, type: u8 }] } } }
+- name: reqs_duplicate
+  schema: project
+  expect: /reqs
+  doc: { schema_version: 1, project: p, messages: { M: { reqs: [A, A], fields: [{ name: a, type: u8 }] } } }
+- name: reqs_bad_id
+  schema: project
+  expect: /reqs/0
+  doc: { schema_version: 1, project: p, messages: { M: { fields: [{ name: a, type: u8, reqs: ["bad id"] }] } } }
+- name: requirements_in_fragment_rejects_bad_text
+  schema: fragment
+  expect: /requirements
+  doc: { schema_version: 1, requirements: { HLR-1: { text: "" } } }

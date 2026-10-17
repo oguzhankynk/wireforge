@@ -24,7 +24,11 @@ from wireforge.validate import Validator, validate_project
 STAMP_KEYS = frozenset({"schema_version", "schema_minor", "generator", "bundle"})
 ROOT_ONLY_KEYS = ("project", "version", "description", "namespace", "defaults", "user_includes")
 # Standard layout written by import: section -> directory/file (interfaces get one file each).
-LAYOUT = {"profiles": "profiles/profiles.yaml", "messages": "messages/messages.yaml"}
+LAYOUT = {
+    "requirements": "requirements/requirements.yaml",
+    "profiles": "profiles/profiles.yaml",
+    "messages": "messages/messages.yaml",
+}
 TYPE_SECTIONS = ("enums", "types")
 ROOT_SECTIONS = ("defines", "checksums")
 

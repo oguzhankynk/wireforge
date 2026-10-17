@@ -28,7 +28,9 @@ constexpr std::size_t max_wire_size(wireforge::TypeTag<SensorReading>) noexcept;
 }
 ```
 - Plain aggregates: `SensorReading{}` holds the model defaults. Each struct is documented with `Defined in <file>:<line>
-  (<JSON pointer>)` and each member with its `file:line` (traceability, docs/SAFETY.md).
+  (<JSON pointer>)` and each member with its `file:line` (traceability, docs/SAFETY.md). A project with a
+  `requirements` catalog adds `Requirements: <HLR ids>; <LLR ids>` to every struct, enum, checksum and interface; a
+  project without one generates exactly the same code as before.
 - Fixed arrays are `std::array<T, N>`, counted or `fill` arrays `wireforge::StaticVector<T, N>` (an optional field is
   `StaticVector<T, 1>`), `char` arrays `wireforge::FixedString<N>`.
 - `const`, `reserved`, checksum fields and count fields used only as `occurs.count: name` exist only on the wire.

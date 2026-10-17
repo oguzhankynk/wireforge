@@ -2,6 +2,7 @@ schema_version: 1
 interfaces:
   our_to_nodeA:
     version: "1.2.0"
+    reqs: [HLR-NAV-001, HLR-LNK-001]
     direction: tx
     endian: big
     header:

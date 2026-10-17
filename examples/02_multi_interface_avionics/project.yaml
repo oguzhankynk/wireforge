@@ -8,6 +8,7 @@ description: Avionics-style multi-node example.
 namespace: demo::avionics
 defaults: { endian: big, bit_order: msb_first }
 include:
+  - requirements/*.yaml
   - profiles/*.yaml
   - types/*.yaml
   - messages/*.yaml
@@ -29,7 +30,7 @@ user_includes:
       profile_values: { platformB: 192 }
 
 checksums:
-  crc16ccitt: { algo: crc, width: 16, poly: 0x1021, init: 0xFFFF, refin: false, refout: false, xorout: 0x0000, check: 0x29B1 }
+  crc16ccitt: { algo: crc, reqs: [HLR-LNK-001], width: 16, poly: 0x1021, init: 0xFFFF, refin: false, refout: false, xorout: 0x0000, check: 0x29B1 }
   vendorSum:
     algo: custom
     impl: vendor::SumChecksum

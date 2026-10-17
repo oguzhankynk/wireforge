@@ -36,6 +36,9 @@
     },
     "generator": {
       "$ref": "project.schema.json#/$defs/generator"
+    },
+    "requirements": {
+      "$ref": "project.schema.json#/$defs/sections/properties/requirements"
     }
   },
   "additionalProperties": false,

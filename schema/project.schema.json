@@ -71,6 +71,9 @@
     },
     "bundle": {
       "$ref": "#/$defs/bundleInfo"
+    },
+    "requirements": {
+      "$ref": "#/$defs/sections/properties/requirements"
     }
   },
   "additionalProperties": false,
@@ -353,6 +356,9 @@
         },
         "deprecated": {
           "type": "boolean"
+        },
+        "reqs": {
+          "$ref": "#/$defs/reqs"
         }
       },
       "additionalProperties": false
@@ -384,6 +390,9 @@
         },
         "deprecated": {
           "type": "boolean"
+        },
+        "reqs": {
+          "$ref": "#/$defs/reqs"
         }
       },
       "additionalProperties": false
@@ -410,6 +419,9 @@
           "additionalProperties": {
             "type": "integer"
           }
+        },
+        "reqs": {
+          "$ref": "#/$defs/reqs"
         }
       },
       "additionalProperties": false
@@ -447,6 +459,9 @@
         },
         "deprecated": {
           "type": "boolean"
+        },
+        "reqs": {
+          "$ref": "#/$defs/reqs"
         }
       },
       "additionalProperties": false
@@ -508,6 +523,9 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 16
+        },
+        "reqs": {
+          "$ref": "#/$defs/reqs"
         }
       },
       "additionalProperties": false,
@@ -633,6 +651,9 @@
         },
         "description": {
           "type": "string"
+        },
+        "reqs": {
+          "$ref": "#/$defs/reqs"
         }
       }
     },
@@ -696,6 +717,9 @@
         },
         "resync": {
           "type": "boolean"
+        },
+        "reqs": {
+          "$ref": "#/$defs/reqs"
         }
       },
       "additionalProperties": false,
@@ -762,6 +786,9 @@
             },
             "since": {
               "$ref": "#/$defs/semver"
+            },
+            "reqs": {
+              "$ref": "#/$defs/reqs"
             }
           },
           "additionalProperties": false
@@ -828,6 +855,9 @@
         },
         "allow_trailing_bytes": {
           "type": "boolean"
+        },
+        "reqs": {
+          "$ref": "#/$defs/reqs"
         }
       },
       "additionalProperties": false
@@ -926,6 +956,15 @@
           },
           "additionalProperties": {
             "$ref": "#/$defs/interfaceDef"
+          }
+        },
+        "requirements": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/requirementId"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/requirementDef"
           }
         }
       }
@@ -1061,6 +1100,45 @@
             "pattern": "^[^\\n\\r]*$"
           },
           "description": "Verbatim C++ lines emitted after the headers (e.g. extern declarations). Not analysed by WireForge."
+        }
+      },
+      "additionalProperties": false
+    },
+    "requirementId": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]*$",
+      "maxLength": 64
+    },
+    "reqs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/requirementId"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Ids of the requirements (section `requirements`) this element implements."
+    },
+    "requirementDef": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "description": "Where the requirement comes from (free text, e.g. an ICD section)."
+        },
+        "verification": {
+          "enum": [
+            "test",
+            "analysis",
+            "review"
+          ],
+          "description": "How the requirement is verified (default test)."
         }
       },
       "additionalProperties": false

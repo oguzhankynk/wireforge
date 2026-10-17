@@ -3,6 +3,7 @@ messages:
   NodeBStatus:
     id: 0x0010
     description: Raw little-endian status burst from nodeB (no header on the wire).
+    reqs: [HLR-NBS-001]
     endian: little
     fields:
       - { name: uptimeMs, type: u32 }
@@ -15,6 +16,7 @@ messages:
   Command:
     id: 0x0301
     description: Command sent to nodeC.
+    reqs: [HLR-CMD-001]
     fields:
       - { name: target, type: u8, min: 1, max: 4, default: 1 }
       - { name: opcode, type: u16 }

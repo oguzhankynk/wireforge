@@ -2,6 +2,7 @@ schema_version: 1
 interfaces:
   nodeB_to_our:
     version: "2.0.0"
+    reqs: [HLR-NBS-001]
     direction: rx
     endian: little
     header: none                 # raw dispatch: exactly one message type on this link

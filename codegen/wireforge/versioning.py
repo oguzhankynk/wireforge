@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, MutableMapping
 
 FORMAT_MAJOR = 1
-FORMAT_MINOR = 0
+FORMAT_MINOR = 1
 GENERATOR_NAME = "wireforge"
 TOOL_VERSION = __version__
 
