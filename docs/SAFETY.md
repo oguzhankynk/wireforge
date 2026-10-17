@@ -24,20 +24,8 @@ bytes and values you write from the ICD; the reference codec only confirms them 
 tests compare with your values. That is the common-mode argument for keeping the two sources apart (docs/LIFECYCLE.md).
 
 ## Coding-rule mapping
-WireForge does not claim conformance to MISRA C++ or AUTOSAR C++14 (docs/DECISIONS.md D12). The table maps the
-concerns behind such rules to what enforces them here; rule numbers are examples of related rules.
-
-| Concern | Related rules (examples) | Enforcement | Evidence |
-|---------|------------------------|-------------|----------|
-| No dynamic memory | MISRA C++:2008 18-4-1, AUTOSAR A18-5-1 | Fixed-capacity containers (`StaticVector`, `FixedString`, rings); allocation-trap tests; symbol check | `no_heap.md`, allocation-trap tests in every runtime suite |
-| No exceptions, no RTTI | | `noexcept` APIs returning `Status`; production code compiled with `-fno-exceptions -fno-rtti` in every build; no `std::array::at` (`wireforge::array_at`) | `no_heap.md`, header-check targets |
-| Defined integer and conversion behaviour | | `-Wconversion -Wsign-conversion -Wuseless-cast`, `-Weverything` (Clang), UBSan, 32-bit and big-endian test runs; byte-wise shifts, no type punning | gates in `quality/run_all.sh`, `run_portability.sh` |
-| Bounds and lifetime safety | CERT C++ (CTR, EXP, MEM rules via clang-tidy `cert-*`) | clang-tidy `cppcoreguidelines-*`, `bugprone-*`, `cert-*`; ASan; cppcheck; GCC `-fanalyzer`; clang static analyzer | gates, fuzzing (`run_fuzz.sh`) |
-| Concurrency | | Lock policies, SPSC rings with acquire/release, TSan stress tests | `tsan` gate |
-| Deterministic, reviewable generated code | | Snapshots, deterministic generator, zero-warning compile of generated code, Doxygen for every public entity | `tests/python/snapshots`, doxygen gate |
-| Requirements to code to tests traceability | | `Defined in` and `Requirements:` comments, `requirements`/`reqs` in the model, derived low-level requirements, trace report, requirement ids recorded by every generated test | `trace_<project>.md` |
-| Correctness of the codec | | Reference codec as oracle: golden vectors, boundary and mutation tests, differential testing, fuzzing, line coverage of generated code (gate 95 %, examples at 100 %) | `run_generated_tests.sh`, `run_fuzz.sh` |
-| No suppressed findings | | Every suppression registered (`quality/suppressions.md`), checked in CI | `check_suppressions.py` |
+`docs/CODING_RULES.md` maps the concerns behind MISRA C++ and AUTOSAR C++14 to what enforces them here. It is a
+coverage map, not a conformance claim.
 
 Bare-metal targets define `WIREFORGE_NO_STD_MUTEX` (or `WIREFORGE_DEFAULT_LOCK`); the generated `Handler` and the
 runtime `ITransport` have protected non-virtual destructors, so no deleting destructor (and no `operator delete`) is

@@ -6,7 +6,7 @@
 #  - docs_<project>/: requirements, design, test and traceability documents (strict for the
 #    examples that define requirements);
 #  - hashes.txt: model hash of every example (also in the banner of the generated files);
-#  - SAFETY.md: the coding-rule mapping.
+#  - SAFETY.md and CODING_RULES.md: the coding-rule mapping.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 out="build/evidence"
@@ -25,5 +25,5 @@ from wireforge import bundle
 print(bundle.build_bundle(Path(sys.argv[1]))["bundle"]["content_hash"])' "${example}")"
   echo "${name} ${hash}" >> "${out}/hashes.txt"
 done
-cp docs/SAFETY.md "${out}/SAFETY.md"
+cp docs/SAFETY.md docs/CODING_RULES.md "${out}/"
 echo "evidence in ${out}: $(ls "${out}" | tr '\n' ' ')"

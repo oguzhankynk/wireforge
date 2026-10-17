@@ -55,6 +55,23 @@ jobs:
       - run: clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.hpp')
       - run: doxygen docs/api/Doxyfile
 
+  # Advisory only: cppcheck's MISRA C:2012 addon is a rough proxy on C++ code. Not a required check.
+  misra:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y cppcheck ninja-build
+      - run: pip install -e .
+      - run: cmake --preset dev
+      - run: cmake --build --preset dev --target generate_basic_telemetry generate_avionics_demo generate_edge_cases
+      - run: quality/run_misra.sh build/dev
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: misra-findings, path: build/misra }
+
   python:
     runs-on: ubuntu-24.04
     steps:

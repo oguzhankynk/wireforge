@@ -13,3 +13,4 @@ coverage/
 *.gcno
 .plan/
 CLAUDE.md
+*.ctu-info
