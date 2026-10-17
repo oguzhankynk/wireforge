@@ -155,7 +155,7 @@ class Tools:
         name = str(result.data.get("project", ""))
         target = self.output / name
         files = sorted(
-            str(path.relative_to(target)) for path in target.rglob("*") if path.is_file()
+            path.relative_to(target).as_posix() for path in target.rglob("*") if path.is_file()
         )
         result.data["files"] = files if result.ok else []
         return result.to_dict()

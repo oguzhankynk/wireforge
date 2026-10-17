@@ -188,7 +188,8 @@ def test_external_edits_are_seen(client: TestClient, workspace: Path) -> None:
 
     def hand_edit() -> None:
         time.sleep(0.3)
-        path.write_text(path.read_text(encoding="utf-8") + "# edited by hand\n", encoding="utf-8")
+        # bytes, so that Windows does not turn the line end into CR LF
+        path.write_bytes(path.read_bytes() + b"# edited by hand\n")
 
     thread = threading.Thread(target=hand_edit)
     thread.start()

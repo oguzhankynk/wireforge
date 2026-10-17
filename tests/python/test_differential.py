@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import stat
 import struct
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -155,6 +156,7 @@ def test_fuzz_seeds(tmp_path: Path) -> None:
     assert frame.read_bytes()[0] == len(project.messages) + 2, "third interface by name"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="the stub harnesses are shell scripts")
 def test_cli(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     harness = tmp_path / "silent.sh"
     harness.write_text("#!/bin/sh\ncat > /dev/null\n", encoding="utf-8")
