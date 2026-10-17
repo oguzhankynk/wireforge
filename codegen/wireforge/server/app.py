@@ -425,6 +425,16 @@ def generate_zip(store: Store, project: str, *, tests: bool = True) -> Response:
     return Response(data, media_type="application/zip", headers=headers)
 
 
+@router.get("/projects/{project}/docs")
+def lifecycle_zip(store: Store, project: str, *, strict: bool = False) -> Response:
+    """Download the requirements, design, test and traceability documents as a zip."""
+    result, data = service.lifecycle_archive(store.project_dir(project), strict=strict)
+    if not data:
+        return JSONResponse(result.to_dict(), status_code=422)
+    headers = {"Content-Disposition": f'attachment; filename="{project}-docs.zip"'}
+    return Response(data, media_type="application/zip", headers=headers)
+
+
 @router.get("/projects/{project}/preview")
 def preview(store: Store, project: str) -> ResultResponse:
     """Return the generated C++ files without writing them."""

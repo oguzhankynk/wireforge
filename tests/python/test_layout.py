@@ -110,7 +110,7 @@ def test_exports() -> None:
     text = layout.to_markdown(report)
     assert text.startswith("# ICD avionics_demo 2.1.0\n")
     assert "## Profile platformB" in text
-    assert "| flags.mode | u8 | 0 | 1 | 3..1 |" in text
+    assert "| flags.mode | NavMode | 0 | 1 | 3..1 |" in text
     assert "| lat | f64 | 2..4 | 8 |" in text
     assert "= **768 bytes**" in text
     rows = list(csv.DictReader(io.StringIO(layout.to_csv(report))))

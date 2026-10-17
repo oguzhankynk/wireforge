@@ -9,7 +9,7 @@ types:
     description: Bit group, 8 bits total.
     fields:
       - { name: valid, type: bool, bits: 1, default: false }
-      - { name: mode, type: u8, bits: 3, min: 0, max: 5, default: 0 }
+      - { name: mode, type: NavMode, bits: 3, default: init }
       - { name: spare, type: u8, bits: 4, reserved: true }
   TrackRef:
     fields:

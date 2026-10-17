@@ -14,6 +14,7 @@
 namespace {
 
 using demo::avionics::Command;
+using demo::avionics::NavMode;
 using demo::avionics::NavSolution;
 using demo::avionics::NodeBStatus;
 using wireforge::Status;
@@ -50,11 +51,11 @@ TEST(GeneratedAvionics, TrackCountIsLimitedByTheProfile) {
 
 TEST(GeneratedAvionics, BitGroupMembersAndRanges) {
     NavSolution solution{};
-    solution.flags.mode = 5U;
+    solution.flags.mode = NavMode::test;
     EXPECT_EQ(validate(solution), Status::Ok);
-    solution.flags.mode = 6U;
+    solution.flags.mode = static_cast<NavMode>(6U);
     EXPECT_EQ(validate(solution), Status::OutOfRange);
-    solution.flags.mode = 0U;
+    solution.flags.mode = NavMode::init;
     ASSERT_EQ(solution.alt.push_back(-501), Status::Ok);
     EXPECT_EQ(validate(solution), Status::OutOfRange);
 }

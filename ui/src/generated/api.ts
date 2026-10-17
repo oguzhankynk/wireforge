@@ -241,6 +241,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project}/docs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lifecycle Zip
+         * @description Download the requirements, design, test and traceability documents as a zip.
+         */
+        get: operations["lifecycle_zip_api_projects__project__docs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project}/preview": {
         parameters: {
             query?: never;
@@ -1199,6 +1219,41 @@ export interface operations {
         parameters: {
             query?: {
                 tests?: boolean;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                project: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lifecycle_zip_api_projects__project__docs_get: {
+        parameters: {
+            query?: {
+                strict?: boolean;
             };
             header?: {
                 authorization?: string | null;

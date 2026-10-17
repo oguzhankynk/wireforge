@@ -26,7 +26,8 @@ INSTRUCTIONS = """\
 WireForge defines binary messages in YAML and generates C++17 code and tests from them.
 Typical flow: create_project, then upsert_entry (checksums, enums, interfaces, profiles) and
 upsert_struct (types, messages), validate_project until it reports no issues, generate_code,
-run_tests. Use dry_run=true to preview a change as a diff. Field definitions follow
+run_tests, lifecycle_docs (requirements, design, test and traceability documents). Use
+dry_run=true to preview a change as a diff. Field definitions follow
 schema/project.schema.json: {name, type, bits?, min?, max?, default?, occurs?: {max, count?,
 fill?}, checksum?: {use, covers: {scope}}, if?, description?}.
 """
@@ -172,6 +173,11 @@ class Tools:
         target = self.output / "wireshark" / f"{project}.lua"
         return service.wireshark_dissector(self.project_dir(project), target).to_dict()
 
+    def lifecycle_docs(self, project: str, *, strict: bool = False) -> dict[str, Any]:
+        """Write the requirements, design, test and traceability documents of a project."""
+        target = self.output.parent / "docs" / project
+        return service.lifecycle_docs(self.project_dir(project), target, strict=strict).to_dict()
+
     def analyze_layout(
         self, project: str, profile: str | None = None, export: str = "markdown"
     ) -> dict[str, Any]:
@@ -253,6 +259,7 @@ TOOL_NAMES = (
     "run_tests",
     "analyze_layout",
     "wireshark_dissector",
+    "lifecycle_docs",
     "compat_check",
     "encode_sample",
     "decode_hex",

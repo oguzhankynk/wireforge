@@ -3,6 +3,8 @@
 #  - no_heap.md: library symbols of the runtime and the generated code built like embedded code;
 #  - trace_<project>.md/.csv: model element -> source line -> generated symbol -> tests;
 #  - icd_<project>.md: layout report per profile;
+#  - docs_<project>/: requirements, design, test and traceability documents (strict for the
+#    examples that define requirements);
 #  - hashes.txt: model hash of every example (also in the banner of the generated files);
 #  - SAFETY.md: the coding-rule mapping.
 set -euo pipefail
@@ -15,6 +17,9 @@ quality/examples.sh | while read -r example name _; do
   PYTHONPATH=codegen python3 -m wireforge.cli trace "${example}" -o "${out}/trace_${name}.md"
   PYTHONPATH=codegen python3 -m wireforge.cli trace "${example}" --format csv -o "${out}/trace_${name}.csv"
   PYTHONPATH=codegen python3 -m wireforge.cli analyze "${example}" > "${out}/icd_${name}.md"
+  strict=()
+  [[ "${name}" == "basic_telemetry" || "${name}" == "avionics_demo" ]] && strict=(--strict)
+  PYTHONPATH=codegen python3 -m wireforge.cli docs "${example}" -o "${out}/docs_${name}" "${strict[@]}"
   hash="$(PYTHONPATH=codegen python3 -c 'import sys; from pathlib import Path
 from wireforge import bundle
 print(bundle.build_bundle(Path(sys.argv[1]))["bundle"]["content_hash"])' "${example}")"

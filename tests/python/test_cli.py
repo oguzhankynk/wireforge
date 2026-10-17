@@ -228,3 +228,15 @@ def test_run_tests_drives_cmake(
     with pytest.raises(service.ServiceError, match="cmake"):
         service.run_tests(avionics, tmp_path / "out")
     assert json.loads(json.dumps(ok.to_dict()))["ok"]
+
+
+def test_cli_docs(avionics: Path, tmp_path: Path) -> None:
+    output = tmp_path / "docs"
+    assert _run(["docs", str(avionics), "-o", str(output)])[0] == cli.EXIT_OK
+    assert (output / "index.md").exists()
+    assert _run(["docs", str(avionics), "-o", str(output), "--strict"])[0] == cli.EXIT_OK
+    edge = EXAMPLES / "03_edge_cases"
+    code, result = _run(["docs", str(edge), "-o", str(tmp_path / "edge"), "--strict"])
+    assert code == cli.EXIT_FAILED
+    assert "[DS-1]" in str(result["text"])
+    assert _run(["docs", str(edge), "-o", str(tmp_path / "edge")])[0] == cli.EXIT_OK

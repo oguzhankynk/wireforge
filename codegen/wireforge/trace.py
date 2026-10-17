@@ -29,9 +29,11 @@ if TYPE_CHECKING:
     from wireforge.codec import ChecksumPlugin
     from wireforge.model import Field, Project, Struct
 
-TEST = re.compile(
-    r"^TEST\((\w+), (\w+)\) \{\n"
-    r'(?:\s*::testing::Test::RecordProperty\("requirements", "([^"]*)"\);)?',
+PROFILE_OR_TEST = re.compile(
+    r"^#if defined\(WIREFORGE_PROFILE_(?P<opened>\w+)\)$"
+    r"|^(?P<closed>#endif // WIREFORGE_PROFILE_\w+)$"
+    r"|^TEST\((?P<suite>\w+), (?P<name>\w+)\) \{\n"
+    r'(?:\s*::testing::Test::RecordProperty\("requirements", "(?P<ids>[^"]*)"\);)?',
     re.MULTILINE,
 )
 CSV_COLUMNS = ("element", "kind", "source", "symbol", "generated", "requirements", "llrs", "tests")
@@ -86,6 +88,22 @@ class LlrRow:
     generated: str
     tests: tuple[str, ...]
     runtime_verified: bool
+
+
+@dataclass(frozen=True)
+class ParsedTest:
+    """A `TEST` of the generated sources: its requirement ids and the profile block it sits in."""
+
+    suite: str
+    name: str
+    ids: tuple[str, ...]
+    profile: str | None
+    file: str
+
+    @property
+    def id(self) -> str:
+        """Return `Suite.Name`."""
+        return f"{self.suite}.{self.name}"
 
 
 @dataclass(frozen=True)
@@ -282,6 +300,36 @@ class _Tracer:
             )
 
 
+def render_test_sources(
+    project: Project, plugins: dict[str, ChecksumPlugin] | None = None
+) -> dict[str, str]:
+    """Render the three GoogleTest sources of a valid project: file name -> content."""
+    profiles = test_cases.cases(project, plugins)
+    vectors = golden.vectors(project, plugins)
+    sizes = layout.analyze(project)
+    return {
+        "golden_test.cpp": cpp_tests.golden_test_source(project, vectors),
+        "message_test.cpp": cpp_tests.message_test_source(project, profiles, sizes),
+        "interface_test.cpp": cpp_tests.interface_test_source(project, profiles, sizes),
+    }
+
+
+def parse_tests(sources: dict[str, str]) -> list[ParsedTest]:
+    """Read every `TEST` of the generated sources with its requirements and profile block."""
+    found: list[ParsedTest] = []
+    for file, text in sources.items():
+        profile: str | None = None
+        for match in PROFILE_OR_TEST.finditer(text):
+            if match["opened"]:
+                profile = match["opened"]
+            elif match["closed"]:
+                profile = None
+            else:
+                ids = tuple(match["ids"].split(",")) if match["ids"] else ()
+                found.append(ParsedTest(match["suite"], match["name"], ids, profile, file))
+    return found
+
+
 def report(
     project: Project,
     content_hash: str,
@@ -289,20 +337,8 @@ def report(
 ) -> Report:
     """Trace rows and low-level requirement rows of a valid project."""
     files = generate.render(project, content_hash)
-    profiles = test_cases.cases(project, plugins)
-    vectors = golden.vectors(project, plugins)
-    sizes = layout.analyze(project)
-    sources = (
-        cpp_tests.message_test_source(project, profiles, sizes)
-        + cpp_tests.golden_test_source(project, vectors)
-        + cpp_tests.interface_test_source(project, profiles, sizes)
-    )
-    tests = sorted(
-        {
-            (suite, name, tuple(ids.split(",")) if ids else ())
-            for suite, name, ids in TEST.findall(sources)
-        }
-    )
+    parsed = parse_tests(render_test_sources(project, plugins))
+    tests = sorted({(item.suite, item.name, item.ids) for item in parsed})
     tracer = _Tracer(project, files, tests, llr.derive(project))
     return Report(list(tracer.rows()), list(tracer.llr_rows()))
 

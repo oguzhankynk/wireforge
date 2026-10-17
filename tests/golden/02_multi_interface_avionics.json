@@ -60,7 +60,7 @@
     "value": {
       "alt": [],
       "flags": {
-        "mode": 0,
+        "mode": "init",
         "spare": 0,
         "valid": false
       },
@@ -73,10 +73,10 @@
     }
   },
   {
-    "frame": "a55a01020100220701336e4046800000000000405680000000000003aaaa42aaaa42aaaa423f400000f0b4",
+    "frame": "a55a01020100220b01336e4046800000000000405680000000000003aaaa42aaaa42aaaa423f40000001ce",
     "interface": "our_to_nodeA",
     "message": "NavSolution",
-    "payload": "0701336e4046800000000000405680000000000003aaaa42aaaa42aaaa423f400000",
+    "payload": "0b01336e4046800000000000405680000000000003aaaa42aaaa42aaaa423f400000",
     "profile": "platformA",
     "sample": "pattern",
     "value": {
@@ -84,7 +84,7 @@
         13166
       ],
       "flags": {
-        "mode": 3,
+        "mode": "test",
         "spare": 0,
         "valid": true
       },
@@ -201,7 +201,7 @@
       "alt": [],
       "extra": 0,
       "flags": {
-        "mode": 0,
+        "mode": "init",
         "spare": 0,
         "valid": false
       },
@@ -214,10 +214,10 @@
     }
   },
   {
-    "frame": "a55a01020100290701336e4046800000000000405680000000000005aaaa42aaaa42aaaa42aaaa42aaaa42aa3f400000bdc8",
+    "frame": "a55a01020100290b01336e4046800000000000405680000000000005aaaa42aaaa42aaaa42aaaa42aaaa42aa3f400000e9af",
     "interface": "our_to_nodeA",
     "message": "NavSolution",
-    "payload": "0701336e4046800000000000405680000000000005aaaa42aaaa42aaaa42aaaa42aaaa42aa3f400000",
+    "payload": "0b01336e4046800000000000405680000000000005aaaa42aaaa42aaaa42aaaa42aaaa42aa3f400000",
     "profile": "platformB",
     "sample": "pattern",
     "value": {
@@ -226,7 +226,7 @@
       ],
       "extra": 170,
       "flags": {
-        "mode": 3,
+        "mode": "test",
         "spare": 0,
         "valid": true
       },
