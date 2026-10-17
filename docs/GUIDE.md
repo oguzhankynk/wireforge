@@ -8,6 +8,7 @@ adds bytes.
 ## Install
 ```sh
 pip install "wireforge[server,mcp,import]"   # or, in a checkout: pip install -e ".[server,mcp,import]"
+pip install "wireforge[oidc]"                # OIDC login for the server (docs/SERVER.md)
 ```
 A C++17 compiler, CMake 3.21+ and (for the tests) Ninja or Make are needed to build generated code. Docker:
 `docker build -t wireforge . && docker run -p 8000:8000 -v "$PWD/projects:/workspace" wireforge` serves the web UI and
