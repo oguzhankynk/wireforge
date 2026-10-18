@@ -1,0 +1,42 @@
+schema_version: 1
+vectors:
+  read_holding_request:
+    description: Spec 6.3, request for registers 108 to 110 (start 0x006B, quantity 3), slave 0x11.
+    interface: to_server
+    message: ReadHoldingRegistersRequest
+    bytes: "11 03 00 6B 00 03 76 87"
+    expect:
+      fields: { startAddress: 107, quantity: 3 }
+    reqs: [MB-RTU-001, MB-RTU-005]
+  read_holding_response:
+    description: Spec 6.3, the three values 555, 0 and 100 (02 2B 00 00 00 64), slave 0x11.
+    interface: to_client
+    message: ReadHoldingRegistersResponse
+    bytes: "11 03 06 02 2B 00 00 00 64 C8 BA"
+    expect:
+      fields: { byteCount: 6, registers: [555, 0, 100] }
+    reqs: [MB-RTU-002, MB-RTU-005]
+  write_single_register_request:
+    description: Spec 6.6, write 3 to register 2 (0x0001 + 1).
+    interface: to_server
+    message: WriteSingleRegister
+    bytes: "11 06 00 01 00 03 9A 9B"
+    expect:
+      fields: { registerAddress: 1, value: 3 }
+    reqs: [MB-RTU-003, MB-RTU-005]
+  exception_response:
+    description: Spec 7, function 3 refused with exception 2 (illegal data address).
+    interface: to_client
+    message: ExceptionResponse
+    bytes: "11 83 02 C1 34"
+    expect:
+      fields: { exceptionCode: illegal_data_address }
+    reqs: [MB-RTU-004, MB-RTU-005]
+  corrupted_crc:
+    description: The first request with the last CRC byte changed is refused.
+    interface: to_server
+    message: ReadHoldingRegistersRequest
+    bytes: "11 03 00 6B 00 03 76 88"
+    expect:
+      status: ChecksumMismatch
+    reqs: [MB-RTU-005]

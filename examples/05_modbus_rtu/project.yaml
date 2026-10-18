@@ -1,0 +1,116 @@
+# Modbus RTU (a serial frame: address, function code, data, CRC-16/MODBUS), written from the public
+# "MODBUS Application Protocol Specification V1.1b3" (the function codes and the examples of the data
+# bytes) and "MODBUS over Serial Line V1.02" (the frame and the CRC).
+#
+# The vectors are the examples of the specification (section 6.3 read holding registers, 6.6 write
+# single register, section 7 exception responses) and are not produced by WireForge. Where the
+# specification gives only the data bytes, the frame is the data with the slave address 0x11 in
+# front and the CRC behind, which the CRC of the serial line specification defines.
+#
+# What the model cannot say: RTU frames end at a silence of 3.5 character times, not at a length;
+# here every read of the transport is one frame (framing: none), which is how a serial driver
+# delivers them.
+schema_version: 1
+project: modbus_rtu
+version: "1.0.0"
+description: Modbus RTU, four function codes of the specification as a client and a server see them.
+namespace: modbus::rtu
+defaults: { endian: big, bit_order: msb_first, range_check: { encode: true, decode: true } }
+include:
+  - vectors/*.yaml
+
+requirements:
+  MB-RTU-001:
+    text: A read holding registers request carries the first register address and the quantity (1 to 125).
+    source: "MODBUS Application Protocol V1.1b3, 6.3"
+  MB-RTU-002:
+    text: A read holding registers response carries the byte count and the register values, two bytes each.
+    source: "MODBUS Application Protocol V1.1b3, 6.3"
+  MB-RTU-003:
+    text: A write single register request carries the register address and the value, and the answer echoes it.
+    source: "MODBUS Application Protocol V1.1b3, 6.6"
+  MB-RTU-004:
+    text: An exception response has the function code with the high bit set and one exception code.
+    source: "MODBUS Application Protocol V1.1b3, 7"
+  MB-RTU-005:
+    text: Every frame ends with a CRC-16 (polynomial 0xA001 reflected, initial value 0xFFFF), low byte first.
+    source: "MODBUS over Serial Line V1.02, 6.2.2 and Appendix B"
+
+checksums:
+  crcModbus:
+    algo: crc
+    reqs: [MB-RTU-005]
+    width: 16
+    poly: 0x8005
+    init: 0xFFFF
+    refin: true
+    refout: true
+    xorout: 0x0000
+    check: 0x4B37
+
+enums:
+  ExceptionCode:
+    type: u8
+    values:
+      illegal_function: 1
+      illegal_data_address: 2
+      illegal_data_value: 3
+      server_device_failure: 4
+
+messages:
+  ReadHoldingRegistersRequest:
+    id: 3
+    reqs: [MB-RTU-001]
+    endian: big
+    fields:
+      - { name: startAddress, type: u16, default: 0 }
+      - { name: quantity, type: u16, min: 1, max: 125, default: 1 }
+  ReadHoldingRegistersResponse:
+    id: 3
+    reqs: [MB-RTU-002]
+    endian: big
+    fields:
+      - { name: byteCount, type: u8, min: 0, max: 250 }
+      - { name: registers, type: u16, occurs: { max: 125, count: "byteCount / 2" } }
+  WriteSingleRegister:
+    id: 6
+    reqs: [MB-RTU-003]
+    endian: big
+    fields:
+      - { name: registerAddress, type: u16, default: 0 }
+      - { name: value, type: u16, default: 0 }
+  ExceptionResponse:
+    id: 0x83
+    description: Exception of function 3 (the function code with the high bit set).
+    reqs: [MB-RTU-004]
+    endian: big
+    fields:
+      - { name: exceptionCode, type: ExceptionCode, default: illegal_function }
+
+interfaces:
+  to_server:
+    version: "1.0.0"
+    direction: rx
+    endian: little      # the CRC is sent low byte first; the data of the messages is big endian
+    header:
+      fields:
+        - { name: address, type: u8, min: 1, max: 247, default: 1 }
+        - { name: function, type: u8, role: message_id }
+    trailer:
+      fields:
+        - { name: crc, type: u16, checksum: { use: crcModbus, covers: { scope: header_and_payload } } }
+    framing: { kind: none }
+    messages: [ReadHoldingRegistersRequest, WriteSingleRegister]
+  to_client:
+    version: "1.0.0"
+    direction: tx
+    endian: little
+    header:
+      fields:
+        - { name: address, type: u8, min: 1, max: 247, default: 1 }
+        - { name: function, type: u8, role: message_id }
+    trailer:
+      fields:
+        - { name: crc, type: u16, checksum: { use: crcModbus, covers: { scope: header_and_payload } } }
+    framing: { kind: none }
+    messages: [ReadHoldingRegistersResponse, WriteSingleRegister, ExceptionResponse]

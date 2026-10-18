@@ -158,4 +158,5 @@ def test_interface_headers_are_generated() -> None:
     assert "virtual void onNavSolutionReceived(const NavSolution& message) noexcept = 0;" in header
     assert "virtual wireforge::Status onNavSolutionRaw(" in header
     assert "        const wireforge::RawMessage& raw) noexcept {" in header
-    assert "return handler_->onNavSolutionRaw(raw);" in header
+    assert "detail::check_frame(raw.frame)" in header, "the protocol version is checked"
+    assert "? handler_->onNavSolutionRaw(raw) : checked;" in header

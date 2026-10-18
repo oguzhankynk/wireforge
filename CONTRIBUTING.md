@@ -41,6 +41,8 @@ tested on every pull request (ruff and mypy on 3.12 only).
   release with all of them. The upload to PyPI is a separate job that runs only when the repository variable
   `PUBLISH_TO_PYPI` is `true` and the environment `pypi` approves it; it is off until the owner turns it on, after
   checking that the license metadata (BUSL-1.1 for the tool, MIT for `runtime/`, see `README.md`) says what is intended.
+- `pymodbus` (pinned) is a development dependency: `tests/python/test_independent.py` compares the Modbus RTU example
+  with it, byte for byte.
 - Development tools are pinned to one minor version (`ruff`, `mypy` in `pyproject.toml`) so that a new release of a
   linter does not turn CI red by itself; raise them deliberately.
 

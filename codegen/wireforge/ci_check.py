@@ -21,7 +21,11 @@ PASSED = "passed"
 FAILED = "failed"
 SKIPPED = "skipped"
 MAX_CHANGES = 20
+OUTPUT_TAIL = 1500
+MAX_BLOCKS = 4
 TEST_LINE = re.compile(r"\d+% tests passed.*")
+FAILED_BLOCK = re.compile(r"(\d+/\d+ Test\s+#\d+: [^\n]*\*\*\*[^\n]*\n(?:(?!\s*Start ).*\n)*)")
+FAILED_LIST = re.compile(r"The following tests FAILED:\n((?:\s+\d+ - .*\n?)+)")
 BUMPS = {"none": "none", "patch": "patch", "minor": "minor", "major": "major"}
 
 
@@ -107,6 +111,20 @@ def summary(checks: Checks) -> str:
     if tests is not None:
         found = TEST_LINE.search(tests.text)
         lines += ["## Tests", "", found.group(0) if found else tests.text.strip()[-400:], ""]
+        failed = FAILED_LIST.search(tests.text)
+        if failed:
+            lines += ["Failed:", ""]
+            lines += [f"- {row.strip()}" for row in failed.group(1).splitlines()[:MAX_CHANGES]]
+            lines.append("")
+        if not tests.ok:
+            lines += [
+                "End of the test output:",
+                "",
+                "```",
+                tests.text.strip()[-OUTPUT_TAIL:],
+                "```",
+                "",
+            ]
     return "\n".join(lines)
 
 

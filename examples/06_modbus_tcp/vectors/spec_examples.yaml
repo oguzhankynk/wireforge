@@ -1,0 +1,34 @@
+schema_version: 1
+vectors:
+  read_holding_request:
+    description: Request for registers 108 to 110 (start 0x006B, quantity 3) from unit 0x11, transaction 1.
+    interface: request_link
+    message: ReadHoldingRegistersRequest
+    bytes: "00 01 00 00 00 06 11 03 00 6B 00 03"
+    expect:
+      fields: { unit: 17, startAddress: 107, quantity: 3 }
+    reqs: [MB-TCP-001, MB-TCP-002]
+  read_holding_response:
+    description: The three values 555, 0 and 100; the length counts unit, function, byte count and 6 data bytes.
+    interface: response_link
+    message: ReadHoldingRegistersResponse
+    bytes: "00 01 00 00 00 09 11 03 06 02 2B 00 00 00 64"
+    expect:
+      fields: { unit: 17, byteCount: 6, registers: [555, 0, 100] }
+    reqs: [MB-TCP-001, MB-TCP-003]
+  wrong_protocol_id:
+    description: A protocol identifier other than 0 is not Modbus.
+    interface: request_link
+    message: ReadHoldingRegistersRequest
+    bytes: "00 01 00 01 00 06 11 03 00 6B 00 03"
+    expect:
+      status: ConstMismatch
+    reqs: [MB-TCP-001]
+  quantity_above_125:
+    description: A quantity of 126 registers is refused (the limit of the specification).
+    interface: request_link
+    message: ReadHoldingRegistersRequest
+    bytes: "00 01 00 00 00 06 11 03 00 6B 00 7E"
+    expect:
+      status: OutOfRange
+    reqs: [MB-TCP-002]

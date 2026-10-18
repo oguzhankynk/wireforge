@@ -49,7 +49,12 @@ if TYPE_CHECKING:
     from wireforge.model import Project, Source, Struct
 
 DEPENDENCIES = ("ruamel.yaml", "jsonschema")
-ROBUST_INTERFACE_TESTS = ("RejectsCorruptedFrame", "SkipsBytesBeforeSync", "EncodeFrameNeedsRoom")
+ROBUST_INTERFACE_TESTS = (
+    "RejectsCorruptedFrame",
+    "RejectsBrokenFrames",
+    "SkipsBytesBeforeSync",
+    "EncodeFrameNeedsRoom",
+)
 INTERFACE_TESTS = {
     "DispatchesEveryMessage": (
         "Send the pattern frame of every message through Link and Endpoint.",
@@ -66,6 +71,13 @@ INTERFACE_TESTS = {
     "RejectsCorruptedFrame": (
         "Invert the last byte of a pattern frame and send it.",
         "the frame is rejected or delivered as the reference codec decides",
+    ),
+    "RejectsBrokenFrames": (
+        (
+            "Change the byte of a header constant and, without a frame decoder, the last byte of "
+            "the frame of every message; give the frames to the dispatcher."
+        ),
+        "ConstMismatch or ChecksumMismatch, no message delivered",
     ),
     "EncodeFrameNeedsRoom": (
         "Call encode_frame with buffers that cannot hold the frame.",

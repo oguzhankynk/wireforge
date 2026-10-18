@@ -1,0 +1,73 @@
+# Modbus TCP (the MBAP header, then the unit identifier and the PDU of the Modbus Application
+# Protocol), written from "MODBUS Messaging on TCP/IP Implementation Guide V1.0b" (the MBAP header,
+# section 3.1.3) and "MODBUS Application Protocol Specification V1.1b3" (the PDU, section 6.3).
+#
+# The vectors use the data bytes of the examples of section 6.3 of the application protocol
+# specification; the MBAP header around them follows the rules of the implementation guide (length =
+# the bytes that follow the length field).
+#
+# What the model cannot say: the function code sits after the length field, inside the bytes it
+# counts, so a header-based dispatch by function code is not possible. Each interface carries one
+# message (a read request on one, its response on the other), which is how a client that knows the
+# request it sent reads the answer.
+schema_version: 1
+project: modbus_tcp
+version: "1.0.0"
+description: Modbus TCP, read holding registers (function 3).
+namespace: modbus::tcp
+defaults: { endian: big, bit_order: msb_first, range_check: { encode: true, decode: true } }
+include:
+  - vectors/*.yaml
+
+requirements:
+  MB-TCP-001:
+    text: The MBAP header carries a transaction identifier, the protocol identifier 0 and the length of the bytes that follow it.
+    source: "MODBUS Messaging on TCP/IP Implementation Guide V1.0b, 3.1.3"
+  MB-TCP-002:
+    text: A read holding registers request carries the unit, function code 3, the first register address and the quantity (1 to 125).
+    source: "MODBUS Application Protocol V1.1b3, 6.3"
+  MB-TCP-003:
+    text: A read holding registers response carries the unit, function code 3, the byte count and the register values.
+    source: "MODBUS Application Protocol V1.1b3, 6.3"
+
+messages:
+  ReadHoldingRegistersRequest:
+    id: 1
+    reqs: [MB-TCP-002]
+    fields:
+      - { name: unit, type: u8, default: 1 }
+      - { name: function, type: u8, const: 3 }
+      - { name: startAddress, type: u16, default: 0 }
+      - { name: quantity, type: u16, min: 1, max: 125, default: 1 }
+  ReadHoldingRegistersResponse:
+    id: 2
+    reqs: [MB-TCP-003]
+    fields:
+      - { name: unit, type: u8, default: 1 }
+      - { name: function, type: u8, const: 3 }
+      - { name: byteCount, type: u8, min: 0, max: 250 }
+      - { name: registers, type: u16, occurs: { max: 125, count: "byteCount / 2" } }
+
+interfaces:
+  request_link:
+    version: "1.0.0"
+    reqs: [MB-TCP-001]
+    direction: rx
+    header:
+      fields:
+        - { name: transactionId, type: u16 }
+        - { name: protocolId, type: u16, const: 0 }
+        - { name: length, type: u16, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 260 }
+    messages: [ReadHoldingRegistersRequest]
+  response_link:
+    version: "1.0.0"
+    reqs: [MB-TCP-001]
+    direction: tx
+    header:
+      fields:
+        - { name: transactionId, type: u16 }
+        - { name: protocolId, type: u16, const: 0 }
+        - { name: length, type: u16, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 260 }
+    messages: [ReadHoldingRegistersResponse]

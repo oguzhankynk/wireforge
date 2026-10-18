@@ -202,6 +202,8 @@ the last line.
 The `coverage` target also writes machine-readable results to `<build>/results/`, which `wireforge docs --results
 <build>` turns into the test report, the resource document and the toolchain section (docs/LIFECYCLE.md):
 
+On Windows the JUnit file of each test is named `<suite>.<test>.xml`; a path over 260 characters makes GoogleTest abort that test (exit code `0xc0000409`), so keep the project and build directories short or enable long paths.
+
 | File | Content |
 |------|---------|
 | `junit/<executable>/*.xml` | GoogleTest result of every test, with the requirement ids it recorded |
