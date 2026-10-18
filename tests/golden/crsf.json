@@ -1,0 +1,98 @@
+[
+  {
+    "frame": "c80a0800000000000000006d",
+    "interface": "battery_sensor",
+    "message": "BatterySensor",
+    "payload": "080000000000000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "capacity": 0,
+      "current": 0,
+      "remaining": 0,
+      "type": 8,
+      "voltage": 0
+    }
+  },
+  {
+    "frame": "c80a08aaaaaaaaaaaaaa4297",
+    "interface": "battery_sensor",
+    "message": "BatterySensor",
+    "payload": "08aaaaaaaaaaaaaa42",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "capacity": 11184810,
+      "current": 43690,
+      "remaining": 66,
+      "type": 8,
+      "voltage": 43690
+    }
+  },
+  {
+    "frame": "c8030b0045",
+    "interface": "heartbeat",
+    "message": "Heartbeat",
+    "payload": "0b00",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "originDeviceAddress": 0,
+      "type": 11
+    }
+  },
+  {
+    "frame": "c8030baa58",
+    "interface": "heartbeat",
+    "message": "Heartbeat",
+    "payload": "0baa",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "originDeviceAddress": 170,
+      "type": 11
+    }
+  },
+  {
+    "frame": "c80c14000000000000000000003a",
+    "interface": "link_statistics",
+    "message": "LinkStatistics",
+    "payload": "1400000000000000000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "diversityActiveAntenna": "antenna_1",
+      "downlinkLinkQuality": 0,
+      "downlinkRssi": 0,
+      "downlinkSnr": 0,
+      "rfMode": "fps_4",
+      "type": 20,
+      "uplinkLinkQuality": 0,
+      "uplinkRssiAnt1": 0,
+      "uplinkRssiAnt2": 0,
+      "uplinkSnr": 0,
+      "uplinkTxPower": "mw_0"
+    }
+  },
+  {
+    "frame": "c80c14aaaaaa2a010206aaaa2a05",
+    "interface": "link_statistics",
+    "message": "LinkStatistics",
+    "payload": "14aaaaaa2a010206aaaa2a",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "diversityActiveAntenna": "antenna_2",
+      "downlinkLinkQuality": 170,
+      "downlinkRssi": 170,
+      "downlinkSnr": 42,
+      "rfMode": "fps_150",
+      "type": 20,
+      "uplinkLinkQuality": 170,
+      "uplinkRssiAnt1": 170,
+      "uplinkRssiAnt2": 170,
+      "uplinkSnr": 42,
+      "uplinkTxPower": "mw_2000"
+    }
+  }
+]

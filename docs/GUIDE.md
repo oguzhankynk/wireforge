@@ -84,6 +84,7 @@ published protocol that is written from its public documents and checked against
 |----------|--------|-------------------|
 | `modbus_rtu` | Modbus RTU: read holding registers, write single register, exceptions; CRC-16/MODBUS sent low byte first; vectors from the examples of the specification | `pymodbus` |
 | `modbus_tcp` | Modbus TCP: the MBAP header with a length, one message per interface | (vectors of the specification) |
+| `crsf` | CRSF (radio link to flight controller): the frame and HEARTBEAT, BATTERY_SENSOR, LINK_STATISTICS, one message per interface | `crsf-parser` |
 | `j1939` | SAE J1939: the identifier word (priority, PGN, source address) and the groups EEC1, CCVS, ET1 | `cantools` |
 | `mavlink1` | MAVLink 1: the frame and HEARTBEAT, ATTITUDE, GLOBAL_POSITION_INT, COMMAND_LONG; a checksum that adds the CRC_EXTRA byte of the message | `pymavlink` |
 | `ubx` | u-blox UBX: the frame, ACK-ACK, ACK-NAK, CFG-RATE, NAV-PVT, MON-VER; Fletcher-8 that skips the sync characters | `pyubx2` |
