@@ -71,7 +71,8 @@ class Tools:
     ) -> dict[str, Any]:
         """Create a project directory with its root file, empty or from a template.
 
-        `template` is one of `telemetry`, `command` or `raw` (a working first project to edit).
+        `template` is one of `telemetry`, `command` or `raw` (a working first project to edit) or a
+        published protocol such as `modbus_rtu` (`wireforge init --list` lists them).
         """
         directory = self.workspace / project
         if template is not None:

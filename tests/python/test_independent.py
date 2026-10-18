@@ -1,6 +1,6 @@
 """WireForge against an independent implementation of the same protocol (pymodbus).
 
-The Modbus RTU example (examples/05_modbus_rtu) is written from the specification. pymodbus is a
+The Modbus RTU example (protocols/modbus_rtu) is written from the specification. pymodbus is a
 separate implementation of it; the two must agree on the bytes of the frames, on the values in them
 and on what a broken CRC is. A disagreement fails the test whichever side is wrong.
 """
@@ -22,7 +22,7 @@ from wireforge import service
 from wireforge.codec import CodecError, ReferenceCodec
 from wireforge.loader import load_project
 
-EXAMPLE = Path(__file__).resolve().parents[2] / "examples" / "05_modbus_rtu"
+EXAMPLE = Path(__file__).resolve().parents[2] / "protocols" / "modbus_rtu"
 SLAVE = 17
 
 

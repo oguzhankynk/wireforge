@@ -36,6 +36,7 @@ qualification, which depend on the whole project and its assessor (docs/DO178C.m
 | Server, web UI, MCP | docs/SERVER.md, docs/UI.md, docs/MCP.md |
 | Secure deployment and operation | docs/SERVER.md, "Deployment and operation" |
 | Importers (CSV/Excel ICD, C headers, CAN databases) | docs/IMPORT.md |
+| Published protocols (`wireforge init --protocol`) | docs/GUIDE.md, `protocols/` |
 | Quality, safety, traceability | quality/QUALITY_POLICY.md, docs/SAFETY.md, docs/CODING_RULES.md |
 | Architecture and design decisions | docs/ARCHITECTURE.md, docs/DECISIONS.md |
 

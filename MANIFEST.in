@@ -5,4 +5,5 @@ include runtime/LICENSE runtime/requirements.yaml
 recursive-include schema *.json
 recursive-include runtime/include *.hpp
 recursive-include cmake/package *
+recursive-include protocols *
 recursive-include ui/dist *

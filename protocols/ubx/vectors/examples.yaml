@@ -1,0 +1,12 @@
+schema_version: 1
+vectors:
+  cfg_rate_one_hertz:
+    description: >-
+      The frame that sets one measurement per second (1000 ms, one measurement per solution, GPS time) that is
+      used as the example of the checksum.
+    interface: receiver
+    message: CfgRate
+    bytes: "B5 62 06 08 06 00 E8 03 01 00 01 00 01 39"
+    expect:
+      fields: { measRate: 1000, navRate: 1, timeRef: 1 }
+    reqs: [UBX-001, UBX-002, UBX-003]

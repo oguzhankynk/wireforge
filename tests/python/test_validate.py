@@ -9,7 +9,11 @@ from wireforge import service, validate, vectors
 
 HERE = Path(__file__).parent
 ROOT = HERE.parents[1]
-EXAMPLES = sorted(path.parent for path in (ROOT / "examples").glob("*/project.yaml"))
+EXAMPLES = sorted(
+    path.parent
+    for folder in ("examples", "protocols")
+    for path in (ROOT / folder).glob("*/project.yaml")
+)
 BASE = YAML(typ="safe").load((HERE / "semantic_base.yaml").read_text(encoding="utf-8"))
 CASES = YAML(typ="safe").load((HERE / "semantic_cases.yaml").read_text(encoding="utf-8"))
 RULES = [f"SR-{number}" for number in range(1, 25)]

@@ -19,7 +19,7 @@ describe("new project", () => {
     await screen.findByRole("option", { name: "command" });
     const create = screen.getByRole("button", { name: "Create project" });
     expect((create as HTMLButtonElement).disabled).toBe(true);
-    await user.selectOptions(screen.getByLabelText("Template"), "command");
+    await user.selectOptions(screen.getByLabelText("Template or protocol"), "command");
     await user.type(screen.getByLabelText("Project id (directory)"), "first-link");
     await user.type(screen.getByLabelText("Project name (C++ identifier)"), "first_link");
     expect((create as HTMLButtonElement).disabled).toBe(false);
@@ -35,6 +35,27 @@ describe("new project", () => {
       expect(messages.textContent).toContain("Command");
     });
     expect(screen.getByLabelText("Save result").textContent).toBe("Created first-link.");
+  });
+
+  it("creates a project from a published protocol", async () => {
+    const user = userEvent.setup();
+    render(<App api={new Api(inject("serverUrl"))} />);
+    await screen.findByRole("option", { name: "avionics" });
+    await user.click(screen.getByRole("button", { name: "New project" }));
+    await screen.findByRole("option", { name: "ubx (protocol)" });
+    await user.selectOptions(screen.getByLabelText("Template or protocol"), "ubx");
+    expect(screen.getByText(/u-blox UBX/).textContent).toContain("five messages");
+    await user.type(screen.getByLabelText("Project id (directory)"), "gps-link");
+    await user.type(screen.getByLabelText("Project name (C++ identifier)"), "gps_link");
+    await user.click(screen.getByRole("button", { name: "Create project" }));
+    await screen.findByRole("option", { name: "gps-link" }, { timeout: 10000 });
+    const messages = screen.getByRole("region", { name: "Messages" });
+    await waitFor(
+      () => {
+        expect(messages.textContent).toContain("NavPvt");
+      },
+      { timeout: 10000 },
+    );
   });
 
   it("shows the refusal of an existing project", async () => {

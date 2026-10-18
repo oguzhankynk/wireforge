@@ -2,10 +2,10 @@
 
 A feature of the schema (a field type, an occurrence form, a framing kind, a checksum ...) that no
 model uses is a feature whose generated code no test of the repository has ever run. The models
-that are built and measured at 100 percent coverage are the examples, `tests/models/*` and the
-random models of the CI range (`quality/random_models.py`); this script lists the features each of
-them uses and fails when a required feature is in none of them, or when a property of the schema
-is neither mapped to a feature nor declared as documentation only.
+that are built and measured at 100 percent coverage are the examples, the protocols,
+`tests/models/*` and the random models of the CI range (`quality/random_models.py`); this script
+lists the features each of them uses and fails when a required feature is in none of them, or when
+a property of the schema is neither mapped to a feature nor declared as documentation only.
 
 Usage: python3 quality/feature_matrix.py   (needs the Python package)
 """
@@ -320,6 +320,7 @@ def model_directories() -> list[Path]:
         path.parent
         for pattern in (
             "examples/*/project.yaml",
+            "protocols/*/project.yaml",
             "tests/models/*/project.yaml",
             "codegen/wireforge/templates/*/project.yaml",
         )

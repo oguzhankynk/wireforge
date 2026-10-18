@@ -107,10 +107,15 @@ def _migrate(args: argparse.Namespace) -> Result:
 def _init(args: argparse.Namespace) -> Result:
     if args.list:
         names = service.templates()
-        return Result(ok=True, data={"templates": names}, text="\n".join(names) + "\n")
-    return service.init_project(
-        args.directory, args.template, args.name, args.namespace, args.version
-    )
+        known = service.protocols()
+        lines = [*names, *(f"{name} (protocol)" for name in known)]
+        data = {"templates": names, "protocols": known}
+        return Result(ok=True, data=data, text="\n".join(lines) + "\n")
+    if args.template and args.protocol:
+        message = "give --template or --protocol, not both"
+        raise ServiceError(message)
+    choice = args.protocol or args.template or service.DEFAULT_TEMPLATE
+    return service.init_project(args.directory, choice, args.name, args.namespace, args.version)
 
 
 def _ci(args: argparse.Namespace) -> Result:
@@ -446,13 +451,18 @@ def _ci_command(add: Callable[[str, Handler, str], argparse.ArgumentParser]) -> 
 
 
 def _init_command(add: Callable[[str, Handler, str], argparse.ArgumentParser]) -> None:
-    parser = add("init", _init, "Create a project from a template (telemetry, command, raw).")
+    parser = add(
+        "init", _init, "Create a project from a template (telemetry, command, raw) or a protocol."
+    )
     parser.add_argument("directory", type=Path, nargs="?", default=Path())
-    parser.add_argument("--template", default=service.DEFAULT_TEMPLATE, help="see --list")
+    parser.add_argument("--template", help="a template (default telemetry), see --list")
+    parser.add_argument("--protocol", help="a published protocol such as modbus_rtu, see --list")
     parser.add_argument("--name", help="project name (default: the directory name)")
     parser.add_argument("--namespace", help="C++ namespace (default: the project name)")
     parser.add_argument("--version", help="project version, for example 0.1.0")
-    parser.add_argument("--list", action="store_true", help="list the templates and exit")
+    parser.add_argument(
+        "--list", action="store_true", help="list the templates and protocols and exit"
+    )
 
 
 def _oidc_options(parser: argparse.ArgumentParser) -> None:

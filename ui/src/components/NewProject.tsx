@@ -46,11 +46,11 @@ export function NewProject(props: { api: Api; onCreated: (id: string) => void; o
       <h2>New project</h2>
       <p>Start from a working model and change it to match your protocol.</p>
       <label>
-        Template
+        Template or protocol
         <select value={template} onChange={(event) => { setTemplate(event.target.value); }}>
           {templates.map((item) => (
             <option key={item.name} value={item.name}>
-              {item.name}
+              {item.kind === "protocol" ? `${item.name} (protocol)` : item.name}
             </option>
           ))}
         </select>

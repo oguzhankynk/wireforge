@@ -7,11 +7,12 @@ import pytest
 
 from wireforge import fmt
 
-EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
-FILES = sorted(EXAMPLES.rglob("*.yaml"))
+ROOT = Path(__file__).resolve().parents[2]
+EXAMPLES = ROOT / "examples"
+FILES = sorted([*EXAMPLES.rglob("*.yaml"), *(ROOT / "protocols").rglob("*.yaml")])
 
 
-@pytest.mark.parametrize("path", FILES, ids=lambda path: str(path.relative_to(EXAMPLES)))
+@pytest.mark.parametrize("path", FILES, ids=lambda path: str(path.relative_to(ROOT)))
 def test_examples_are_canonical(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
     assert fmt.format_text(text) == text

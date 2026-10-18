@@ -18,6 +18,7 @@ MODELS = sorted(
     path.parent
     for pattern in (
         "examples/*/project.yaml",
+        "protocols/*/project.yaml",
         "tests/models/*/project.yaml",
         "codegen/wireforge/templates/*/project.yaml",
     )

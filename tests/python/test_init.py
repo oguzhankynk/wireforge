@@ -67,7 +67,8 @@ def test_nothing_is_overwritten_and_bad_input_is_refused(tmp_path: Path) -> None
 
 def test_the_command_line(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert cli.main(["init", "--list"]) == 0
-    assert capsys.readouterr().out.split() == TEMPLATES
+    listed = capsys.readouterr().out.splitlines()
+    assert listed == [*TEMPLATES, *(f"{name} (protocol)" for name in service.protocols())]
     assert cli.main(["init", str(tmp_path / "cli"), "--template", "raw", "--name", "pkt"]) == 0
     assert "created" in capsys.readouterr().out
     assert cli.main(["init", str(tmp_path / "cli")]) == cli.EXIT_ERROR
@@ -87,5 +88,6 @@ def test_a_project_from_a_template_over_the_api(tmp_path: Path) -> None:
 def test_the_templates_are_listed_with_a_summary(tmp_path: Path) -> None:
     client = TestClient(create_app(tmp_path))
     listed = client.get("/api/templates").json()
-    assert [item["name"] for item in listed] == TEMPLATES
+    assert [item["name"] for item in listed] == [*TEMPLATES, *service.protocols()]
     assert all(item["summary"] for item in listed)
+    assert {item["kind"] for item in listed} == {"template", "protocol"}
