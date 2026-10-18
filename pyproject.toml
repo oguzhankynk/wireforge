@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wireforge"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Schema-driven wire-format toolkit: C++17 code generation, validation, server and MCP."
 requires-python = ">=3.10"
 license = { text = "BUSL-1.1" }
@@ -27,8 +27,8 @@ mcp = ["mcp>=2.3"]
 import = ["openpyxl>=3.1"]
 dev = [
   "pytest>=8",
-  "ruff>=0.5",
-  "mypy>=1.10",
+  "ruff>=0.17,<0.18",
+  "mypy>=2.4,<3",
   "types-jsonschema",
   "gcovr>=7",
   "clang-tidy==18.1.8",
@@ -40,6 +40,9 @@ dev = [
   "joserfc>=1.0",
   "types-openpyxl",
 ]
+
+[tool.setuptools.dynamic]
+version = { attr = "wireforge.__version__" }
 
 [tool.setuptools]
 package-dir = { "" = "codegen" }

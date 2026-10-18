@@ -26,6 +26,24 @@ is ready when all of them pass with zero warnings.
   `WIREFORGE_UPDATE_SNAPSHOTS=1 pytest tests/python/test_generate.py` and review the diff.
 - UI types: `npm run gen:types` in `ui/` after schema or API changes.
 
+## Releases
+The version has one source, `__version__` in `codegen/wireforge/__init__.py` (the wheel, `wireforge version`, the CMake
+package and `ui/package.json` follow it; `tests/python/test_packaging.py` keeps them equal). Python 3.10 to 3.13 are
+tested on every pull request (ruff and mypy on 3.12 only).
+
+- `python3 quality/check_dist.py` builds the wheel and the source distribution twice with `SOURCE_DATE_EPOCH` set to the
+  last commit, requires the same wheel hash and the same files in the source distribution, requires the schemas, runtime
+  headers, runtime requirements, templates, CMake package and both licenses in the wheel, and installs the wheel and the
+  source distribution in clean virtual environments (`wireforge version`, `init`, `validate`, `generate`). CI runs it as
+  the job `dist`.
+- A tag `v<version>` starts the workflow `release`: it builds the UI and the distributions, writes a CycloneDX SBOM and
+  the `pip-audit` report of the resolved dependencies (a known vulnerability fails the release), and creates the GitHub
+  release with all of them. The upload to PyPI is a separate job that runs only when the repository variable
+  `PUBLISH_TO_PYPI` is `true` and the environment `pypi` approves it; it is off until the owner turns it on, after
+  checking that the license metadata (BUSL-1.1 for the tool, MIT for `runtime/`, see `README.md`) says what is intended.
+- Development tools are pinned to one minor version (`ruff`, `mypy` in `pyproject.toml`) so that a new release of a
+  linter does not turn CI red by itself; raise them deliberately.
+
 ## Conventions
 - C++17, no heap, exceptions or RTTI in `runtime/` and generated code; never add bytes to the wire format.
 - Comments describe behaviour; runtime and generated C++ carry Doxygen comments on every public entity.

@@ -1,0 +1,8 @@
+# What the source distribution carries so that a wheel can be built from it (setup.py copies these
+# directories into the wheel).
+include LICENSE README.md
+include runtime/LICENSE runtime/requirements.yaml
+recursive-include schema *.json
+recursive-include runtime/include *.hpp
+recursive-include cmake/package *
+recursive-include ui/dist *

@@ -36,7 +36,8 @@ def test_resources_come_from_the_repository_or_the_package(
 
 def test_versions_agree() -> None:
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    assert f'\nversion = "{versioning.TOOL_VERSION}"\n' in pyproject
+    assert 'dynamic = ["version"]' in pyproject, "the version has one source: wireforge.__version__"
+    assert 'version = { attr = "wireforge.__version__" }' in pyproject
     cmake = (ROOT / "cmake" / "package" / "WireForgeConfigVersion.cmake").read_text(
         encoding="utf-8"
     )
