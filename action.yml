@@ -1,8 +1,11 @@
 name: WireForge check
 description: >-
-  Validates a WireForge project, compares it with the base of the pull request (wire compatibility
-  and version bump) and builds and runs the generated tests. The summary appears on the run.
+  Checks a WireForge wire-format project in CI: validation, wire compatibility with the pull request
+  base, and the generated tests. The summary appears on the run.
 author: WireForge
+branding:
+  icon: check-circle
+  color: blue
 inputs:
   project:
     description: Project directory (or project.yaml) in the checked-out repository.
