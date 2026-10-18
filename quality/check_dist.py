@@ -79,8 +79,15 @@ def _problems(wheel: Path) -> list[str]:
     with zipfile.ZipFile(wheel) as archive:
         names = set(archive.namelist())
     problems = [f"missing in the wheel: {name}" for name in REQUIRED if name not in names]
-    if not any(name.endswith("/licenses/LICENSE") for name in names):
-        problems.append("missing in the wheel: the license of the tool")
+    problems += [
+        f"missing in the wheel: the license file {license_file}"
+        for license_file in ("LICENSE", "runtime/LICENSE")
+        if not any(name.endswith(f"/licenses/{license_file}") for name in names)
+    ]
+    with zipfile.ZipFile(wheel) as archive:
+        metadata = next(n for n in archive.namelist() if n.endswith(".dist-info/METADATA"))
+        if "License-Expression: BUSL-1.1 AND MIT" not in archive.read(metadata).decode():
+            problems.append("the metadata does not declare both licenses (BUSL-1.1 AND MIT)")
     if (
         ROOT / "ui" / "dist" / "index.html"
     ).exists() and "wireforge/_data/ui/index.html" not in names:
