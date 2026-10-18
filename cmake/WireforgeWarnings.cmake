@@ -22,6 +22,31 @@ else()
   endif()
 endif()
 
+# The same policy for C99 code (the C runtime and the C code that wireforge generates).
+add_library(wireforge_c_warnings INTERFACE)
+if(MSVC)
+  target_compile_options(wireforge_c_warnings INTERFACE /W4)
+  if(WIREFORGE_WERROR)
+    target_compile_options(wireforge_c_warnings INTERFACE /WX)
+  endif()
+else()
+  target_compile_options(wireforge_c_warnings INTERFACE
+    -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow -Wcast-qual -Wcast-align
+    -Wnull-dereference -Wdouble-promotion -Wformat=2 -Wundef -Wunused -Wswitch-enum
+    -Wstrict-prototypes -Wold-style-definition -Wmissing-prototypes)
+  if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(wireforge_c_warnings INTERFACE
+      -Wduplicated-cond -Wduplicated-branches -Wlogical-op)
+  endif()
+  if(WIREFORGE_WEVERYTHING AND CMAKE_C_COMPILER_ID MATCHES "Clang")
+    target_compile_options(wireforge_c_warnings INTERFACE -Weverything -Wno-padded
+      -Wno-declaration-after-statement -Wno-unsafe-buffer-usage -Wno-unknown-warning-option)
+  endif()
+  if(WIREFORGE_WERROR)
+    target_compile_options(wireforge_c_warnings INTERFACE -Werror)
+  endif()
+endif()
+
 add_library(wireforge_instrumentation INTERFACE)
 if(WIREFORGE_SANITIZE AND NOT MSVC)
   target_compile_options(wireforge_instrumentation INTERFACE

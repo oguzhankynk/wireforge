@@ -38,6 +38,7 @@ REQUIRED = (
     "wireforge/_data/protocols/modbus_tcp/project.yaml",
     "wireforge/_data/protocols/ubx/project.yaml",
     "wireforge/_data/runtime/include/wireforge/span.hpp",
+    "wireforge/_data/runtime/include/wireforge/c/wireforge.h",
     "wireforge/_data/runtime/requirements.yaml",
     "wireforge/_data/runtime/LICENSE",
     "wireforge/_data/cmake/WireForgeConfig.cmake",

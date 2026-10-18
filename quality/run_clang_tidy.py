@@ -10,11 +10,14 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+C_CONFIG = Path(__file__).resolve().parents[1] / ".clang-tidy-c"
 DIAGNOSTIC = re.compile(r": (warning|error|note): ")
 
 
 def run_one(build_dir: Path, source: str) -> tuple[str, str]:
     """Run clang-tidy on one source file and return its combined output."""
+    # C code has its own configuration: the C++ core guidelines do not apply to it.
+    config = [f"--config-file={C_CONFIG}"] if source.endswith(".c") else []
     result = subprocess.run(
         [
             shutil.which("clang-tidy") or "clang-tidy",
@@ -22,6 +25,7 @@ def run_one(build_dir: Path, source: str) -> tuple[str, str]:
             str(build_dir),
             "--quiet",
             "--extra-arg=-Wno-unknown-warning-option",
+            *config,
             source,
         ],
         capture_output=True,

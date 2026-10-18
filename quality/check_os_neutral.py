@@ -33,6 +33,11 @@ ALLOWED_STD = {
     "string_view",
     "type_traits",
     "utility",
+    # C99: the freestanding headers and <string.h> for memcpy.
+    "stdbool.h",
+    "stddef.h",
+    "stdint.h",
+    "string.h",
 }
 # Needs WIREFORGE_NO_STD_MUTEX around it; allowed only in these files.
 MUTEX_FILES = {"lock.hpp", "config.hpp"}
@@ -78,7 +83,7 @@ def _scan_tree(root: Path, patterns: tuple[str, ...]) -> list[str]:
 
 def main() -> int:
     """Scan the runtime and the generated headers of every example."""
-    findings = _scan_tree(RUNTIME, ("wireforge/*.hpp",))
+    findings = _scan_tree(RUNTIME, ("wireforge/*.hpp", "wireforge/c/*.h"))
     with tempfile.TemporaryDirectory() as work:
         generated = Path(work)
         for project in sorted(

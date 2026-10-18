@@ -121,7 +121,7 @@ jobs:
       - run: cmake --build --preset dev --target generate_basic_telemetry generate_avionics_demo generate_edge_cases
       - run: python3 quality/run_clang_tidy.py build/dev
       - run: quality/run_cppcheck.sh build/dev
-      - run: clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.hpp')
+      - run: clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.hpp' 'runtime/*.h' 'tests/c/*.c')
       - run: doxygen docs/api/Doxyfile
 
   # Advisory only: cppcheck's MISRA C:2012 addon is a rough proxy on C++ code. Not a required check.

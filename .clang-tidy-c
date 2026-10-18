@@ -1,0 +1,20 @@
+# clang-tidy for the C code (the C runtime, its tests and the C code that wireforge generates); the C++ code
+# uses .clang-tidy. Exclusions are listed in quality/QUALITY_POLICY.md ("Check exclusions").
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  performance-*,
+  portability-*,
+  misc-*,
+  readability-*,
+  -bugprone-easily-swappable-parameters,
+  -readability-magic-numbers,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length,
+  -misc-include-cleaner,
+  -misc-no-recursion
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/(runtime|tests|generated)/.*'
+FormatStyle: file

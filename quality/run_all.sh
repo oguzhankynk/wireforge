@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 # (vm.mmap_rnd_bits > 28, e.g. WSL2 6.x kernels). Running sanitizer tests without ASLR is harmless.
 no_aslr=(setarch "$(uname -m)" -R)
 
-echo "== format ==";        clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.hpp' 2>/dev/null || find runtime tests -name '*.cpp' -o -name '*.hpp')
+echo "== format ==";        clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.hpp' 'runtime/*.h' 'tests/c/*.c' 2>/dev/null || find runtime tests -name '*.cpp' -o -name '*.hpp' -o -path 'runtime/*.h' -o -path 'tests/c/*.c')
 echo "== build+test ==";    cmake --preset dev && cmake --build --preset dev && ctest --preset dev
 echo "== asan+ubsan ==";    cmake --preset asan-ubsan && cmake --build --preset asan-ubsan && "${no_aslr[@]}" ctest --preset asan-ubsan
 echo "== tsan ==";          cmake --preset tsan && cmake --build --preset tsan && "${no_aslr[@]}" ctest --preset tsan

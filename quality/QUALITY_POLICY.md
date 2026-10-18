@@ -60,6 +60,12 @@ Applies to runtime, generated code, generated test project, and tooling.
   false positives on libstdc++/gtest in C++, so test TUs are excluded. Re-evaluate when upgrading GCC.
 - cppcheck: `--enable=warning,style,performance,portability`; `unusedFunction` and `missingInclude` are not
   enabled (header-only library; system headers are not resolved in CI).
+- C code (the C runtime and its tests, later the generated C): clang-tidy reads `.clang-tidy-c` (the C++ core guidelines
+  do not apply to C; it also leaves out `readability-function-cognitive-complexity` and `readability-identifier-length`,
+  which flag a list of checks in a test and the short name of a callback), the compiler warns with `-Wall -Wextra
+  -Wpedantic -Wconversion -Wsign-conversion -Wshadow -Wcast-qual -Wstrict-prototypes ...` as errors (`/W4 /WX` for
+  MSVC) and Clang `-Weverything` with `-Wno-padded -Wno-declaration-after-statement -Wno-unsafe-buffer-usage` (pointer
+  arithmetic on buffers is what a C codec is).
 - Over-aligned allocations bypass the allocation trap (documented limitation, runtime has no such types).
 - Clang `-Weverything` (gating, preset `clang-everything`, runtime + generated code + self-tests): `-Wno-c++98-compat`,
   `-Wno-c++98-compat-pedantic` (C++17 code base), `-Wno-padded` (layout of in-memory structs is not the wire format),
