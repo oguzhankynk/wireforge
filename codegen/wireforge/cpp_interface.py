@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from wireforge.cpp import Names, Writer, guard
 from wireforge.cpp_codec import encoding_literal
-from wireforge.model import BUILTIN_BITS, INTEGER_TYPES, Field, Interface, Project
+from wireforge.model import BUILTIN_BITS, INTEGER_TYPES, ChecksumUse, Field, Interface, Project
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -68,6 +68,18 @@ class _Entry:
     name: str
     identifier: int | None
     condition: str | None
+
+
+def is_checked_constant(item: Field, *, framed: bool) -> bool:
+    """Whether a header field is a constant the receiver checks itself.
+
+    The frame decoder checks the sync word of a framed link; every other constant and the
+    protocol version (and, without framing, the sync word too) is checked before a message is
+    handed to the application.
+    """
+    return (item.const is not None or item.role == "protocol_version") and not (
+        framed and item.role == "sync"
+    )
 
 
 def version_namespace(version: str) -> str:
@@ -203,6 +215,7 @@ class InterfaceHeader:
         self._frame_writer()
         self._frame_encoders()
         self._header_decoder()
+        self._frame_check()
         self._handler()
         self._receiver()
         self._endpoint()
@@ -671,6 +684,88 @@ class InterfaceHeader:
                 lines.append("#endif")
         return [*lines, "            wireforge::Status::Ok);"]
 
+    # --- checks of the frame that the frame decoder does not make ------------------------------
+
+    def _checked_constants(self) -> list[_Placed]:
+        """Header constants the frame decoder does not check (it checks only the sync word)."""
+        framed = self.interface.framing.kind != "none"
+        return [p for p in self.header if is_checked_constant(p.field, framed=framed)]
+
+    def _checks_trailer(self) -> bool:
+        """Whether the checksum has to be checked here: only an unframed link has no decoder."""
+        return self.interface.framing.kind == "none" and self._trailer_checksum() is not None
+
+    def _frame_check_needed(self) -> bool:
+        return bool(self._checked_constants()) or self._checks_trailer()
+
+    def _trailer_read(self, item: Field) -> list[str]:
+        wire = self.names.scalar(item.type)
+        if item.checksum is None:
+            return [f"tail.expect<{wire}>({self._literal(item)});"]
+        return [f"{wire} received{{}};", "tail.read(received);"]
+
+    def _trailer_check(self, checksum: _Placed, use: ChecksumUse) -> list[str]:
+        wire = self.names.scalar(checksum.field.type)
+        covered = (
+            "frame.subspan(kHeaderSize, frame.size() - kHeaderSize - kTrailerSize)"
+            if use.scope == "payload"
+            else "frame.first(frame.size() - kTrailerSize)"
+        )
+        value = f"wireforge::compute_checksum<checksums::{use.use}>({covered})"
+        return [
+            "wireforge::Decoder tail(frame.subspan(frame.size() - kTrailerSize, kTrailerSize),",
+            "                        kFrameEncoding);",
+            *[line for placed in self.trailer for line in self._trailer_read(placed.field)],
+            f"tail.check(static_cast<{wire}>({value}) == received ? {STATUS}::Ok",
+            f"                                                  : {STATUS}::ChecksumMismatch);",
+            "return tail.status();",
+        ]
+
+    def _frame_check(self) -> None:
+        """Check what the frame decoder leaves unchecked, before a message is handed over."""
+        if not self._frame_check_needed():
+            return
+        checksum = self._trailer_checksum()
+        use = checksum.field.checksum if checksum is not None else None
+        trailer = checksum is not None and use is not None and self._checks_trailer()
+        body: list[str] = []
+        if self._checked_constants():
+            body.append("Header header{};" if self._header_writes() else "const Header header{};")
+            if trailer:
+                body += [
+                    f"const {STATUS} header_status = decode_header(frame, header);",
+                    f"if (header_status != {STATUS}::Ok) {{",
+                    "    return header_status;",
+                    "}",
+                ]
+            else:
+                body.append("return decode_header(frame, header);")
+        if checksum is not None and use is not None and trailer:
+            body += self._trailer_check(checksum, use)
+        doc = _doc(
+            [
+                "@brief Checks the header constants and, without a frame decoder, the checksum.",
+                "@param frame A frame that is at least as long as header and trailer, as the",
+                "             dispatcher guarantees.",
+                "@return ConstMismatch, ChecksumMismatch or wireforge::Status::Ok.",
+            ]
+        )
+        self._lines(
+            [
+                "/// @cond INTERNAL",
+                "namespace detail {",
+                "",
+                *doc,
+                f"[[nodiscard]] inline {STATUS} check_frame({CSPAN} frame) noexcept {{",
+                *[f"    {line}" for line in body],
+                "}",
+                "",
+                "} // namespace detail",
+                "/// @endcond",
+                "",
+            ]
+        )
+
     def _receiver(self) -> None:
         doc = _doc(
             [
@@ -699,13 +794,21 @@ class InterfaceHeader:
             self._lines(
                 [
                     f"    {STATUS} receive{name}(const wireforge::RawMessage& raw) noexcept {{",
-                    f"        return handler_->on{name}Raw(raw);",
+                    *self._receive_body(name),
                     "    }",
                     "",
                 ],
                 entry.condition,
             )
         self._lines(["    Handler* handler_;", "};", ""])
+
+    def _receive_body(self, name: str) -> list[str]:
+        if not self._frame_check_needed():
+            return [f"        return handler_->on{name}Raw(raw);"]
+        return [
+            f"        const {STATUS} checked = detail::check_frame(raw.frame);",
+            f"        return checked == {STATUS}::Ok ? handler_->on{name}Raw(raw) : checked;",
+        ]
 
     def _endpoint(self) -> None:
         decoder = (

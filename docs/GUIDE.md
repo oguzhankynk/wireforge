@@ -80,5 +80,8 @@ code and tests (quality/QUALITY_POLICY.md, docs/SAFETY.md).
 | `examples/01_basic_telemetry` | one interface: sync/id/length header, CRC-32 trailer, enum, nested struct, counted array |
 | `examples/02_multi_interface_avionics` | avionics-style node: three interfaces (sync+length with CRC-16, raw, length-prefixed), platform profiles with conditional fields, lsb-first bit-fields, optional field, fill array, user-defined checksum, application constants |
 | `examples/03_edge_cases` | corner cases: zero counts, nested optional, signed bit-fields, u64, wire constants |
+| `examples/04_user_type` | an opaque field type backed by application code |
+| `examples/05_modbus_rtu` | a published protocol: Modbus RTU written from the specification, CRC-16/MODBUS sent low byte first, vectors from the examples of the specification (`pymodbus` agrees byte for byte) |
+| `examples/06_modbus_tcp` | Modbus TCP: the MBAP header with a length, one message per interface |
 | `examples/icd/` | ICD sources for the importers (CSV table, C header) |
 | `examples/cmake_consumer/` | an application built with `find_package(WireForge)` |

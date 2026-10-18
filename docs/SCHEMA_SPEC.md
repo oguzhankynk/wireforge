@@ -326,6 +326,22 @@ Every generated test records the LLRs it verifies as its first statement
 `wireforge trace` reads them from the test sources. The static size assertions of the layout analyzer are tests too
 (`TEST(<Message>, WireSize)`, `TEST(Interface_<I>, WireSize)`), so `SIZE` and `FRAME_MAX` have a test.
 
+## 18b. What real protocols showed
+Two published protocols were written from their specifications (`examples/05_modbus_rtu`, `examples/06_modbus_tcp`),
+with vectors taken from the examples of the specifications and compared with an independent implementation
+(`pymodbus`, `tests/python/test_independent.py`). They found:
+- A receiver must check the constants of the header and, on a link without a frame decoder (`framing: none`), the
+  checksum itself. It does now: the generated receiver refuses a frame with a wrong constant (`ConstMismatch`) or CRC
+  (`ChecksumMismatch`) before the handler sees it.
+- A serial frame ends at a silence, not at a length. `framing: none` is how a driver that delivers one frame per read
+  is described.
+- A length field that counts bytes after fields that follow it (the unit and function code of Modbus TCP) leaves no
+  header-based dispatch by function code; such an interface carries one message.
+- A count in bytes (Modbus byte count) is written as an expression (`count: "byteCount / 2"`); the byte count stays a
+  field that a vector names.
+Protocols whose checksum needs more than the data (for example a seed byte per message) are described with a custom
+checksum; that was not attempted.
+
 ## 18. Requirement test vectors
 A vector is a test you write from the ICD: bytes, and what they must decode to (or what a value must encode to). It
 verifies high-level requirements directly, with an expected result that comes from you and not from the model.

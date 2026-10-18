@@ -675,6 +675,18 @@ class Verifier:
                 if member.checksum is not None and corrupt_status == "ChecksumMismatch"
             ]
             return self.keep(*checksums, key("FRAME_RESYNC")) or self.keep(key("DISPATCH"))
+        if test == "RejectsAFrameWithAWrongConstantOrChecksum":
+            constants = [
+                f"{name}.header.{member.name}.CONST"
+                for member in interface.header or ()
+                if member.const is not None
+            ]
+            sums = [
+                f"{name}.trailer.{member.name}.CHECKSUM"
+                for member in interface.trailer
+                if member.checksum is not None
+            ]
+            return self.keep(*constants, *sums) or self.keep(key("DISPATCH"))
         if test.startswith("RawDecodeErrorOf"):
             return self.keep(key("RAW"), *decode_keys)
         # DeliversRawBytesWithoutDecoding and RawCanForwardToDecoder fall through to RAW.

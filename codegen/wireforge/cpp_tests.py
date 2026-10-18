@@ -26,8 +26,9 @@ from typing import TYPE_CHECKING, Any
 
 from wireforge.cpp import Names, Writer, string_literal, wire_only
 from wireforge.cpp_codec import encoding_literal
-from wireforge.cpp_interface import header_is_written
+from wireforge.cpp_interface import header_is_written, is_checked_constant
 from wireforge.llr import Verifier
+from wireforge.model import BUILTIN_BITS, Field
 from wireforge.test_cases import CLEAR, OK, Edit, Outcome
 
 if TYPE_CHECKING:
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
     from wireforge.vectors import VectorRun
 
 BYTES_PER_LINE = 12
+BYTE_BITS = 8
 SPAN = "wireforge::Span<std::uint8_t>"
 CSPAN = "wireforge::Span<const std::uint8_t>"
 STATUS = "wireforge::Status::"
@@ -69,6 +71,11 @@ def _identifier(text: str) -> str:
 def _byte_lines(data: bytes) -> list[str]:
     chunks = [data[index : index + BYTES_PER_LINE] for index in range(0, len(data), BYTES_PER_LINE)]
     return ["    " + ", ".join(f"0x{byte:02X}U" for byte in chunk) + "," for chunk in chunks]
+
+
+def _scalar_bytes(names: Names, item: Field) -> int:
+    """Return the wire size of a byte-aligned integer header field."""
+    return BUILTIN_BITS[names.base(item.type)] // BYTE_BITS
 
 
 def _byte_array(out: Writer, name: str, data: bytes, *, static: bool = True) -> None:
@@ -884,6 +891,7 @@ class _InterfaceTests:
         self.out = Writer()
         self.layouts = _layouts(layout)
         self.verifier = Verifier(project)
+        self.names = Names(project)
 
     def render(self, profiles: tuple[ProfileCases, ...]) -> str:
         out = self.out
@@ -920,6 +928,7 @@ class _InterfaceTests:
         if cases.sync:
             self.garbage(cases, suite)
         self.corrupt(cases, suite)
+        self.broken_frames(cases, suite, framed=framed)
         self.too_small(cases, suite)
         if cases.frames:
             self.raw(cases, suite)
@@ -1113,6 +1122,49 @@ class _InterfaceTests:
             _test(
                 self.out, suite, name, lines.lines, self.requirements(cases, name, decode_keys=keys)
             )
+
+    def broken_frames(self, cases: InterfaceCases, suite: str, *, framed: bool) -> None:
+        """Check that a header constant or a checksum that the receiver checks is enforced.
+
+        The frame of every message is changed in the byte of the constant, and (without a frame
+        decoder, which would reject it first) in its last byte, and given to the dispatcher.
+        """
+        interface = cases.interface
+        offset = 0
+        position: int | None = None
+        for item in interface.header or ():
+            if is_checked_constant(item, framed=framed):
+                position = offset
+                break
+            offset += _scalar_bytes(self.names, item)
+        checksum = not framed and any(item.checksum for item in interface.trailer)
+        if (position is None and not checksum) or not cases.frames:
+            return
+        lines = Writer()
+        lines.line(f"generated_tests::Recorder_{_identifier(interface.name)} recorder;")
+        lines.line(f"const model::{interface.name}::Endpoint endpoint{{recorder}};")
+        lines.line(f"ASSERT_EQ(endpoint.status(), {STATUS}Ok);")
+        for _, frame in cases.frames:
+            lines.line("{")
+            lines.depth += 1
+            _byte_array(lines, "kFrame", frame)
+            changes = [(position, "ConstMismatch")] if position is not None else []
+            changes += [(len(frame) - 1, "ChecksumMismatch")] if checksum else []
+            for at, status in changes:
+                lines.line(f"std::array<std::uint8_t, {len(frame)}U> broken{status} = kFrame;")
+                lines.line(
+                    f"broken{status}[{at}U] = "
+                    f"static_cast<std::uint8_t>(broken{status}[{at}U] ^ 0xFFU);"
+                )
+                lines.line(
+                    f"EXPECT_EQ(endpoint.dispatcher().dispatch_frame("
+                    f"{CSPAN}(broken{status}.data(), broken{status}.size())), {STATUS}{status});"
+                )
+            lines.depth -= 1
+            lines.line("}")
+        lines.line("EXPECT_EQ(recorder.count(), 0U);")
+        name = "RejectsAFrameWithAWrongConstantOrChecksum"
+        _test(self.out, suite, name, lines.lines, self.requirements(cases, name))
 
     def too_small(self, cases: InterfaceCases, suite: str) -> None:
         interface = cases.interface
