@@ -12,5 +12,6 @@ coverage/
 *.gcda
 *.gcno
 .plan/
+.review/
 CLAUDE.md
 *.ctu-info
