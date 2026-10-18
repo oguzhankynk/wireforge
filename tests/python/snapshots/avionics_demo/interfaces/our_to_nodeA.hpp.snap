@@ -185,6 +185,23 @@ template <typename Payload>
     return decoder.status();
 }
 
+/// @cond INTERNAL
+namespace detail {
+
+/**
+ * @brief Checks the header constants and, without a frame decoder, the checksum.
+ * @param frame A frame that is at least as long as header and trailer, as the
+ *              dispatcher guarantees.
+ * @return ConstMismatch, ChecksumMismatch or wireforge::Status::Ok.
+ */
+[[nodiscard]] inline wireforge::Status check_frame(wireforge::Span<const std::uint8_t> frame) noexcept {
+    const Header header{};
+    return decode_header(frame, header);
+}
+
+} // namespace detail
+/// @endcond
+
 /// @brief Receives the messages of this interface, decoded or as raw bytes.
 class Handler {
 public:
@@ -239,7 +256,8 @@ public:
 
 private:
     wireforge::Status receiveNavSolution(const wireforge::RawMessage& raw) noexcept {
-        return handler_->onNavSolutionRaw(raw);
+        const wireforge::Status checked = detail::check_frame(raw.frame);
+        return checked == wireforge::Status::Ok ? handler_->onNavSolutionRaw(raw) : checked;
     }
 
     Handler* handler_;
