@@ -82,6 +82,19 @@ def is_checked_constant(item: Field, *, framed: bool) -> bool:
     )
 
 
+def checks_trailer(interface: Interface) -> bool:
+    """Whether the receiver checks the checksum itself: only a link without a frame decoder does."""
+    return interface.framing.kind == "none" and any(item.checksum for item in interface.trailer)
+
+
+def needs_frame_check(interface: Interface) -> bool:
+    """Whether the generated receiver checks a header constant or the checksum before a message."""
+    framed = interface.framing.kind != "none"
+    return checks_trailer(interface) or any(
+        is_checked_constant(item, framed=framed) for item in interface.header or ()
+    )
+
+
 def version_namespace(version: str) -> str:
     """Namespace of an interface version: 1.2.0 -> v1_2."""
     major, minor, _ = version.split(".")
@@ -692,11 +705,10 @@ class InterfaceHeader:
         return [p for p in self.header if is_checked_constant(p.field, framed=framed)]
 
     def _checks_trailer(self) -> bool:
-        """Whether the checksum has to be checked here: only an unframed link has no decoder."""
-        return self.interface.framing.kind == "none" and self._trailer_checksum() is not None
+        return checks_trailer(self.interface)
 
     def _frame_check_needed(self) -> bool:
-        return bool(self._checked_constants()) or self._checks_trailer()
+        return needs_frame_check(self.interface)
 
     def _trailer_read(self, item: Field) -> list[str]:
         wire = self.names.scalar(item.type)

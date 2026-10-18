@@ -24,9 +24,10 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
+from wireforge.coverage_points import Points
 from wireforge.cpp import Names, Writer, string_literal, wire_only
 from wireforge.cpp_codec import encoding_literal
-from wireforge.cpp_interface import header_is_written, is_checked_constant
+from wireforge.cpp_interface import header_is_written, is_checked_constant, needs_frame_check
 from wireforge.llr import Verifier
 from wireforge.model import BUILTIN_BITS, Field
 from wireforge.test_cases import CLEAR, OK, Edit, Outcome
@@ -726,6 +727,8 @@ class _MessageTests:
         self.layouts = _layouts(layout)
         self.sizes: dict[str, MessageLayout] = {}
         self.verifier = Verifier(project)
+        self.points = Points("message_test.cpp")
+        self.profile_name: str | None = None
 
     def render(self, profiles: tuple[ProfileCases, ...]) -> str:
         out = self.out
@@ -739,11 +742,29 @@ class _MessageTests:
             self.profile(profile)
             _close_profile(out, profile.profile)
         out.line("} // namespace")
+        self.points.check()
         return out.text()
 
     def profile(self, cases: ProfileCases) -> None:
+        self.profile_name = cases.profile
         for message in cases.messages:
+            self.require(message)
             self.message(message)
+
+    def require(self, cases: MessageCases) -> None:
+        """Declare what the tests of a message must exercise, from the cases of the model."""
+        name, profile = cases.message.name, self.profile_name
+        self.points.require("defaults", profile, name)
+        if isinstance(cases.default_encoded, bytes) and cases.default_encoded:
+            self.points.require("serialize_room", profile, name)
+        if isinstance(cases.pattern_encoded, bytes) and not _has_user_type(
+            self.project, cases.message.fields
+        ):
+            self.points.require("round_trip", profile, name)
+        for case in cases.encodes:
+            self.points.require("edit", profile, name, case.name)
+        for decode in cases.decodes:
+            self.points.require("decode", profile, name, decode.name)
 
     def outcome(self, subject: str, outcome: Outcome, encoding: str, *, opaque: bool) -> str | None:
         if isinstance(outcome, bytes):
@@ -779,6 +800,7 @@ class _MessageTests:
             out.line()
         out.line(f"TEST({name}, Defaults) {{")
         out.indent()
+        self.points.exercise("defaults", self.profile_name, name)
         _record(out, self.verifier.shown(self.verifier.defaults(cases.message)))
         self.expected(cases.default_encoded, opaque=opaque)
         out.line(f"const model::{name} value{{}};")
@@ -801,6 +823,7 @@ class _MessageTests:
         for case in cases.encodes:
             self.encode_case(cases.message, case, encoding, used, opaque=opaque)
         for decode in cases.decodes:
+            self.points.exercise("decode", self.profile_name, name, decode.name)
             lines = Writer(depth=0)
             _byte_array(lines, "kPayload", decode.payload)
             lines.line(
@@ -821,6 +844,7 @@ class _MessageTests:
         payload = cases.pattern_encoded
         if not isinstance(payload, bytes):
             return
+        self.points.exercise("round_trip", self.profile_name, name)
         lines = Writer(depth=0)
         _byte_array(lines, "kPayload", payload)
         check = f"golden_round_trip(pattern_{name}(), {CSPAN}(kPayload), {encoding})"
@@ -831,6 +855,7 @@ class _MessageTests:
     def needs_room(self, message: Struct, encoding: str) -> None:
         """Check that a buffer without room is refused and the size reset, for every message."""
         name = message.name
+        self.points.exercise("serialize_room", self.profile_name, name)
         lines = [
             "std::array<std::uint8_t, 1U> buffer{};",
             "std::size_t size = 1U;",
@@ -846,6 +871,7 @@ class _MessageTests:
     ) -> None:
         out = self.out
         name = message.name
+        self.points.exercise("edit", self.profile_name, name, case.name)
         out.line(f"TEST({name}, {_unique_name(_identifier(case.name), used)}) {{")
         out.indent()
         _record(out, self.verifier.shown(self.verifier.encode_case(message, case)))
@@ -892,6 +918,8 @@ class _InterfaceTests:
         self.layouts = _layouts(layout)
         self.verifier = Verifier(project)
         self.names = Names(project)
+        self.points = Points("interface_test.cpp")
+        self.profile_name: str | None = None
 
     def render(self, profiles: tuple[ProfileCases, ...]) -> str:
         out = self.out
@@ -911,12 +939,49 @@ class _InterfaceTests:
             self.profile(profile)
             _close_profile(out, profile.profile)
         out.line("} // namespace")
+        self.points.check()
         return out.text()
 
     def profile(self, cases: ProfileCases) -> None:
+        self.profile_name = cases.profile
         messages = {item.message.name: item for item in cases.messages}
         for interface in cases.interfaces:
+            self.require(interface, messages)
             self.interface(interface, messages)
+
+    def exercise(self, kind: str, cases: InterfaceCases, message: str = "") -> None:
+        self.points.exercise(kind, self.profile_name, cases.interface.name, message)
+
+    def require(self, cases: InterfaceCases, messages: dict[str, MessageCases]) -> None:
+        """Declare what the tests of an interface must exercise, from the cases of the model."""
+        interface = cases.interface
+        profile, name = self.profile_name, interface.name
+        self.points.require("corrupt", profile, name)
+        if cases.frames:
+            self.points.require("raw_forward", profile, name)
+        if interface.framing.kind != "none":
+            self.points.require("byte_by_byte", profile, name)
+        if cases.sync:
+            self.points.require("garbage", profile, name)
+        self.require_messages(cases, messages)
+
+    def require_messages(self, cases: InterfaceCases, messages: dict[str, MessageCases]) -> None:
+        """Declare what the tests must exercise for every message of an interface."""
+        interface = cases.interface
+        profile, name = self.profile_name, interface.name
+        for index, _ in cases.frames:
+            message = interface.messages[index].name
+            for kind in ("dispatch", "raw_delivery"):
+                self.points.require(kind, profile, name, message)
+            if needs_frame_check(interface):
+                self.points.require("receiver_check", profile, name, message)
+        for index, size, _ in cases.defaults:
+            if size > 0:
+                self.points.require("frame_room", profile, name, interface.messages[index].name)
+        for index, _ in cases.raw_errors:
+            message = interface.messages[index].name
+            if message in messages:
+                self.points.require("raw_decode_error", profile, name, message)
 
     def interface(self, cases: InterfaceCases, messages: dict[str, MessageCases]) -> None:
         interface = cases.interface
@@ -965,6 +1030,8 @@ class _InterfaceTests:
             _byte_array(lines, f"kFrame{position}", frame)
 
     def dispatch(self, cases: InterfaceCases, suite: str, *, framed: bool) -> None:
+        for index, _ in cases.frames:
+            self.exercise("dispatch", cases, cases.interface.messages[index].name)
         lines = Writer()
         self.frames(lines, cases)
         lines.line(self.loop(cases, sum(len(frame) for _, frame in cases.frames)))
@@ -989,6 +1056,7 @@ class _InterfaceTests:
         )
 
     def bytewise(self, cases: InterfaceCases, suite: str) -> None:
+        self.exercise("byte_by_byte", cases)
         lines = Writer()
         frame = cases.frames[0][1]
         _byte_array(lines, "kFrame", frame)
@@ -1009,6 +1077,7 @@ class _InterfaceTests:
         )
 
     def garbage(self, cases: InterfaceCases, suite: str) -> None:
+        self.exercise("garbage", cases)
         lines = Writer()
         frame = cases.frames[0][1]
         junk = bytes([cases.sync[0] ^ 0xFF]) * 3
@@ -1029,6 +1098,7 @@ class _InterfaceTests:
         )
 
     def corrupt(self, cases: InterfaceCases, suite: str) -> None:
+        self.exercise("corrupt", cases)
         lines = Writer()
         frame = cases.frames[0][1]
         _byte_array(lines, "kCorrupt", cases.corrupt)
@@ -1056,6 +1126,8 @@ class _InterfaceTests:
         _test(self.out, suite, "RejectsCorruptedFrame", lines.lines, requirements)
 
     def raw(self, cases: InterfaceCases, suite: str) -> None:
+        for index, _ in cases.frames:
+            self.exercise("raw_delivery", cases, cases.interface.messages[index].name)
         ns = f"model::{cases.interface.name}"
         lines = Writer()
         self.frames(lines, cases)
@@ -1083,6 +1155,7 @@ class _InterfaceTests:
         )
 
     def raw_and_decoded(self, cases: InterfaceCases, suite: str) -> None:
+        self.exercise("raw_forward", cases)
         lines = Writer()
         frame = cases.frames[0][1]
         _byte_array(lines, "kFrame", frame)
@@ -1111,6 +1184,7 @@ class _InterfaceTests:
             entry = interface.messages[index]
             if entry.name not in messages:
                 continue
+            self.exercise("raw_decode_error", cases, entry.name)
             lines = Writer()
             _byte_array(lines, "kPayload", failing.payload)
             lines.line(f"generated_tests::RawRecorder_{identifier} recorder(true);")
@@ -1140,6 +1214,8 @@ class _InterfaceTests:
         checksum = not framed and any(item.checksum for item in interface.trailer)
         if (position is None and not checksum) or not cases.frames:
             return
+        for index, _ in cases.frames:
+            self.exercise("receiver_check", cases, interface.messages[index].name)
         lines = Writer()
         lines.line(f"generated_tests::Recorder_{_identifier(interface.name)} recorder;")
         lines.line(f"const model::{interface.name}::Endpoint endpoint{{recorder}};")
@@ -1171,6 +1247,8 @@ class _InterfaceTests:
         sized = [item for item in cases.defaults if item[1] > 0]
         if not sized:
             return
+        for index, _, _ in sized:
+            self.exercise("frame_room", cases, interface.messages[index].name)
         ns = f"model::{interface.name}"
         # Every message has its own instance of the frame writer, so every message is tried.
         lines = [

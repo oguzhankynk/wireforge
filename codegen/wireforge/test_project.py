@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 
 from wireforge import cpp_tests, golden, layout, resources, test_cases, vectors, versioning
 from wireforge.codec import CodecError
+from wireforge.coverage_points import CoveragePointError
 from wireforge.issues import Issue
 
 if TYPE_CHECKING:
@@ -467,6 +468,8 @@ def write_test_project(
         files = render(project, location, directory, options)
     except CodecError as error:
         return [Issue(str(location), None, "", f"cannot compute the test expectations: {error}")]
+    except CoveragePointError as error:
+        return [Issue(str(location), None, "", str(error))]
     for name, text in files.items():
         target = directory / name
         target.parent.mkdir(parents=True, exist_ok=True)
