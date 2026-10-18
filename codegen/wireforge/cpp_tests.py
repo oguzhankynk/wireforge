@@ -1202,6 +1202,38 @@ class _InterfaceTests:
         de.line(f"const {STATUS[:-2]} result = endpoint.dispatcher().dispatch_frame({CSPAN}(broken.data(), broken.size()));")
         de.line(f"EXPECT_EQ(result, {STATUS}ConstMismatch);")
         _test(self.out, suite, "DiagExpect", de.lines, ())
+        base = [
+            _byte_lines_decl for _byte_lines_decl in []
+        ]
+        del base
+        for variant, extra_before, extra_after, nested in (
+            ("V1Property", None, None, False),
+            ("V2Assert", "ASSERT", None, False),
+            ("V3Count", None, "COUNT", False),
+            ("V4Nested", None, None, True),
+        ):
+            dv = Writer()
+            dv.line(f"generated_tests::Recorder_{ident} recorder;")
+            dv.line(f"const model::{interface.name}::Endpoint endpoint{{recorder}};")
+            if extra_before == "ASSERT":
+                dv.line(f"ASSERT_EQ(endpoint.status(), {STATUS}Ok);")
+            if nested:
+                dv.line("{")
+                dv.depth += 1
+            _byte_array(dv, "kFrame", first)
+            dv.line(f"std::array<std::uint8_t, {len(first)}U> broken = kFrame;")
+            dv.line("broken[2U] = static_cast<std::uint8_t>(broken[2U] ^ 0xFFU);")
+            dv.line(
+                f"EXPECT_EQ(endpoint.dispatcher().dispatch_frame({CSPAN}(broken.data(), "
+                f"broken.size())), {STATUS}ConstMismatch);"
+            )
+            if nested:
+                dv.depth -= 1
+                dv.line("}")
+            if extra_after == "COUNT":
+                dv.line("EXPECT_EQ(recorder.count(), 0U);")
+            keys = ("LLR-x.y.CONST",) if variant == "V1Property" else ()
+            _test(self.out, suite, f"Diag{variant}", dv.lines, keys)
 
     def too_small(self, cases: InterfaceCases, suite: str) -> None:
         interface = cases.interface
