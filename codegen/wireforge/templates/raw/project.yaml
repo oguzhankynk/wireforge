@@ -1,0 +1,28 @@
+# Raw packet: no header and no framing; every read of the transport is one packet. The packet
+# has a few bit-fields packed into one byte.
+# Edit the names, the fields and their limits to match your protocol, then run:
+#   wireforge validate .     wireforge generate . -o gen --tests     wireforge test .
+schema_version: 1
+project: raw
+version: "0.1.0"
+namespace: demo::raw
+defaults: { endian: big, bit_order: msb_first }
+
+messages:
+  Packet:
+    id: 1
+    description: One packet of the link.
+    fields:
+      - { name: kind, type: u8, min: 0, max: 7, default: 0 }
+      - { name: value, type: i16, min: -1000, max: 1000, default: 0 }
+      - { name: ready, type: bool, bits: 1 }                     # these three share one byte
+      - { name: mode, type: u8, bits: 3, min: 0, max: 5, default: 0 }
+      - { name: spare, type: u8, bits: 4, reserved: true }
+
+interfaces:
+  raw_link:
+    version: "1.0.0"
+    direction: rx
+    header: none
+    framing: { kind: none }
+    messages: [Packet]

@@ -95,6 +95,15 @@ def _migrate(args: argparse.Namespace) -> Result:
     return service.migrate(args.project, check=args.check)
 
 
+def _init(args: argparse.Namespace) -> Result:
+    if args.list:
+        names = service.templates()
+        return Result(ok=True, data={"templates": names}, text="\n".join(names) + "\n")
+    return service.init_project(
+        args.directory, args.template, args.name, args.namespace, args.version
+    )
+
+
 def _generate(args: argparse.Namespace) -> Result:
     return service.generate_code(args.project, args.output, _tests(args) if args.tests else None)
 
@@ -354,6 +363,7 @@ def _commands(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser = add("migrate", _migrate, "Upgrade the project files to the current format.")
     _project(parser)
     parser.add_argument("--check", action="store_true", help="only report files that differ")
+    _init_command(add)
     parser = add("generate", _generate, "Generate C++ code (and the test project).")
     _project(parser)
     parser.add_argument("-o", "--output", type=Path, required=True)
@@ -391,6 +401,16 @@ def _commands(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser.add_argument("--token", help="require this bearer token")
     _oidc_options(parser)
     parser.add_argument("--openapi", type=Path, help="write the OpenAPI document and exit")
+
+
+def _init_command(add: Callable[[str, Handler, str], argparse.ArgumentParser]) -> None:
+    parser = add("init", _init, "Create a project from a template (telemetry, command, raw).")
+    parser.add_argument("directory", type=Path, nargs="?", default=Path())
+    parser.add_argument("--template", default=service.DEFAULT_TEMPLATE, help="see --list")
+    parser.add_argument("--name", help="project name (default: the directory name)")
+    parser.add_argument("--namespace", help="C++ namespace (default: the project name)")
+    parser.add_argument("--version", help="project version, for example 0.1.0")
+    parser.add_argument("--list", action="store_true", help="list the templates and exit")
 
 
 def _oidc_options(parser: argparse.ArgumentParser) -> None:

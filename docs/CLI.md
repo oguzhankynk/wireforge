@@ -6,6 +6,7 @@ equivalent.
 
 | Command | What it does |
 |---------|--------------|
+| `wireforge init [dir] [--template telemetry\|command\|raw] [--name N] [--namespace NS] [--version V] [--list]` | a new project from a working template (never overwrites; the directory must be empty) |
 | `wireforge validate <project>` | structural and semantic validation (file, line, JSON pointer per issue) |
 | `wireforge fmt <project> [--check]` | canonical layout of every project file (comments kept) |
 | `wireforge migrate <project> [--check]` | upgrade the file format and refresh the version stamps |

@@ -12,8 +12,8 @@ function coverage.
 - Zero warnings from every compiler and analyzer; tested on 32/64 bit, little and big endian, x86 and ARM, on Linux,
   Windows, macOS, Android and FreeRTOS; differential testing and fuzzing.
 
-The way in is short: describe the protocol, generate the C++ code, run the tests, read the results. Nothing about
-requirements or standards is needed for that.
+The way in is short: `wireforge init` gives a working first project, you change it to your protocol, generate the C++
+code, run the tests and read the results. Nothing about requirements or standards is needed for that.
 
 ## For teams with a development or assurance process
 Optionally, `wireforge docs` turns the same model into requirements, design, test and traceability documents with test

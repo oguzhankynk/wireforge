@@ -4,6 +4,11 @@ React + TypeScript (strict), built with Vite (`ui/`). `npm run dev` serves it an
 `wireforge serve` on port 8000; `npm run build` writes `ui/dist/`. Pass `?token=<T>` for a server started with
 `--token`.
 
+## New project
+"New project" in the header opens a form: choose a template (`telemetry`, `command` or `raw`), give the project id and
+name, and the first working model appears, already valid. The advanced parts of the schema stay in the YAML files and
+the CLI; the form does not offer them.
+
 ## Struct editor
 - **Entries:** the project's enums, types, messages, interfaces, profiles and checksums, with "New ..." buttons.
 - **Field table** of a type or message: name, type (builtins, enums, types), occurrence (single, optional 0..1,

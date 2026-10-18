@@ -261,3 +261,13 @@ def test_requirements_tools(workspace: Path) -> None:
     assert (workspace / "avionics" / "llr_ids.lock").exists()
     with pytest.raises(ToolError, match="inside the workspace"):
         _call(workspace, "requirements_import", {**arguments, "path": str(sample / "project.yaml")})
+
+
+def test_create_project_from_a_template(workspace: Path) -> None:
+    result = _call(
+        workspace,
+        "create_project",
+        {"project": "first", "name": "first_link", "template": "raw"},
+    )
+    assert result["ok"]
+    assert "Packet" in (workspace / "first" / "project.yaml").read_text(encoding="utf-8")

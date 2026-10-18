@@ -4,6 +4,7 @@ import { ChecksumEditor } from "./components/ChecksumEditor";
 import { EnumEditor } from "./components/EnumEditor";
 import { CppPreview, structSource } from "./components/CppPreview";
 import { InterfaceEditor } from "./components/InterfaceEditor";
+import { NewProject } from "./components/NewProject";
 import { IssuesPanel } from "./components/IssuesPanel";
 import { LayoutDiagram } from "./components/LayoutDiagram";
 import { Playground } from "./components/Playground";
@@ -51,6 +52,7 @@ export function App({ api }: { api: Api }) {
   const [tool, setTool] = useState<Tool>("preview");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [creating, setCreating] = useState(false);
 
   // Loads the project list; keeps the selected project when it still exists.
   const loadProjects = useCallback(async () => {
@@ -193,6 +195,9 @@ export function App({ api }: { api: Api }) {
             ))}
           </select>
         </label>
+        <button type="button" onClick={() => { setCreating(true); }}>
+          New project
+        </button>
         <button type="button" onClick={() => { setSelection({ section: "settings", name: null }); }}>
           Project settings
         </button>
@@ -218,7 +223,21 @@ export function App({ api }: { api: Api }) {
         ))}
       </nav>
       <div className="workspace">
-        {editor()}
+        {creating ? (
+          <NewProject
+            api={api}
+            onCancel={() => { setCreating(false); }}
+            onCreated={(id) => {
+              setCreating(false);
+              setSelection(null);
+              setNotice(`Created ${id}.`);
+              setProject(id);
+              void loadProjects();
+            }}
+          />
+        ) : (
+          editor()
+        )}
         <output aria-label="Save result">{notice}</output>
         <IssuesPanel issues={issues} local={[]} />
         <div role="tablist" aria-label="Tools">
