@@ -1,0 +1,128 @@
+# TBS Crossfire / ExpressLRS CRSF (the serial protocol between a radio receiver, a flight controller and a handset):
+# the frame and three telemetry messages, written from the public CRSF protocol descriptions.
+#
+# A frame is the sync byte 0xC8, a length that counts the type byte, the payload and the CRC, the type byte, the
+# payload and a CRC-8 (polynomial 0xD5) over the type and the payload. The type byte comes after the length, inside
+# the bytes it counts, so no header field can dispatch on it: each message is the whole payload of its own interface,
+# with the type as its first field (a constant).
+schema_version: 1
+project: crsf
+version: "1.0.0"
+description: CRSF frame and three telemetry messages (HEARTBEAT, BATTERY_SENSOR, LINK_STATISTICS).
+namespace: rc::crsf
+defaults: { endian: big, bit_order: msb_first, range_check: { encode: true, decode: true } }
+
+requirements:
+  CRSF-001:
+    text: A frame starts with the sync byte 0xC8, then a length that counts the type, the payload and the CRC, the type, the payload and the CRC.
+    source: "CRSF protocol description, frame structure"
+  CRSF-002:
+    text: The CRC is a CRC-8 with the polynomial 0xD5 over the type and the payload.
+    source: "CRSF protocol description, CRC"
+  CRSF-003:
+    text: Values are big endian; the battery voltage and current are in tenths of a volt and an ampere.
+    source: "CRSF protocol description, telemetry payloads"
+
+checksums:
+  crc8:
+    algo: crc
+    reqs: [CRSF-002]
+    width: 8
+    poly: 0xD5
+    init: 0x00
+    refin: false
+    refout: false
+    xorout: 0x00
+    check: 0xBC
+
+enums:
+  Antenna:
+    type: u8
+    values: { antenna_1: 0, antenna_2: 1 }
+  RfMode:
+    type: u8
+    values: { fps_4: 0, fps_50: 1, fps_150: 2 }
+  TxPower:
+    type: u8
+    values:
+      mw_0: 0
+      mw_10: 1
+      mw_25: 2
+      mw_100: 3
+      mw_500: 4
+      mw_1000: 5
+      mw_2000: 6
+
+messages:
+  Heartbeat:
+    id: 0x0B
+    description: The address of the device that sends the heartbeat (HEARTBEAT, type 0x0B).
+    fields:
+      - { name: type, type: u8, const: 0x0B }
+      - { name: originDeviceAddress, type: u8 }
+  BatterySensor:
+    id: 0x08
+    description: Battery voltage, current, used capacity and the remaining charge (BATTERY_SENSOR, type 0x08).
+    reqs: [CRSF-003]
+    fields:
+      - { name: type, type: u8, const: 0x08 }
+      - { name: voltage, type: u16, units: V, scale: 0.1 }
+      - { name: current, type: u16, units: A, scale: 0.1 }
+      - { name: capacity, type: u32, bits: 24, units: mAh }
+      - { name: remaining, type: u8, max: 100, units: '%' }
+  LinkStatistics:
+    id: 0x14
+    description: Signal strength and link quality of both directions (LINK_STATISTICS, type 0x14).
+    fields:
+      - { name: type, type: u8, const: 0x14 }
+      - { name: uplinkRssiAnt1, type: u8, units: -dBm }
+      - { name: uplinkRssiAnt2, type: u8, units: -dBm }
+      - { name: uplinkLinkQuality, type: u8, units: '%' }
+      - { name: uplinkSnr, type: i8, units: dB }
+      - { name: diversityActiveAntenna, type: Antenna }
+      - { name: rfMode, type: RfMode }
+      - { name: uplinkTxPower, type: TxPower }
+      - { name: downlinkRssi, type: u8, units: -dBm }
+      - { name: downlinkLinkQuality, type: u8, units: '%' }
+      - { name: downlinkSnr, type: i8, units: dB }
+
+interfaces:
+  heartbeat:
+    version: "1.0.0"
+    reqs: [CRSF-001, CRSF-002]
+    direction: both
+    header:
+      fields:
+        - { name: sync, type: u8, const: 0xC8, role: sync }
+        - { name: length, type: u8, role: payload_length }
+    trailer:
+      fields:
+        - { name: crc, type: u8, checksum: { use: crc8, covers: { scope: payload } } }
+    framing: { kind: sync_length, max_frame_size: 64, length_counts: payload_and_trailer, resync: true }
+    messages: [Heartbeat]
+  battery_sensor:
+    version: "1.0.0"
+    reqs: [CRSF-001, CRSF-002]
+    direction: both
+    header:
+      fields:
+        - { name: sync, type: u8, const: 0xC8, role: sync }
+        - { name: length, type: u8, role: payload_length }
+    trailer:
+      fields:
+        - { name: crc, type: u8, checksum: { use: crc8, covers: { scope: payload } } }
+    framing: { kind: sync_length, max_frame_size: 64, length_counts: payload_and_trailer, resync: true }
+    messages: [BatterySensor]
+  link_statistics:
+    version: "1.0.0"
+    reqs: [CRSF-001, CRSF-002]
+    direction: both
+    header:
+      fields:
+        - { name: sync, type: u8, const: 0xC8, role: sync }
+        - { name: length, type: u8, role: payload_length }
+    trailer:
+      fields:
+        - { name: crc, type: u8, checksum: { use: crc8, covers: { scope: payload } } }
+    framing: { kind: sync_length, max_frame_size: 64, length_counts: payload_and_trailer, resync: true }
+    messages: [LinkStatistics]
