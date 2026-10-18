@@ -1166,74 +1166,21 @@ class _InterfaceTests:
         name = "RejectsAFrameWithAWrongConstantOrChecksum"
         _test(self.out, suite, name, lines.lines, self.requirements(cases, name))
         # TEMPORARY DIAGNOSTICS
-        ident = _identifier(interface.name)
-        first = cases.frames[0][1]
-        _test(self.out, suite, "DiagConstruct", [
-            f"generated_tests::Recorder_{ident} recorder;",
-            f"const model::{interface.name}::Endpoint endpoint{{recorder}};",
-            f"EXPECT_EQ(endpoint.status(), {STATUS}Ok);"], ())
-        dl = Writer()
-        _byte_array(dl, "kFrame", first)
-        dl.line(f"std::array<std::uint8_t, {len(first)}U> broken = kFrame;")
-        dl.line("broken[2U] = static_cast<std::uint8_t>(broken[2U] ^ 0xFFU);")
-        dl.line(f"static_cast<void>(model::{interface.name}::detail::check_frame({CSPAN}(broken.data(), broken.size())));")
-        _test(self.out, suite, "DiagCheckFrame", dl.lines, ())
-        dd = Writer()
-        _byte_array(dd, "kFrame", first)
-        dd.line(f"generated_tests::Recorder_{ident} recorder;")
-        dd.line(f"const model::{interface.name}::Endpoint endpoint{{recorder}};")
-        dd.line(f"static_cast<void>(endpoint.dispatcher().dispatch_frame({CSPAN}(kFrame.data(), kFrame.size())));")
-        _test(self.out, suite, "DiagDispatchGood", dd.lines, ())
-        db = Writer()
-        _byte_array(db, "kFrame", first)
-        db.line(f"std::array<std::uint8_t, {len(first)}U> broken = kFrame;")
-        db.line("broken[2U] = static_cast<std::uint8_t>(broken[2U] ^ 0xFFU);")
-        db.line(f"generated_tests::Recorder_{ident} recorder;")
-        db.line(f"const model::{interface.name}::Endpoint endpoint{{recorder}};")
-        db.line(f"const {STATUS[:-2]} result = endpoint.dispatcher().dispatch_frame({CSPAN}(broken.data(), broken.size()));")
-        db.line("static_cast<void>(result);")
-        _test(self.out, suite, "DiagDispatchBroken", db.lines, ())
-        de = Writer()
-        _byte_array(de, "kFrame", first)
-        de.line(f"std::array<std::uint8_t, {len(first)}U> broken = kFrame;")
-        de.line("broken[2U] = static_cast<std::uint8_t>(broken[2U] ^ 0xFFU);")
-        de.line(f"generated_tests::Recorder_{ident} recorder;")
-        de.line(f"const model::{interface.name}::Endpoint endpoint{{recorder}};")
-        de.line(f"const {STATUS[:-2]} result = endpoint.dispatcher().dispatch_frame({CSPAN}(broken.data(), broken.size()));")
-        de.line(f"EXPECT_EQ(result, {STATUS}ConstMismatch);")
-        _test(self.out, suite, "DiagExpect", de.lines, ())
-        base = [
-            _byte_lines_decl for _byte_lines_decl in []
-        ]
-        del base
-        for variant, extra_before, extra_after, nested in (
-            ("V1Property", None, None, False),
-            ("V2Assert", "ASSERT", None, False),
-            ("V3Count", None, "COUNT", False),
-            ("V4Nested", None, None, True),
-        ):
-            dv = Writer()
-            dv.line(f"generated_tests::Recorder_{ident} recorder;")
-            dv.line(f"const model::{interface.name}::Endpoint endpoint{{recorder}};")
-            if extra_before == "ASSERT":
-                dv.line(f"ASSERT_EQ(endpoint.status(), {STATUS}Ok);")
-            if nested:
-                dv.line("{")
-                dv.depth += 1
-            _byte_array(dv, "kFrame", first)
-            dv.line(f"std::array<std::uint8_t, {len(first)}U> broken = kFrame;")
-            dv.line("broken[2U] = static_cast<std::uint8_t>(broken[2U] ^ 0xFFU);")
-            dv.line(
-                f"EXPECT_EQ(endpoint.dispatcher().dispatch_frame({CSPAN}(broken.data(), "
-                f"broken.size())), {STATUS}ConstMismatch);"
-            )
-            if nested:
-                dv.depth -= 1
-                dv.line("}")
-            if extra_after == "COUNT":
-                dv.line("EXPECT_EQ(recorder.count(), 0U);")
-            keys = ("LLR-x.y.CONST",) if variant == "V1Property" else ()
-            _test(self.out, suite, f"Diag{variant}", dv.lines, keys)
+        orig = list(lines.lines)
+        keys = self.requirements(cases, name)
+        _test(self.out, suite, "DiagCopyName", orig, keys)
+        _test(self.out, suite, "DiagCopyNoProperty", orig, ())
+        _test(self.out, suite, "DiagCopyShortProperty", orig, ("LLR-x.CONST",))
+        _test(self.out, suite, "DiagCopyNoAssert", [x for x in orig if "ASSERT_EQ" not in x], keys)
+        _test(self.out, suite, "DiagCopyNoCount", [x for x in orig if "recorder.count" not in x], keys)
+        _test(
+            self.out,
+            suite,
+            "DiagCopyNoBlock",
+            [x for x in orig if x.strip() not in ("{", "}")],
+            keys,
+        )
+        _test(self.out, suite, "RejectsAFrameRenamed", orig, keys)
 
     def too_small(self, cases: InterfaceCases, suite: str) -> None:
         interface = cases.interface
