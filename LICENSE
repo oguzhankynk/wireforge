@@ -9,8 +9,13 @@ Licensed Work:        WireForge (this repository), excluding the contents of the
                       is (c) 2026 Oguzhan KAYNAK.
 Additional Use Grant: You may use the Licensed Work for development, testing,
                       evaluation, and other non-production purposes free of
-                      charge. Any production use of the Licensed Work requires
-                      a commercial license from the Licensor.
+                      charge. Running the Licensed Work in continuous
+                      integration to validate projects, compare them with
+                      earlier revisions, and generate, build and run their
+                      tests is a non-production purpose, including for
+                      commercial products. Any other production use of the
+                      Licensed Work requires a commercial license from the
+                      Licensor.
 Change Date:          2036-10-17
 Change License:       MIT
 
