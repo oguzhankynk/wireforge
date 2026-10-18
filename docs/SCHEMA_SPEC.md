@@ -186,6 +186,8 @@ carry file, line and JSON pointer.
 - SR-22 Requirement test vectors (section 18) are consistent: the message, interface and profile exist, the message is on
   the interface, `expect.fields` names fields that exist on the wire value, an encoding vector gives every field, and the
   reference codec agrees with the vector in every profile it applies to.
+- SR-23 A field of an enum type without `default` (and without `const`) needs an enum member with the value 0, because
+  `init()` and the reference codec start every field at zero; a dynamic array starts empty and is exempt.
 - SR-21 Every id in a `reqs` list names an entry of the `requirements` catalog (section 17). An unused catalog entry is
   not an error.
 

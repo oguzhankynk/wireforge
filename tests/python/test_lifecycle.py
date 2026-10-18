@@ -92,7 +92,7 @@ def test_basic_example_documents() -> None:
         assert rid in files["requirements.md"]
     assert files["traceability.csv"].startswith("llr,kind,parents,code,tests,derived,result\n")
     tests = files["test_spec.csv"].splitlines()
-    assert len(tests) - 1 == len(_context(EXAMPLES / "01_basic_telemetry").tests) == 39
+    assert len(tests) - 1 == len(_context(EXAMPLES / "01_basic_telemetry").tests) == 41
     assert "Test results: not provided." in files["test_report.md"]
 
 

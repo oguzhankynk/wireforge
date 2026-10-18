@@ -174,7 +174,29 @@ when they share a directory with it, otherwise absolute; both are cache variable
 `WIREFORGE_MODEL_DIR`). GoogleTest 1.14 is found or downloaded (`FETCHCONTENT_SOURCE_DIR_GOOGLETEST` reuses a local
 copy). In this repository `tests/generated` builds the test sources of every example with all gates (warnings,
 sanitizers, clang-tidy, cppcheck), and `quality/run_generated_tests.sh` builds each project standalone with its own
-CMake files and runs its `coverage` target (line, branch and function threshold 100 %, the default of `--coverage-threshold`; the examples reach 100 % in all three).
+CMake files and runs its `coverage` target (line, branch and function threshold 100 %, the default of `--coverage-threshold`; the examples and the models of `tests/models/` reach 100 % in all three).
+
+## Coverage of the generated code for any model
+The 100 % gate of the generated headers is not shown on four examples alone; three checks stand behind it for every
+model a user can write:
+- `quality/feature_matrix.py` lists the features of the schema (every field type, bit-field form, occurrence form,
+  header role, framing kind, checksum form, profile and condition) and fails when one is used by no built and measured
+  model, or when a property of the schema is not mapped to a feature. The models are the examples, `tests/models/` and the
+  random models below.
+- `quality/random_models.py` writes valid random models (a fixed seed always gives the same model), generates their
+  code and tests, builds them with the warning set as errors, runs them and measures the generated headers; any warning,
+  failing test or coverage below 100 % of lines, branches and functions fails and leaves the model in
+  `build/random-models/failures/<seed>/`. CI runs seeds 0 to 23 on every pull request and the workflow
+  `random-models-nightly` runs 1000 more each night. A failure is a defect of the generator: fix it, reduce the
+  model and add it to `tests/models/`.
+- `SR-23`: an enum field without a default needs a member with the value 0, because `init()` starts it at zero.
+
+The checks found, and the generator now handles: the frame writer of every message of an interface (not only the first)
+is tried with too little room; a raw-decode error test uses the byte order of the interface; a message that is on no
+interface has a golden round trip of its own; serialize into a buffer without room is tested for every message; a message
+that exists only in some profiles is left out of the profiles without it; an unused pattern helper is no longer emitted.
+This is evidence over many models, not a proof; the user's own gate (`coverage` target, `wireforge docs --strict`) stays
+the last line.
 
 ## Results of a test run
 The `coverage` target also writes machine-readable results to `<build>/results/`, which `wireforge docs --results

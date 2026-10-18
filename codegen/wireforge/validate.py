@@ -938,6 +938,7 @@ class Validator:
             for key in given:
                 self.report(at, "SR-6", f"field {field.name}: {key} needs a scalar type", f"/{key}")
             return
+        self._check_enum_start(field, kind, at)
         type_range = self._type_range(field, kind)
         lows = self._bound(field, "min", kind, at)
         highs = self._bound(field, "max", kind, at)
@@ -949,6 +950,18 @@ class Validator:
             if field.occurs is not None:
                 self.report(at, "SR-6", f"field {field.name}: const cannot have occurs", "/const")
             self._check_scalar(field, field.const, at.below("/const"), kind, limits)
+
+    def _check_enum_start(self, field: Field, kind: str, at: _At) -> None:
+        """SR-23: a field starts as zero, so an enum field without a default needs a member 0."""
+        dynamic = field.occurs is not None and (field.occurs.count is not None or field.occurs.fill)
+        if kind != "enum" or field.default is not None or field.const is not None or dynamic:
+            return
+        if 0 not in self.project.enums[field.type].values.values():
+            message = (
+                f"field {field.name}: enum {field.type} has no member with value 0 and the field "
+                "has no default, so init() would start it with a value that is not a member"
+            )
+            self.report(at, "SR-23", message)
 
     def _bound(self, field: Field, key: str, kind: str, at: _At) -> dict[str, float]:
         raw = getattr(field, key)

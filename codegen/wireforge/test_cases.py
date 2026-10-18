@@ -23,18 +23,15 @@ import struct
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
-from wireforge import expr
 from wireforge.codec import FLOAT32_MAX, CodecError, ReferenceCodec
 from wireforge.cpp import Names, wire_only
-from wireforge.expr import ExprError
-from wireforge.golden import Sampler
+from wireforge.golden import Sampler, holds
 from wireforge.model import BUILTIN_BITS, FLOAT_TYPES, Field, Interface, Project, Scalar, Struct
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
     from wireforge.codec import ChecksumPlugin
-    from wireforge.validate import Variant
 
 OK = "Ok"
 BYTE_BITS = 8
@@ -103,6 +100,7 @@ class MessageCases:
     default_validated: str
     encodes: tuple[EncodeCase, ...]
     decodes: tuple[DecodeCase, ...]
+    pattern_encoded: Outcome = b""
 
 
 @dataclass(frozen=True)
@@ -115,6 +113,10 @@ class InterfaceCases:
     that resynchronizes could find a frame start inside the corrupted frame, so the number of
     errors and the recovery are not predictable byte by byte. `default_frame_size` is the frame
     size of the first message's default value, `overhead` the size of header and trailer.
+    `defaults` has, for every message of `frames`, the index, the frame size of its default value
+    (0 when it does not encode) and the size of header and trailer. `raw_errors` has, for every
+    message of `frames` whose pattern payload has a rejected mutation, the index and the first such
+    decode case, computed with the settings (byte order) of this interface.
     """
 
     interface: Interface
@@ -125,6 +127,8 @@ class InterfaceCases:
     sync: bytes
     default_frame_size: int
     overhead: int
+    defaults: tuple[tuple[int, int, int], ...] = ()
+    raw_errors: tuple[tuple[int, DecodeCase], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -159,15 +163,6 @@ def _status(action: Callable[[], object]) -> str:
     except CodecError as error:
         return error.status
     return OK
-
-
-def _holds(condition: str | None, variant: Variant) -> bool:
-    if condition is None:
-        return True
-    try:
-        return expr.evaluate(expr.parse_condition(condition), variant.scope) != 0
-    except ExprError:
-        return True
 
 
 def _identifier(target: str) -> str:
@@ -222,7 +217,7 @@ class _ProfileOracle:
         return tuple(
             self.message(item)
             for item in self.project.messages.values()
-            if _holds(item.condition, variant)
+            if holds(item.condition, variant)
         )
 
     def encode(self, message: str, value: dict[str, Any]) -> Outcome:
@@ -256,6 +251,7 @@ class _ProfileOracle:
             self.validated(item.name, default),
             tuple(cases),
             decodes,
+            encoded,
         )
 
     def slots(
@@ -341,10 +337,12 @@ class _ProfileOracle:
             ]
         return _unique(candidates)
 
-    def decodes(self, message: str, payload: bytes) -> tuple[DecodeCase, ...]:
+    def decodes(
+        self, message: str, payload: bytes, interface: str | None = None
+    ) -> tuple[DecodeCase, ...]:
         def failure(data: bytes) -> tuple[str, str]:
             try:
-                self.codec.decode_message(message, data)
+                self.codec.decode_message(message, data, interface)
             except CodecError as error:
                 return error.status, error.path
             return OK, ""
@@ -379,7 +377,7 @@ class _ProfileOracle:
         variant = self.codec.variant
         for index, entry in enumerate(interface.messages):
             message = self.project.messages[entry.name]
-            if not _holds(entry.condition, variant) or not _holds(message.condition, variant):
+            if not holds(entry.condition, variant) or not holds(message.condition, variant):
                 continue
             frame = self.frame(interface, message)
             if isinstance(frame, bytes) and frame:
@@ -397,9 +395,48 @@ class _ProfileOracle:
         size = len(default) if isinstance(default, bytes) else 0
         payload = self.codec.encode_message(first_message, None, interface.name)
         overhead = size - len(payload) if size else 0
-        return InterfaceCases(
-            interface, tuple(frames), corrupt, status, exact, sync, size, overhead
+        defaults = tuple(self.default_sizes(interface, index) for index, _ in frames)
+        raw_errors = tuple(
+            found for index, _ in frames if (found := self.raw_error(interface, index)) is not None
         )
+        return InterfaceCases(
+            interface,
+            tuple(frames),
+            corrupt,
+            status,
+            exact,
+            sync,
+            size,
+            overhead,
+            defaults,
+            raw_errors,
+        )
+
+    def raw_error(self, interface: Interface, index: int) -> tuple[int, DecodeCase] | None:
+        """Return the first rejected mutation of a message payload on this interface."""
+        message = self.project.messages[interface.messages[index].name]
+        pattern = self.sampler.struct(message.fields)
+        try:
+            payload = self.codec.encode_message(message.name, pattern, interface.name)
+        except CodecError:
+            return None
+        failing = next(
+            (
+                case
+                for case in self.decodes(message.name, payload, interface.name)
+                if case.status != OK
+            ),
+            None,
+        )
+        return None if failing is None else (index, failing)
+
+    def default_sizes(self, interface: Interface, index: int) -> tuple[int, int, int]:
+        """Return (message index, frame size of the default value, header and trailer size)."""
+        name = interface.messages[index].name
+        default = _outcome(lambda: self.codec.encode_frame(interface.name, name))
+        size = len(default) if isinstance(default, bytes) else 0
+        payload = self.codec.encode_message(name, None, interface.name)
+        return index, size, size - len(payload) if size else 0
 
     def frame(self, interface: Interface, message: Struct) -> Outcome:
         pattern = self.sampler.struct(message.fields)

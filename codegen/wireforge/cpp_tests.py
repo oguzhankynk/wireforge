@@ -757,17 +757,19 @@ class _MessageTests:
         # default-constructed, so its encoded bytes cannot be compared against the reference
         # codec's bytes for that field.
         opaque = _has_user_type(self.project, cases.message.fields)
-        statements = self.assignments.struct(cases.message, cases.pattern, "value")
-        out.line(f"/// Pattern value of {name}: every field inside its range, arrays full.")
-        out.line(f"model::{name} pattern_{name}() {{")
-        out.indent()
-        out.line(f"model::{name} value{{}};")
-        for statement in statements:
-            out.line(statement)
-        out.line("return value;")
-        out.dedent()
-        out.line("}")
-        out.line()
+        round_trip = isinstance(cases.pattern_encoded, bytes) and not opaque
+        if cases.encodes or round_trip:  # the edits and the round trip use the pattern value
+            statements = self.assignments.struct(cases.message, cases.pattern, "value")
+            out.line(f"/// Pattern value of {name}: every field inside its range, arrays full.")
+            out.line(f"model::{name} pattern_{name}() {{")
+            out.indent()
+            out.line(f"model::{name} value{{}};")
+            for statement in statements:
+                out.line(statement)
+            out.line("return value;")
+            out.dedent()
+            out.line("}")
+            out.line()
         out.line(f"TEST({name}, Defaults) {{")
         out.indent()
         _record(out, self.verifier.shown(self.verifier.defaults(cases.message)))
@@ -780,7 +782,11 @@ class _MessageTests:
         out.dedent()
         out.line("}")
         out.line()
-        used: set[str] = {"Defaults", "WireSize"}
+        used: set[str] = {"Defaults", "WireSize", "SerializeNeedsRoom", "PatternRoundTrip"}
+        if isinstance(cases.default_encoded, bytes) and cases.default_encoded:
+            self.needs_room(cases.message, encoding)
+        if isinstance(cases.pattern_encoded, bytes) and not opaque:
+            self.pattern_round_trip(cases, encoding)
         if name in self.sizes:
             _message_wire_size(
                 out, self.sizes[name], self.verifier.shown(self.verifier.wire_size(cases.message))
@@ -801,6 +807,32 @@ class _MessageTests:
                 lines.lines,
                 self.verifier.shown(self.verifier.decode_case(cases.message, decode)),
             )
+
+    def pattern_round_trip(self, cases: MessageCases, encoding: str) -> None:
+        """Check that the pattern value encodes to its bytes and decodes back, for every message."""
+        name = cases.message.name
+        payload = cases.pattern_encoded
+        if not isinstance(payload, bytes):
+            return
+        lines = Writer(depth=0)
+        _byte_array(lines, "kPayload", payload)
+        check = f"golden_round_trip(pattern_{name}(), {CSPAN}(kPayload), {encoding})"
+        lines.line(f"EXPECT_TRUE({SUPPORT}{check});")
+        keys = self.verifier.shown(self.verifier.keep(f"{name}.LAYOUT"))
+        _test(self.out, name, "PatternRoundTrip", lines.lines, keys)
+
+    def needs_room(self, message: Struct, encoding: str) -> None:
+        """Check that a buffer without room is refused and the size reset, for every message."""
+        name = message.name
+        lines = [
+            "std::array<std::uint8_t, 1U> buffer{};",
+            "std::size_t size = 1U;",
+            f"EXPECT_EQ(serialize(model::{name}{{}}, {SPAN}(buffer.data(), 0U), size, {encoding}),",
+            f"          {STATUS}BufferTooSmall);",
+            "EXPECT_EQ(size, 0U);",
+        ]
+        keys = self.verifier.shown(self.verifier.keep(f"{name}.LAYOUT"))
+        _test(self.out, name, "SerializeNeedsRoom", lines, keys)
 
     def encode_case(
         self, message: Struct, case: EncodeCase, encoding: str, used: set[str], *, opaque: bool
@@ -1066,14 +1098,9 @@ class _InterfaceTests:
         """Check that the default raw hook returns a decode error and keeps the payload out."""
         interface = cases.interface
         identifier = _identifier(interface.name)
-        for index, _ in cases.frames:
+        for index, failing in cases.raw_errors:
             entry = interface.messages[index]
             if entry.name not in messages:
-                continue
-            failing = next(
-                (case for case in messages[entry.name].decodes if case.status != OK), None
-            )
-            if failing is None:
                 continue
             lines = Writer()
             _byte_array(lines, "kPayload", failing.payload)
@@ -1089,24 +1116,30 @@ class _InterfaceTests:
 
     def too_small(self, cases: InterfaceCases, suite: str) -> None:
         interface = cases.interface
-        if cases.default_frame_size == 0:
+        sized = [item for item in cases.defaults if item[1] > 0]
+        if not sized:
             return
-        message = interface.messages[cases.frames[0][0]].name
         ns = f"model::{interface.name}"
-        rooms = [0]
-        if 0 < cases.overhead < cases.default_frame_size:
-            rooms.append(cases.overhead)  # room for header and trailer, none for the payload
+        # Every message has its own instance of the frame writer, so every message is tried.
         lines = [
-            f"std::array<std::uint8_t, {max(cases.overhead, 1)}U> buffer{{}};",
+            f"std::array<std::uint8_t, {max(item[2] for item in sized)}U> buffer{{}};",
             "std::size_t size = 1U;",
         ]
-        for room in rooms:
-            call = f"{ns}::encode_frame(model::{message}{{}}, {SPAN}(buffer.data(), {room}U), size)"
-            lines += [
-                f"EXPECT_EQ({call},",
-                f"          {STATUS}BufferTooSmall);",
-                "EXPECT_EQ(size, 0U);",
-            ]
+        for index, frame_size, overhead in sized:
+            message = interface.messages[index].name
+            rooms = [0]
+            if 0 < overhead < frame_size:
+                rooms.append(overhead)  # room for header and trailer, none for the payload
+            for room in rooms:
+                call = (
+                    f"{ns}::encode_frame(model::{message}{{}}, "
+                    f"{SPAN}(buffer.data(), {room}U), size)"
+                )
+                lines += [
+                    f"EXPECT_EQ({call},",
+                    f"          {STATUS}BufferTooSmall);",
+                    "EXPECT_EQ(size, 0U);",
+                ]
         _test(
             self.out,
             suite,

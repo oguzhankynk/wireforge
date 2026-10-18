@@ -12,7 +12,7 @@ ROOT = HERE.parents[1]
 EXAMPLES = sorted(path.parent for path in (ROOT / "examples").glob("*/project.yaml"))
 BASE = YAML(typ="safe").load((HERE / "semantic_base.yaml").read_text(encoding="utf-8"))
 CASES = YAML(typ="safe").load((HERE / "semantic_cases.yaml").read_text(encoding="utf-8"))
-RULES = [f"SR-{number}" for number in range(1, 23)]
+RULES = [f"SR-{number}" for number in range(1, 24)]
 
 
 def _apply(document: dict[str, Any], operation: dict[str, Any]) -> None:
