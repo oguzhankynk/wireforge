@@ -1,0 +1,48 @@
+# Physical values: fields with a scale and an offset in a message, in a nested type and under a
+# condition, on integers of several widths, on a bit-field and on floating-point numbers.
+schema_version: 1
+project: scaling
+version: "0.1.0"
+namespace: models::scaling
+defaults: { endian: little, bit_order: lsb_first }
+
+defines:
+  EXTENDED: 0
+
+profiles:
+  basic: { defines: { EXTENDED: 0 } }
+  extended: { defines: { EXTENDED: 1 } }
+
+types:
+  Pair:
+    fields:
+      - { name: low, type: u8, scale: 0.5, offset: -20, units: degC }
+      - { name: high, type: i8, scale: 4 }
+
+messages:
+  Climate:
+    id: 1
+    fields:
+      - { name: temperature, type: i16, scale: 0.01, offset: 20, units: degC }
+      - { name: pressure, type: u32, scale: 0.1 }
+      - { name: counter, type: u64, offset: 1000 }
+      - { name: gain, type: f32, scale: 2, offset: 1 }
+      - { name: ratio, type: f64, scale: -0.25 }
+      - { name: pair, type: Pair }
+      - { name: extra, type: u16, scale: 10, if: EXTENDED > 0 }
+  Nibbles:
+    id: 2
+    fields:
+      - { name: a, type: u8, bits: 4, scale: 0.5 }
+      - { name: b, type: i8, bits: 4, scale: -2, offset: 1 }
+
+interfaces:
+  link:
+    version: "1.0.0"
+    direction: both
+    header:
+      fields:
+        - { name: id, type: u8, role: message_id }
+        - { name: length, type: u8, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 64 }
+    messages: [Climate, Nibbles]

@@ -48,12 +48,16 @@ Multi-byte values are written byte by byte using the effective message endiannes
 - `occurs` on a bit-field is not allowed in v1 (SR-11). `min`/`max` apply to the logical (decoded) value.
 
 ## 5. Field attributes
-`name`, `type`, `description`, `units` (documentation only), `bits`, `min`, `max`, `default`, `const`,
+`name`, `type`, `description`, `units` (documentation only), `scale`, `offset`, `bits`, `min`, `max`, `default`, `const`,
 `reserved`, `occurs`, `checksum`, `role` (header/trailer only), `if`, `since`, `deprecated`.
 - `default`: initial value of `init()`; fields without default are zero-initialized. Arrays accept a list.
   Enum defaults use the value name. A default must lie in `[min, max]` (SR-6).
 - `min`/`max`: numbers or expressions; checked on encode and/or decode per `range_check`.
   With `range_check.decode: false`, decoding succeeds and the caller can run `validate()`.
+- `scale`, `offset`: the physical value of a field is `raw * scale + offset` (defaults 1 and 0; `scale` is never 0). The
+  wire, `min`, `max`, `default` and `const` stay raw values. The generated code adds `physical_<Struct>_<field>()` and
+  `set_physical_<Struct>_<field>()`; the reference codec decodes the physical value as well. Allowed on plain integer
+  and floating-point fields only (SR-24).
 - `const`: written as the declared value, decode fails with `ConstMismatch` on difference.
 - `reserved`: written as `default` (or 0), ignored on decode unless also `const`.
 
@@ -188,6 +192,8 @@ carry file, line and JSON pointer.
   reference codec agrees with the vector in every profile it applies to.
 - SR-23 A field of an enum type without `default` (and without `const`) needs an enum member with the value 0, because
   `init()` and the reference codec start every field at zero; a dynamic array starts empty and is exempt.
+- SR-24 `scale` and `offset` are allowed only on a plain integer or floating-point field: not on enums, `bool`,
+  `char`, structs, arrays, reserved or constant fields, roles and checksums.
 - SR-21 Every id in a `reqs` list names an entry of the `requirements` catalog (section 17). An unused catalog entry is
   not an error.
 

@@ -8,7 +8,7 @@ const OCCURS: readonly [OccursKind, string][] = [
   ["fill", "fill payload"],
 ];
 
-type TextColumn = "bits" | "capacity" | "count" | "min" | "max" | "defaultValue" | "units" | "condition" | "description" | "constValue";
+type TextColumn = "bits" | "capacity" | "count" | "min" | "max" | "defaultValue" | "units" | "scale" | "offset" | "condition" | "description" | "constValue";
 
 const BODY_COLUMNS: readonly [TextColumn, string][] = [
   ["bits", "bits"],
@@ -18,6 +18,8 @@ const BODY_COLUMNS: readonly [TextColumn, string][] = [
   ["max", "max"],
   ["defaultValue", "default"],
   ["units", "units"],
+  ["scale", "scale"],
+  ["offset", "offset"],
   ["condition", "if"],
   ["description", "description"],
 ];

@@ -1,0 +1,79 @@
+# A CAN network from a database file: `wireforge import-dbc vehicle.dbc <directory> --name can_dbc
+# --namespace examples::can_dbc --node Gateway` wrote this project from vehicle.dbc (the same file is
+# in this directory). Intel signals (EngineData, BatteryInfo, Odometer) give little-endian,
+# LSB-first messages; Motorola signals (BrakeStatus) a big-endian, MSB-first one. Factor and offset
+# are `scale` and `offset`, the value tables are enums, the gaps between signals are reserved bits.
+# BatteryInfo has an extended identifier (bit 31 is the extended-frame flag, as in SocketCAN).
+schema_version: 1
+project: can_dbc
+version: "0.1.0"
+namespace: examples::can_dbc
+defaults:
+  endian: big
+  bit_order: msb_first
+enums:
+  EngineData_EngineState:
+    type: u8
+    values: { Off: 0, Cranking: 1, Running: 2, Stalled: 3, Fault: 4 }
+  BrakeStatus_BrakePressed:
+    type: u8
+    values: { Released: 0, Pressed: 1 }
+messages:
+  EngineData:
+    id: 256
+    description: Engine data broadcast by the engine control unit. Cycle time 10 ms.
+    endian: little
+    bit_order: lsb_first
+    fields:
+      - { name: EngineSpeed, type: u16, bits: 16, units: rpm, scale: 0.25, description: Crankshaft speed. }
+      - { name: CoolantTemp, type: u8, bits: 8, units: degC, offset: -40 }
+      - { name: ThrottlePosition, type: u16, bits: 10, min: 0, max: 1000, units: '%', scale: 0.1 }
+      - { name: EngineState, type: EngineData_EngineState, bits: 3, description: State of the engine. }
+      - { name: reserved_37, type: u8, bits: 3, reserved: true }
+      - { name: TorqueDemand, type: i16, bits: 12, units: Nm, scale: 0.5 }
+      - { name: reserved_52, type: u16, bits: 12, reserved: true }
+  BrakeStatus:
+    id: 512
+    description: Cycle time 20 ms.
+    fields:
+      - { name: WheelSpeedFront, type: u16, bits: 16, units: km/h, scale: 0.01 }
+      - { name: BrakePressed, type: BrakeStatus_BrakePressed, bits: 1 }
+      - { name: AbsActive, type: u8, bits: 1 }
+      - { name: reserved_18, type: u8, bits: 6, reserved: true }
+      - { name: BrakeTorque, type: i8, bits: 8, units: Nm }
+  BatteryInfo:
+    id: 2566844926
+    endian: little
+    bit_order: lsb_first
+    fields:
+      - { name: PackVoltage, type: u32, bits: 32, units: V }
+      - { name: PackCurrent, type: i32, bits: 32, units: A, scale: 0.001 }
+  Odometer:
+    id: 768
+    endian: little
+    bit_order: lsb_first
+    fields:
+      - { name: Distance, type: u64, bits: 64, units: m }
+interfaces:
+  Gateway_rx:
+    version: 1.0.0
+    direction: rx
+    header:
+      fields:
+        - { name: canId, type: u32, role: message_id }
+        - { name: dlc, type: u8, role: payload_length }
+    framing:
+      kind: length_prefixed
+      max_frame_size: 13
+    messages: [EngineData, Odometer]
+  Gateway_tx:
+    version: 1.0.0
+    direction: tx
+    header:
+      fields:
+        - { name: canId, type: u32, role: message_id }
+        - { name: dlc, type: u8, role: payload_length }
+    framing:
+      kind: length_prefixed
+      max_frame_size: 13
+    messages: [BrakeStatus, BatteryInfo]

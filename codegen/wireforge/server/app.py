@@ -115,16 +115,18 @@ class RevisionCompat(BaseModel):
 
 
 class ImportRequest(BaseModel):
-    """An ICD to import as a new project: CSV or C header text, or a base64 Excel workbook."""
+    """An ICD to import as a new project: CSV, C header or DBC text, or a base64 Excel workbook."""
 
     id: str = Field(pattern=PROJECT_ID.pattern)
     name: str = Field(pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
-    format: Literal["csv", "xlsx", "h"]
+    format: Literal["csv", "xlsx", "h", "dbc"]
     content: str
     namespace: str | None = None
     version: str = "0.1.0"
     endian: Literal["big", "little"] | None = None
     messages: list[str] | None = None
+    node: str | None = Field(default=None, pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+    skip_unsupported: bool = False
 
 
 class RequirementsImport(BaseModel):
@@ -277,7 +279,16 @@ def import_icd(store: Store, body: ImportRequest) -> ResultResponse:
         else:
             source.write_bytes(data)
         try:
-            result = service.import_icd(source, destination, options, body.messages)
+            if body.format == "dbc":
+                result = service.import_dbc(
+                    source,
+                    destination,
+                    options,
+                    body.node,
+                    skip_unsupported=body.skip_unsupported,
+                )
+            else:
+                result = service.import_icd(source, destination, options, body.messages)
         except ServiceError as error:
             raise _service_error(error) from error
     if not result.ok and destination.exists() and not any(destination.iterdir()):

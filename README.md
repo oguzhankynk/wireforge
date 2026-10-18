@@ -35,7 +35,7 @@ qualification, which depend on the whole project and its assessor (docs/DO178C.m
 | Fitting into a DO-178C process, tool integration | docs/DO178C.md, docs/integration/ |
 | Server, web UI, MCP | docs/SERVER.md, docs/UI.md, docs/MCP.md |
 | Secure deployment and operation | docs/SERVER.md, "Deployment and operation" |
-| Importers (CSV/Excel ICD, C headers) | docs/IMPORT.md |
+| Importers (CSV/Excel ICD, C headers, CAN databases) | docs/IMPORT.md |
 | Quality, safety, traceability | quality/QUALITY_POLICY.md, docs/SAFETY.md, docs/CODING_RULES.md |
 | Architecture and design decisions | docs/ARCHITECTURE.md, docs/DECISIONS.md |
 

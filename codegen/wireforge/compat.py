@@ -202,6 +202,8 @@ class _Flattener:
             "min": self.value(item.min),
             "max": self.value(item.max),
             "enum": None if enum is None else tuple(sorted(enum.values.items())),
+            "scale": item.scale,
+            "offset": item.offset,
         }
         return _Element(
             path=prefix + item.name,

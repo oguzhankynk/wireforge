@@ -41,6 +41,7 @@ dev = [
   "joserfc>=1.0",
   "types-openpyxl",
   "pymodbus==3.16.1",
+  "cantools==45.0.0",
 ]
 
 [tool.setuptools.dynamic]

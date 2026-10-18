@@ -26,6 +26,8 @@ export interface FieldRow {
   defaultValue: string;
   condition: string;
   units: string;
+  scale: string;
+  offset: string;
   checksumUse: string;
   checksumScope: string;
   role: string;
@@ -67,6 +69,8 @@ export function emptyRow(name = ""): FieldRow {
     defaultValue: "",
     condition: "",
     units: "",
+    scale: "",
+    offset: "",
     checksumUse: "",
     checksumScope: "preceding",
     role: "",
@@ -126,6 +130,8 @@ export function toField(row: FieldRow): Field {
   if (row.max.trim() !== "") field.max = numberOrExpression(row.max);
   if (row.defaultValue.trim() !== "") field.default = scalar(row.defaultValue);
   if (row.units.trim() !== "") field.units = row.units.trim();
+  if (row.scale.trim() !== "") field.scale = Number(row.scale);
+  if (row.offset.trim() !== "") field.offset = Number(row.offset);
   const occurs = occursOf(row);
   if (occurs !== undefined) field.occurs = occurs;
   const checksum = checksumOf(row);
@@ -167,6 +173,8 @@ export function fromField(field: Field): FieldRow {
     defaultValue: text(field.default),
     condition: text(field.if),
     units: text(field.units),
+    scale: text(field.scale),
+    offset: text(field.offset),
     checksumUse: text(field.checksum?.use),
     checksumScope: covers?.scope ?? "preceding",
     role: field.role ?? "",
@@ -191,6 +199,12 @@ export function rowProblems(rows: readonly FieldRow[]): string[] {
     names.add(row.name.trim());
     if (row.bits.trim() !== "" && !/^\d+$/.test(row.bits.trim())) {
       problems.push(`${label}: bits must be a positive integer`);
+    }
+    if (row.scale.trim() !== "" && !(Number.isFinite(Number(row.scale)) && Number(row.scale) !== 0)) {
+      problems.push(`${label}: scale must be a number other than 0`);
+    }
+    if (row.offset.trim() !== "" && !Number.isFinite(Number(row.offset))) {
+      problems.push(`${label}: offset must be a number`);
     }
     if (["fixed", "counted", "fill"].includes(row.occurs) && row.capacity.trim() === "") {
       problems.push(`${label}: the array needs a capacity`);

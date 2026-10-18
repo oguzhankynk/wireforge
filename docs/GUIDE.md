@@ -29,7 +29,7 @@ Markdown summary. The repository has a GitHub action for it and a GitLab example
    ```
    The template is a working project with comments; change the names, fields and limits to match your protocol.
    The web UI has the same start under "New project".
-1. **Describe messages.** Write a `project.yaml` (docs/SCHEMA_SPEC.md, `examples/`), or import an ICD table or C header:
+1. **Describe messages.** Write a `project.yaml` (docs/SCHEMA_SPEC.md, `examples/`), or import an ICD table, a C header or a CAN database (`wireforge import-dbc`, docs/IMPORT.md):
    ```sh
    wireforge import-icd examples/icd/telemetry_icd.csv demo --name telemetry --namespace demo::imu --endian little
    ```
@@ -83,5 +83,6 @@ code and tests (quality/QUALITY_POLICY.md, docs/SAFETY.md).
 | `examples/04_user_type` | an opaque field type backed by application code |
 | `examples/05_modbus_rtu` | a published protocol: Modbus RTU written from the specification, CRC-16/MODBUS sent low byte first, vectors from the examples of the specification (`pymodbus` agrees byte for byte) |
 | `examples/06_modbus_tcp` | Modbus TCP: the MBAP header with a length, one message per interface |
+| `examples/07_can_dbc` | a CAN network imported from a DBC file: Intel and Motorola signals, factor and offset, value tables as enums, an extended identifier (`wireforge import-dbc`) |
 | `examples/icd/` | ICD sources for the importers (CSV table, C header) |
 | `examples/cmake_consumer/` | an application built with `find_package(WireForge)` |

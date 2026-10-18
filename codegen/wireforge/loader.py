@@ -139,6 +139,8 @@ def _field(raw: dict[str, Any], source: Source) -> Field:
         condition=raw.get("if"),
         description=raw.get("description"),
         units=raw.get("units"),
+        scale=raw.get("scale"),
+        offset=raw.get("offset"),
         reqs=_reqs(raw),
     )
 

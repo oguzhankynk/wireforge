@@ -51,6 +51,8 @@ describe("field rows", () => {
       max: "LIMIT",
       default: true,
       units: "m",
+      scale: 0.01,
+      offset: -40,
       if: "defined(X)",
       description: "d",
       checksum: { use: "frameCrc", covers: { scope: "payload" as const } },
@@ -60,6 +62,19 @@ describe("field rows", () => {
     expect(fromField({ name: "n", type: "u8", occurs: { max: 1, count: "c" } }).occurs).toBe("optional");
     expect(fromField({ name: "n", type: "u8", occurs: { max: 3 } }).occurs).toBe("fixed");
     expect(fromField({ name: "n", type: "u8", occurs: { max: 3, fill: true } }).occurs).toBe("fill");
+  });
+
+  it("reports scale and offset that are not numbers", () => {
+    const rows = [
+      { ...emptyRow("a"), scale: "0" },
+      { ...emptyRow("b"), scale: "x", offset: "y" },
+      { ...emptyRow("c"), scale: "0.5", offset: "-3" },
+    ];
+    expect(rowProblems(rows)).toEqual([
+      "a: scale must be a number other than 0",
+      "b: scale must be a number other than 0",
+      "b: offset must be a number",
+    ]);
   });
 
   it("reports row problems", () => {

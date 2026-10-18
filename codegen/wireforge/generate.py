@@ -25,7 +25,26 @@ from wireforge.cpp_interface import InterfaceError, InterfaceHeader
 from wireforge.issues import Issue
 from wireforge.llr import requirement_notes
 from wireforge.loader import load_project
-from wireforge.model import BUILTIN_BITS, Field, Project, Scalar, Source, Struct, UserConstant
+from wireforge.model import (
+    BUILTIN_BITS,
+    FLOAT_TYPES,
+    Field,
+    Project,
+    Scalar,
+    Source,
+    Struct,
+    UserConstant,
+)
+from wireforge.scaling import (
+    function_names,
+    lower_check,
+    number,
+    offset_of,
+    scale_of,
+    scaled_fields,
+    upper_check,
+    widened,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -134,7 +153,10 @@ class _ModelHeader:
             out.line(f'#include "{header}"')
         if custom:
             out.line()
-        for header in ("array", "cstddef", "cstdint"):
+        scaled = any(scaled_fields(item) for item in self.project.messages.values()) or any(
+            scaled_fields(item) for item in self.project.types.values()
+        )
+        for header in ("array", "cstddef", "cstdint", *(("limits",) if scaled else ())):
             out.line(f"#include <{header}>")
         out.line()
         out.line(f"/// @brief Generated code of project {name}.")
@@ -258,6 +280,7 @@ class _ModelHeader:
         out.line()
         self.validate(item, hidden)
         self.sizes(item)
+        self.physical(item)
         self.codec.encode_struct(item)
         self.codec.decode_struct(item)
         if item.message is not None:
@@ -265,6 +288,49 @@ class _ModelHeader:
         if item.condition is not None:
             out.line("#endif")
             out.line()
+
+    def physical(self, item: Struct) -> None:
+        """Write the getter and the setter of the physical value of every scaled field."""
+        for field in scaled_fields(item):
+            getter, setter = function_names(item.name, field)
+            scale, offset = number(scale_of(field)), number(offset_of(field))
+            name = f"{item.name}.{field.name}"
+            limits: list[str] = []
+            if field.type in FLOAT_TYPES:
+                largest = f"std::numeric_limits<{self.names.scalar(field.type)}>::max()"
+                if field.type == "f32":
+                    largest = f"static_cast<double>({largest})"
+                limits = [f"    constexpr double kLargest = {largest};"]
+                checks = "raw >= -kLargest && raw <= kLargest"
+                store = "raw"
+            else:
+                checks = f"{lower_check(field)} && {upper_check(field)}"
+                store = "raw < 0.0 ? raw - 0.5 : raw + 0.5"
+            kind = self.names.scalar(field.type)
+            lines = [
+                f"/// @brief Physical value of {name}: raw * {scale} + {offset}.",
+                f"[[nodiscard]] inline double {getter}(const {item.name}& value) noexcept {{",
+                f"    return {widened(field, f'value.{field.name}')} * {scale} + {offset};",
+                "}",
+                "",
+                f"/// @brief Sets {name} from a physical value, rounded to the nearest raw value.",
+                "/// @return false, and the field unchanged, when the raw value does not fit.",
+                (
+                    f"[[nodiscard]] inline bool {setter}({item.name}& value, "
+                    "double physical) noexcept {"
+                ),
+                *limits,
+                f"    const double raw = (physical - {offset}) / {scale};",
+                f"    const bool fits = {checks};",
+                "    if (!fits) {",
+                "        return false;",
+                "    }",
+                f"    value.{field.name} = static_cast<{kind}>({store});",
+                "    return true;",
+                "}",
+                "",
+            ]
+            self.conditional(field, lines)
 
     def member(self, item: Field) -> str:
         names = self.names

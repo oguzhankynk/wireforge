@@ -8,6 +8,7 @@ equivalent.
 |---------|--------------|
 | `wireforge init [dir] [--template telemetry\|command\|raw] [--name N] [--namespace NS] [--version V] [--list]` | a new project from a working template (never overwrites; the directory must be empty) |
 | `wireforge ci <project> [--base REV] [--test] [-o DIR] [--summary FILE]` | the check of a CI system: validate, compare with the project at a git revision (wire compatibility and version bump), optionally build and run the tests; one Markdown summary (docs/integration/github_actions.md) |
+| `wireforge import-icd <file> <dir> --name N` / `wireforge import-dbc <file.dbc> <dir> --name N [--node NODE] [--skip-unsupported]` | a project from an ICD table, a C header or a CAN database (docs/IMPORT.md) |
 | `wireforge validate <project>` | structural and semantic validation (file, line, JSON pointer per issue) |
 | `wireforge fmt <project> [--check]` | canonical layout of every project file (comments kept) |
 | `wireforge migrate <project> [--check]` | upgrade the file format and refresh the version stamps |
@@ -26,7 +27,7 @@ equivalent.
 | `wireforge upsert <project> <section> <name> <definition>` | create or update a type, message, interface, ... |
 | `wireforge remove <project> <pointer>` | delete an element |
 | `wireforge encode <project> <message> <value> [--interface I] [--profile P]` | payload (and frame) as hex |
-| `wireforge decode <project> <hex> (--message M \| --interface I)` | decoded value (payload or frame) |
+| `wireforge decode <project> <hex> (--message M \| --interface I)` | decoded value (payload or frame), with the physical values of fields that have `scale` or `offset` |
 
 Values are YAML flow syntax (`85`, `deg`, `'{ name: age, type: u8 }'`) or a YAML file (`--file`). `--json` prints
 `{"ok", "issues", "data", "text"}`. Exit codes: `0` success, `1` the project or check failed (validation errors,
