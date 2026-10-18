@@ -163,6 +163,20 @@ class CModel:
 
     # --- model.h ------------------------------------------------------------------------------
 
+    def _header_user_includes(self) -> None:
+        out, names = self.header, self.names
+        for header in self.project.headers:
+            if header.c_path is None:
+                continue
+            include = f'"{header.c_path}"' if header.style == "quote" else f"<{header.c_path}>"
+            if header.condition is not None:
+                out.line(f"#if {names.condition(header.condition)}")
+            out.line(f"#include {include}")
+            if header.condition is not None:
+                out.line("#endif")
+        if any(header.c_path for header in self.project.headers):
+            out.line()
+
     def render_header(self) -> str:
         """Return the text of model.h."""
         out = self.header
@@ -185,6 +199,7 @@ class CModel:
         out.line()
         out.line('#include "wireforge/c/status.h"')
         out.line()
+        self._header_user_includes()
         out.line("struct wf_encoder;")
         out.line("struct wf_decoder;")
         out.line("struct wf_encoding;")
@@ -521,8 +536,8 @@ class CModel:
             out.line("#endif")
             out.line()
 
-    def _codec(self) -> _CCodec:
-        return _CCodec(self)
+    def _codec(self) -> CCodec:
+        return CCodec(self)
 
     # --- defaults -------------------------------------------------------------------------------
 
@@ -815,7 +830,7 @@ class CModel:
         out.line()
 
 
-class _CCodec:
+class CCodec:
     """Writes `<prefix>_<Type>_encode` and `_decode` of one struct (same rules as cpp_codec.py)."""
 
     def __init__(self, model: CModel) -> None:
@@ -939,45 +954,57 @@ class _CCodec:
 
     # --- wire values ----------------------------------------------------------------------------
 
-    def _write(self, item: Field, expression: str) -> str:
+    def write_statement(self, item: Field, expression: str, coder: str = "encoder") -> str:
+        """Return the statement that writes a scalar to an encoder variable."""
         base = self.names.base(item.type)
         if base in FLOAT_TYPES:
-            return f"wf_enc_{base}(encoder, {expression});"
+            return f"wf_enc_{base}({coder}, {expression});"
         if base == "bool":
-            return f"wf_enc_bool(encoder, {expression});"
+            return f"wf_enc_bool({coder}, {expression});"
         if base == "char":
-            return f"wf_enc_unsigned(encoder, (uint64_t)(uint8_t)({expression}), 1U);"
+            return f"wf_enc_unsigned({coder}, (uint64_t)(uint8_t)({expression}), 1U);"
         if base in SIGNED_TYPES:
-            return f"wf_enc_signed(encoder, (int64_t)({expression}), {self._width(item)}U);"
-        return f"wf_enc_unsigned(encoder, (uint64_t)({expression}), {self._width(item)}U);"
+            return f"wf_enc_signed({coder}, (int64_t)({expression}), {self._width(item)}U);"
+        return f"wf_enc_unsigned({coder}, (uint64_t)({expression}), {self._width(item)}U);"
 
-    def _read(self, item: Field) -> str:
+    def read_expression(self, item: Field, coder: str = "decoder") -> str:
+        """Return the expression that reads a scalar from a decoder variable."""
         base = self.names.base(item.type)
         ctype = self.names.scalar(item.type)
         if base in FLOAT_TYPES:
-            return f"wf_dec_{base}(decoder)"
+            return f"wf_dec_{base}({coder})"
         if base == "bool":
-            return "wf_dec_bool(decoder)"
+            return f"wf_dec_bool({coder})"
         if base == "char":
-            return "(char)(uint8_t)wf_dec_unsigned(decoder, 1U)"
+            return f"(char)(uint8_t)wf_dec_unsigned({coder}, 1U)"
         if base in SIGNED_TYPES:
-            return f"({ctype})wf_dec_signed(decoder, {self._width(item)}U)"
-        return f"({ctype})wf_dec_unsigned(decoder, {self._width(item)}U)"
+            return f"({ctype})wf_dec_signed({coder}, {self._width(item)}U)"
+        return f"({ctype})wf_dec_unsigned({coder}, {self._width(item)}U)"
 
-    def _expect(self, item: Field, literal: str) -> str:
+    def expect_statement(self, item: Field, literal: str, coder: str = "decoder") -> str:
+        """Return the statement that reads a scalar and compares it with a constant."""
         base = self.names.base(item.type)
         if base in FLOAT_TYPES:
-            return f"wf_dec_expect_{base}(decoder, {literal});"
+            return f"wf_dec_expect_{base}({coder}, {literal});"
         if base == "bool":
-            return f"wf_dec_expect_bool(decoder, {literal});"
+            return f"wf_dec_expect_bool({coder}, {literal});"
         if base == "char":
-            return f"wf_dec_expect_unsigned(decoder, (uint64_t)(uint8_t)({literal}), 1U);"
+            return f"wf_dec_expect_unsigned({coder}, (uint64_t)(uint8_t)({literal}), 1U);"
         if base in SIGNED_TYPES:
-            return f"wf_dec_expect_signed(decoder, (int64_t)({literal}), {self._width(item)}U);"
-        return f"wf_dec_expect_unsigned(decoder, (uint64_t)({literal}), {self._width(item)}U);"
+            return f"wf_dec_expect_signed({coder}, (int64_t)({literal}), {self._width(item)}U);"
+        return f"wf_dec_expect_unsigned({coder}, (uint64_t)({literal}), {self._width(item)}U);"
+
+    def const_literal(self, item: Field) -> str:
+        """Return the literal a constant (or reserved) field is written with."""
+        return self._const_literal(item)
+
+    def width(self, item: Field) -> int:
+        """Return the number of bytes of the wire type of a field."""
+        return self._width(item)
 
     @staticmethod
-    def _count_limit(base: str) -> str:
+    def count_limit(base: str) -> str:
+        """Return the largest count a wire type holds, as a C literal."""
         if base == "bool":
             return "1U"
         bits = BUILTIN_BITS[base]
@@ -1008,7 +1035,7 @@ class _CCodec:
             size = checksum_size(checksum)
             return [f"wf_enc_checksum(encoder, {begin}, {end}, {function}, {size}U);"]
         if field.const is not None or field.reserved:
-            return [self._write(field, self._const_literal(field))]
+            return [self.write_statement(field, self._const_literal(field))]
         if field.name not in members:
             return self._encode_count(field, owner)
         subject = f"value->{field.name}"
@@ -1032,7 +1059,7 @@ class _CCodec:
         ]
         base = self.names.base(field.type)
         lines.append(
-            f"wf_enc_count(encoder, {size}, {self._count_limit(base)}, {self._width(field)}U);"
+            f"wf_enc_count(encoder, {size}, {self.count_limit(base)}, {self._width(field)}U);"
         )
         return lines
 
@@ -1043,7 +1070,7 @@ class _CCodec:
             f"wf_enc_check_value(encoder, {check});"
             for check in self.model.value_checks(field, subject, members)
         ]
-        return [*checks, self._write(field, subject)]
+        return [*checks, self.write_statement(field, subject)]
 
     def _encode_occurs(self, field: Field, subject: str, members: set[str]) -> list[str]:
         occurs = field.occurs
@@ -1136,7 +1163,7 @@ class _CCodec:
             size = checksum_size(checksum)
             return [f"wf_dec_verify_checksum(decoder, {begin}, {end}, {function}, {size}U);"]
         if field.const is not None:
-            return [self._expect(field, self._const_literal(field))]
+            return [self.expect_statement(field, self._const_literal(field))]
         if field.reserved:
             return [f"wf_dec_skip(decoder, {self._width(field)}U);"]
         if field.name not in members:
@@ -1161,7 +1188,7 @@ class _CCodec:
             f"wf_dec_check_value(decoder, {check});"
             for check in self.model.value_checks(field, subject, members)
         ]
-        return [f"{subject} = {self._read(field)};", *checks]
+        return [f"{subject} = {self.read_expression(field)};", *checks]
 
     def _decode_count(self, field: Field, members: set[str]) -> str | None:
         occurs = field.occurs

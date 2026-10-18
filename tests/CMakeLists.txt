@@ -51,6 +51,11 @@ if(NOT MSVC)
 endif()
 add_test(NAME c_runtime_test COMMAND c_runtime_test)
 
+add_executable(c_link_test c/link_test.c)
+target_link_libraries(c_link_test PRIVATE wireforge::runtime_c wireforge_c_warnings
+  wireforge_instrumentation)
+add_test(NAME c_link_test COMMAND c_link_test)
+
 add_subdirectory(generated)
 if(WIREFORGE_FUZZ)
   add_subdirectory(fuzz)

@@ -109,7 +109,8 @@ Used in `min`, `max`, `occurs.*`, `buffers.*`, `frame_size`, `max_frame_size`, c
   `uint64_t f(const uint8_t *data, size_t length)` over the covered bytes, and `c_include`, the header that declares it
   (relative to an include directory). A user constant (`user_includes.constants`) used in an expression of generated C
   has a `c` spelling, a macro or an enumerator; without it the C code uses `value` when the constant has no
-  `profile_values`.
+  `profile_values`. A header entry of `user_includes.headers` can name a `c_path`, the header the generated C code
+  includes in place of `path` (it defines the macros the `c` spellings stand for).
 A field uses it with `checksum: {use, covers}`. `covers` is `{from, to}` (inclusive field range in the same struct)
 or `{scope: preceding | payload | header_and_payload}`; the latter two are for header/trailer fields.
 The field is computed on encode and verified on decode (`ChecksumMismatch`). Its width must equal the algorithm

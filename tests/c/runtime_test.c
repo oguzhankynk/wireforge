@@ -575,6 +575,10 @@ static void test_validation(void) {
     CHECK(wf_check_bits_s(-8, 4U) == WF_OK && wf_check_bits_s(8, 4U) == WF_OUT_OF_RANGE);
     CHECK(wf_check_bits_u(15U, 4U) == WF_OK && wf_check_bits_u(16U, 4U) == WF_OUT_OF_RANGE);
     CHECK(wf_check_true(true) == WF_OK && wf_check_true(false) == WF_OUT_OF_RANGE);
+    CHECK(wf_status_if(true, WF_TRUNCATED) == WF_OK);
+    CHECK(wf_status_if(false, WF_TRUNCATED) == WF_TRUNCATED);
+    CHECK(wf_size_if_ok(WF_OK, 7U) == 7U);
+    CHECK(wf_size_if_ok(WF_TRUNCATED, 7U) == 0U);
     CHECK(wf_first_error(WF_OK, WF_OK) == WF_OK);
     CHECK(wf_first_error(WF_OK, WF_TRUNCATED) == WF_TRUNCATED);
     CHECK(wf_first_error(WF_OUT_OF_RANGE, WF_TRUNCATED) == WF_OUT_OF_RANGE);
@@ -587,6 +591,9 @@ static void test_validation(void) {
 }
 
 static void test_expressions(void) {
+    const size_t three = 3U;
+    const size_t five = 5U;
+    CHECK(WF_MAX_SIZE(three, five) == 5U && WF_MAX_SIZE(five, three) == 5U);
     CHECK(wf_expr_min(3, 5) == 3 && wf_expr_min(5, 3) == 3);
     CHECK(wf_expr_max(3, 5) == 5 && wf_expr_max(5, 3) == 5);
     CHECK(wf_expr_ceil_div(6, 3) == 2);

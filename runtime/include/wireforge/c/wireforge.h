@@ -13,6 +13,9 @@
 #include "wireforge/c/codec.h"
 #include "wireforge/c/crc.h"
 #include "wireforge/c/expr.h"
+#include "wireforge/c/frame.h"
+#include "wireforge/c/link.h"
+#include "wireforge/c/ring.h"
 #include "wireforge/c/status.h"
 #include "wireforge/c/validation.h"
 

@@ -97,8 +97,15 @@ in the same order, the same statuses (`wireforge/c/`, docs/RUNTIME.md). What dif
   `wf_encoding`). `<prefix>_<Type>_MIN_WIRE_SIZE` and `_MAX_WIRE_SIZE` are macros.
 - A checksum is the function `<prefix>_checksum_<name>(data, length)`; a custom one calls the `c_impl` of the model.
 - A field with `scale` has `<prefix>_physical_<Type>_<field>()` and `<prefix>_set_physical_<Type>_<field>()`.
-Only the types and enums that a message or an interface uses get functions. Not supported yet: user types, and the
-interfaces (framing, receiver, link).
+- Each interface has `<project>/interfaces/<interface>.h` and `.c`, prefix `<prefix>_<interface>_`: the id and size
+  macros (`_HEADER_SIZE`, `_TRAILER_SIZE`, `_MAX_FRAME_SIZE`, `_<Message>_ID`), `_header` and `_header_init()`,
+  `_encode_<Message>()` (a complete frame), `_decode_header()`, a `_handler` struct of callbacks, `_dispatch_frame()`
+  and a `_link` that owns its buffers (`_link_init()`, `_link_poll()`, `_link_send_<Message>()`, `_link_send_frame()`).
+  A handler has, per message, `on_<Message>_received` (decoded) and `on_<Message>_raw` (the bytes before decoding;
+  `<prefix>_<interface>_<Message>_default_raw()` decodes and forwards). A null callback means the default; a handler
+  without callbacks ignores the messages. The link reads and writes through a `wf_transport` (two functions) and is
+  used by one thread at a time (docs/RUNTIME.md).
+Only the types and enums that a message or an interface uses get functions. User types are not supported yet.
 
 ## Physical values
 A field with `scale` and `offset` keeps its raw value in the struct (that is what the wire carries). Two functions next

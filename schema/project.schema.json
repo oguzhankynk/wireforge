@@ -1111,6 +1111,11 @@
                 "type": "string",
                 "pattern": "^[^\"<>\\n\\r]+$"
               },
+              "c_path": {
+                "type": "string",
+                "pattern": "^[^\"<>\\n\\r]+$",
+                "description": "Header included by the generated C code instead of `path` (it defines the C spelling of the constants the model uses)."
+              },
               "style": {
                 "enum": [
                   "quote",

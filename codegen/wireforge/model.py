@@ -271,6 +271,7 @@ class UserHeader:
     source: Source
     style: str = "quote"
     condition: str | None = None
+    c_path: str | None = None
 
 
 @dataclass(frozen=True)

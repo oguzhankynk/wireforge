@@ -297,6 +297,10 @@ export interface UserIncludes {
    */
   headers?: {
     path: string;
+    /**
+     * Header included by the generated C code instead of `path` (it defines the C spelling of the constants the model uses).
+     */
+    c_path?: string;
     style?: "quote" | "angle";
     if?: Expression;
   }[];

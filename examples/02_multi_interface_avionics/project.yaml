@@ -22,10 +22,11 @@ defines:
 user_includes:
   include_dirs: [app/include]
   headers:
-    - { path: app/limits.hpp, style: quote }
+    - { path: app/limits.hpp, c_path: app/limits.h, style: quote }
   constants:
     APP_MAX_FRAME:
       cpp: app::kMaxFrameBytes
+      c: APP_MAX_FRAME_BYTES
       description: Largest frame the application link driver accepts.
       value: 128
       profile_values: { platformB: 192 }

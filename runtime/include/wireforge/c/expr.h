@@ -9,6 +9,9 @@
 
 #include <stdint.h>
 
+/// The larger of two sizes, usable in constant expressions.
+#define WF_MAX_SIZE(a, b) (((a) > (b)) ? (a) : (b))
+
 /// Smaller of @p lhs and @p rhs.
 static inline int64_t wf_expr_min(int64_t lhs, int64_t rhs) {
     return rhs < lhs ? rhs : lhs;
