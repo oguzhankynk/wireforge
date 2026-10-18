@@ -18,6 +18,7 @@ import hashlib
 import io
 import json
 import math
+import re
 import shutil
 import subprocess
 import tarfile
@@ -119,6 +120,84 @@ def _load_valid(location: Path) -> tuple[Project | None, list[Issue]]:
         plugins = load_plugins(find_plugins(location))
         issues += vectors.check(result.project, plugins)
     return (None if errors_only(issues) else result.project), issues
+
+
+# --- init ---------------------------------------------------------------------------------------
+
+TEMPLATES = Path(__file__).resolve().parent / "templates"
+DEFAULT_TEMPLATE = "telemetry"
+IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def templates() -> list[str]:
+    """Return the names of the project templates `init_project` knows."""
+    return sorted(path.parent.name for path in TEMPLATES.glob("*/project.yaml"))
+
+
+def template_summaries() -> list[dict[str, str]]:
+    """Return name and one-line description (the first comment line) of every template."""
+    result = []
+    for name in templates():
+        first = (TEMPLATES / name / "project.yaml").read_text(encoding="utf-8").splitlines()[0]
+        result.append({"name": name, "summary": first.lstrip("# ").strip()})
+    return result
+
+
+def _identifier(text: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_]", "_", text)
+    return cleaned if IDENTIFIER.match(cleaned) else f"p_{cleaned}"
+
+
+def render_template(
+    template: str, name: str, namespace: str | None = None, version: str | None = None
+) -> str:
+    """Return the `project.yaml` of a template with its name, namespace and version replaced."""
+    source = TEMPLATES / template / "project.yaml"
+    if template not in templates():
+        message = f"unknown template '{template}' (templates: {', '.join(templates())})"
+        raise ServiceError(message)
+    if not IDENTIFIER.match(name):
+        message = f"'{name}' is not a valid project name (letters, digits and _; not first digit)"
+        raise ServiceError(message)
+    text = source.read_text(encoding="utf-8")
+    for key, value in (
+        ("project", name),
+        ("namespace", namespace or name),
+        ("version", f'"{version}"' if version else None),
+    ):
+        if value is not None:
+            text = re.sub(rf"^{key}: .*$", f"{key}: {value}", text, count=1, flags=re.MULTILINE)
+    return text
+
+
+def init_project(
+    directory: Path,
+    template: str = DEFAULT_TEMPLATE,
+    name: str | None = None,
+    namespace: str | None = None,
+    version: str | None = None,
+) -> Result:
+    """Create a project directory from a template and validate it.
+
+    An existing directory must be empty; nothing is overwritten.
+    """
+    if directory.exists() and (not directory.is_dir() or any(directory.iterdir())):
+        message = f"{directory} exists and is not an empty directory"
+        raise ServiceError(message)
+    text = render_template(
+        template, name or _identifier(directory.resolve().name), namespace, version
+    )
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / schema.ROOT_FILE_NAME).write_text(text, encoding="utf-8")
+    checked = validate(directory)
+    steps = (
+        f"created {directory / schema.ROOT_FILE_NAME} from the template '{template}'\n"
+        f"next: wireforge validate {directory}\n"
+        f"      wireforge generate {directory} -o gen --tests\n"
+        f"      wireforge test {directory} -o build/{directory.name}\n"
+    )
+    data = {"template": template, "file": str(directory / schema.ROOT_FILE_NAME)}
+    return Result(checked.ok, checked.issues, data, steps + checked.text)
 
 
 # --- validate, fmt, migrate ---------------------------------------------------------------------

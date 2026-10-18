@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The quickstart of docs/GUIDE.md, timed, in a fresh virtual environment with the built wheel:
-# import an ICD, add an interface, validate, analyze, generate and run the tests, then build an
+# create a project from a template and test it, import an ICD, add an interface, validate, analyze, generate and run the tests, then build an
 # application through the CMake package. Fails when anything fails or it takes 15 minutes or more.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -23,6 +23,10 @@ cd "${work}"
 python -c 'from wireforge import resources; import sys
 assert "site-packages" in str(resources.runtime_include()), "runtime headers come from the wheel"
 assert "site-packages" in str(resources.schema_dir())'
+# The first project from a template, as a new user starts.
+wireforge init first --template telemetry
+wireforge validate first
+wireforge test first -o first_generated --generator Ninja "${cmake_args[@]}" | tail -n 3
 wireforge import-icd "${repo}/examples/icd/telemetry_icd.csv" demo --name telemetry --namespace demo::imu --endian little
 wireforge upsert demo interfaces imu_link '{ version: "1.0.0", direction: rx, header: { fields: [{ name: msgId, type: u16, role: message_id }, { name: length, type: u8, role: payload_length }] }, framing: { kind: length_prefixed, max_frame_size: 64 }, messages: [ImuSample, Heartbeat] }'
 wireforge validate demo

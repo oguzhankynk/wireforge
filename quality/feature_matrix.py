@@ -314,7 +314,11 @@ def model_directories() -> list[Path]:
     """Return the example and test model directories."""
     return sorted(
         path.parent
-        for pattern in ("examples/*/project.yaml", "tests/models/*/project.yaml")
+        for pattern in (
+            "examples/*/project.yaml",
+            "tests/models/*/project.yaml",
+            "codegen/wireforge/templates/*/project.yaml",
+        )
         for path in ROOT.glob(pattern)
     )
 

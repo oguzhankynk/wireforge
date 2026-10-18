@@ -12,7 +12,7 @@ Example client configuration:
 | Tool | What it does | CLI equivalent |
 |------|--------------|----------------|
 | `list_projects` | projects of the workspace | `ls` |
-| `create_project(project, name, namespace?, version?)` | new empty project | `mkdir` + `project.yaml` |
+| `create_project(project, name, namespace?, version?, template?)` | new project, empty or from a template (`telemetry`, `command`, `raw`) | `wireforge init` |
 | `list_messages(project)` | messages (with ids), types, interfaces | `wireforge analyze` |
 | `get_message(project, name)` | definition of a message or type as written | `wireforge get` |
 | `upsert_struct(project, section, name, definition, dry_run?)` | create/update a type or message | `wireforge upsert` |

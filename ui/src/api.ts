@@ -12,6 +12,15 @@ export type EncodeRequest = components["schemas"]["EncodeRequest"];
 /** Body of a decode request. */
 export type DecodeRequest = components["schemas"]["DecodeRequest"];
 
+/** Body of a project creation. */
+export type ProjectCreate = components["schemas"]["ProjectCreate"];
+
+/** A template a new project can start from. */
+export interface TemplateSummary {
+  name: string;
+  summary: string;
+}
+
 /** Summary of a project of the workspace. */
 export interface ProjectSummary {
   id: string;
@@ -60,6 +69,16 @@ export class Api {
   /** Projects of the workspace. */
   async projects(): Promise<ProjectSummary[]> {
     return (await this.request("/api/projects")) as ProjectSummary[];
+  }
+
+  /** The templates a new project can start from. */
+  async templates(): Promise<TemplateSummary[]> {
+    return (await this.request("/api/templates")) as TemplateSummary[];
+  }
+
+  /** Create a project (from a template when one is given). */
+  async createProject(body: ProjectCreate): Promise<void> {
+    await this.request("/api/projects", { method: "POST", body: JSON.stringify(body) });
   }
 
   /** A project: validation result, files and entry names per section. */

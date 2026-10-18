@@ -62,10 +62,20 @@ class Tools:
         return Result(ok=True, data={"projects": names}, text="\n".join(names)).to_dict()
 
     def create_project(
-        self, project: str, name: str, namespace: str | None = None, version: str = "0.1.0"
+        self,
+        project: str,
+        name: str,
+        namespace: str | None = None,
+        version: str = "0.1.0",
+        template: str | None = None,
     ) -> dict[str, Any]:
-        """Create an empty project directory with its root file."""
+        """Create a project directory with its root file, empty or from a template.
+
+        `template` is one of `telemetry`, `command` or `raw` (a working first project to edit).
+        """
         directory = self.workspace / project
+        if template is not None:
+            return service.init_project(directory, template, name, namespace, version).to_dict()
         if directory.exists():
             message = f"{project} already exists"
             raise ServiceError(message)

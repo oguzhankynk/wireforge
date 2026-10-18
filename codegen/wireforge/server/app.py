@@ -76,6 +76,7 @@ class ProjectCreate(BaseModel):
     name: str = Field(pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
     namespace: str | None = None
     version: str = "0.1.0"
+    template: str | None = None
 
 
 class CodecRequest(BaseModel):
@@ -284,12 +285,24 @@ def import_icd(store: Store, body: ImportRequest) -> ResultResponse:
     return _result(result)
 
 
+@router.get("/templates")
+def list_templates() -> list[dict[str, str]]:
+    """Return the templates a new project can start from."""
+    return service.template_summaries()
+
+
 @router.post("/projects", status_code=201)
 def create_project(store: Store, body: ProjectCreate) -> dict[str, Any]:
     """Create an empty project directory."""
     directory = store.root / body.id
     if directory.exists():
         raise HTTPException(409, f"{body.id} already exists")
+    if body.template is not None:
+        try:
+            service.init_project(directory, body.template, body.name, body.namespace, body.version)
+        except ServiceError as error:
+            raise _service_error(error) from error
+        return {"id": body.id, "etag": store.state(body.id).etag}
     directory.mkdir(parents=True)
     lines = ["schema_version: 1", f"project: {body.name}", f'version: "{body.version}"']
     if body.namespace:

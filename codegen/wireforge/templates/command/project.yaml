@@ -1,0 +1,38 @@
+# Command link: requests and answers in both directions, framed with a length prefix.
+# Edit the names, the fields and their limits to match your protocol, then run:
+#   wireforge validate .     wireforge generate . -o gen --tests     wireforge test .
+schema_version: 1
+project: command
+version: "0.1.0"
+namespace: demo::command
+defaults: { endian: little, bit_order: msb_first }
+
+enums:
+  Result:
+    type: u8
+    values: { ok: 0, rejected: 1, busy: 2 }
+
+messages:
+  Command:
+    id: 1
+    description: A request to the device.
+    fields:
+      - { name: opcode, type: u8, min: 1, max: 20, default: 1 }
+      - { name: argument, type: u32, min: 0, max: 100000, default: 0 }
+  Answer:
+    id: 2
+    description: The device's reply to a command.
+    fields:
+      - { name: opcode, type: u8, min: 1, max: 20, default: 1 }
+      - { name: result, type: Result, default: ok }
+
+interfaces:
+  control_link:
+    version: "1.0.0"
+    direction: both
+    header:
+      fields:
+        - { name: msgId, type: u8, role: message_id }
+        - { name: length, type: u8, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 32 }
+    messages: [Command, Answer]

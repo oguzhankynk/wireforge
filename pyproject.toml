@@ -46,7 +46,7 @@ package-dir = { "" = "codegen" }
 packages = ["wireforge", "wireforge.server"]
 
 [tool.setuptools.package-data]
-wireforge = ["py.typed", "wireshark_runtime.lua"]
+wireforge = ["py.typed", "wireshark_runtime.lua", "templates/*/project.yaml"]
 
 [tool.ruff]
 line-length = 100

@@ -25,7 +25,8 @@ types are generated from it. Code: `wireforge.server` (`storage.py`, `app.py`).
 ## Routes
 | Route | Meaning | CLI equivalent |
 |-------|---------|----------------|
-| `GET /api/projects`, `POST /api/projects` | list projects / create an empty project | `ls`, `mkdir` + `project.yaml` |
+| `GET /api/projects`, `POST /api/projects` | list projects / create a project, empty or from a `template` | `ls`, `wireforge init` |
+| `GET /api/templates` | the templates a new project can start from | `wireforge init --list` |
 | `GET /api/projects/{id}` | entries per section, files, ETags, validation result | `wireforge validate` |
 | `GET /api/projects/{id}/state`, `GET .../wait` | ETags; wait for a change | - |
 | `POST /api/projects/{id}/validate` | validation result | `wireforge validate` |

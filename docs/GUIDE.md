@@ -16,6 +16,13 @@ API on port 8000 with the toolchain inside; it has no token by default, so read
 [Deployment and operation](SERVER.md#deployment-and-operation) before exposing it.
 
 ## Quickstart (about 5 minutes)
+0. **Start from a template** (or skip to step 1 with your own ICD):
+   ```sh
+   wireforge init demo --template telemetry      # also: command, raw; --list shows them
+   wireforge validate demo && wireforge test demo -o build/demo
+   ```
+   The template is a working project with comments; change the names, fields and limits to match your protocol.
+   The web UI has the same start under "New project".
 1. **Describe messages.** Write a `project.yaml` (docs/SCHEMA_SPEC.md, `examples/`), or import an ICD table or C header:
    ```sh
    wireforge import-icd examples/icd/telemetry_icd.csv demo --name telemetry --namespace demo::imu --endian little

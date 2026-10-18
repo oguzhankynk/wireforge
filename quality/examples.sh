@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Shared by the quality scripts: prints "<example dir> <project name> <plugins file or ->" per example
-# (examples/ and the models of tests/models/).
+# (examples/, the models of tests/models/ and the templates of `wireforge init`).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-for example in examples/*/ tests/models/*/; do
+for example in examples/*/ tests/models/*/ codegen/wireforge/templates/*/; do
   example="${example%/}"
   [[ -f "${example}/project.yaml" ]] || continue  # e.g. examples/icd holds import sources
   name="$(PYTHONPATH=codegen python3 -c 'import sys; from pathlib import Path
