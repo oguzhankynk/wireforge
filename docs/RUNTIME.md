@@ -54,6 +54,18 @@ Every fallible call returns `wireforge::Status`.
 - `Encoder::write_bytes(Span<const std::uint8_t>)` / `Decoder::read_bytes(Span<std::uint8_t>)` copy bytes onto/from
   the wire unchanged, no endian or bit-order transform: the only IO a user type's own `encode`/`decode` needs.
 
+## C runtime
+`runtime/include/wireforge/c/` is the runtime for C99 code (`#include <wireforge/c/wireforge.h>`, or the single headers):
+header-only, `static inline`, no heap, no global state, no operating system. Its names are the ones of the C++ runtime
+with a `wf_` prefix, and the rules are the same: `wf_status` has the values and the order of `wireforge::Status`
+(`WF_OK`, `WF_BUFFER_TOO_SMALL`, ...); `wf_writer`/`wf_reader` and `wf_bit_packer`/`wf_bit_unpacker` do the byte and
+bit IO of `byte_io.hpp` and `bit_utils.hpp`; `wf_encoder`/`wf_decoder` keep the first error like `Encoder`/`Decoder`;
+`wf_check_*` are the checks of `validation.hpp`, with the value passed as `int64_t`, `uint64_t` or `double`;
+`wf_crc()` is the parametric CRC (bitwise, without a table); `wf_expr_*` are the helpers of generated expressions. A
+checksum of a field is a function `uint64_t f(const uint8_t *data, size_t length)` over the covered bytes. The C runtime
+is tested by `tests/c/runtime_test.c` (plain C99, no framework) and is compiled with the warning set of C code
+(`-Wall -Wextra -Wconversion -Wsign-conversion -Wshadow ...` as errors; `/W4 /WX` for MSVC).
+
 ## Thread safety
 - `SpscByteRing`: exactly one producer (`write`) and one consumer (`peek`, `read`, `consume`); indices run in
   `[0, 2*capacity)` so the whole storage is usable; release/acquire atomics publish data. `reset()` needs both sides idle.

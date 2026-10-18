@@ -41,6 +41,16 @@ if(WIREFORGE_BUILD_TESTS)
   target_compile_definitions(lock_config_test PRIVATE WIREFORGE_NO_STD_MUTEX)
 endif()
 
+# The C runtime is tested by a plain C program (no framework): it must compile as C99 with the
+# warning policy of C code and every check must hold.
+add_executable(c_runtime_test c/runtime_test.c)
+target_link_libraries(c_runtime_test PRIVATE wireforge::runtime_c wireforge_c_warnings
+  wireforge_instrumentation)
+if(NOT MSVC)
+  target_link_libraries(c_runtime_test PRIVATE m)
+endif()
+add_test(NAME c_runtime_test COMMAND c_runtime_test)
+
 add_subdirectory(generated)
 if(WIREFORGE_FUZZ)
   add_subdirectory(fuzz)

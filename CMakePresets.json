@@ -53,6 +53,7 @@
       "binaryDir": "${sourceDir}/build/clang-everything",
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_C_COMPILER": "clang",
         "WIREFORGE_BUILD_TESTS": "OFF",
         "WIREFORGE_WEVERYTHING": "ON"
       }
@@ -62,7 +63,11 @@
       "displayName": "libFuzzer targets (Clang)",
       "inherits": "dev",
       "binaryDir": "${sourceDir}/build/fuzz",
-      "cacheVariables": { "WIREFORGE_FUZZ": "ON", "CMAKE_CXX_COMPILER": "clang++" }
+      "cacheVariables": {
+        "WIREFORGE_FUZZ": "ON",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_C_COMPILER": "clang"
+      }
     }
   ],
   "buildPresets": [
