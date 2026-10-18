@@ -9,10 +9,18 @@ function coverage.
 - Runtime and generated code use only pre-allocated storage: no heap, no exceptions, no RTTI required.
 - One service layer behind the `wireforge` CLI, the Python API, the REST server with its web UI and the MCP server.
 - A generated Wireshark Lua dissector shows every interface's frames, with the same checks as the decoder.
-- Requirements trace from the model to the generated code and tests: `wireforge docs` writes the requirements, design,
-  test report, coverage and traceability documents, with a DO-178C DAL C objective map and ReqIF/CSV exchange with
-  requirements tools. The runtime has its own requirements and test dossier.
-- Zero warnings from every compiler and analyzer; big-endian and 32-bit runs; differential testing and fuzzing.
+- Zero warnings from every compiler and analyzer; tested on 32/64 bit, little and big endian, x86 and ARM, on Linux,
+  Windows, macOS, Android and FreeRTOS; differential testing and fuzzing.
+
+The way in is short: describe the protocol, generate the C++ code, run the tests, read the results. Nothing about
+requirements or standards is needed for that.
+
+## For teams with a development or assurance process
+Optionally, `wireforge docs` turns the same model into requirements, design, test and traceability documents with test
+and coverage results, change impact between revisions and ReqIF/CSV exchange with requirements tools (docs/LIFECYCLE.md,
+docs/integration/). For projects that apply standards such as DO-178C, ISO 26262, IEC 61508 or IEC 62304, this evidence
+supports your processes and your tool assessment; it does not by itself give conformity, certification or tool
+qualification, which depend on the whole project and its assessor (docs/DO178C.md).
 
 **Start with docs/GUIDE.md** (install, 5-minute quickstart, examples). Reference:
 
