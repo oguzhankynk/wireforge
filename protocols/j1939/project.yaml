@@ -1,0 +1,78 @@
+# SAE J1939 (the CAN protocol of heavy vehicles, engines and machinery): the 29-bit identifier with its priority,
+# parameter group number (PGN) and source address, and three broadcast parameter groups: EEC1 (engine speed and
+# torque), CCVS (vehicle speed and parking brake) and ET1 (engine temperatures).
+#
+# The frame is a SocketCAN frame: a 32-bit identifier word (bit 31 marks an extended frame), the data length and the
+# data. A header field cannot be a bit-field, so the identifier word is its four bytes: `control` (extended frame,
+# remote, error, priority, reserved bit and data page), `pduFormatAndSpecific` (the low 16 bits of the PGN, which is
+# the message id) and `sourceAddress`. The three groups here are data page 0, so the message id identifies the PGN.
+# The data fields are little endian, LSB first, as in the parameter group definitions.
+schema_version: 1
+project: j1939
+version: "1.0.0"
+description: SAE J1939 frame identifier and the parameter groups EEC1, CCVS and ET1.
+namespace: vehicle::j1939
+defaults: { endian: big, bit_order: msb_first }
+
+requirements:
+  J1939-001:
+    text: "The 29-bit identifier is the priority (3 bits), the parameter group number (18 bits: reserved, data page, PDU format, PDU specific) and the source address (8 bits)."
+    source: "SAE J1939-21, message format"
+  J1939-002:
+    text: A parameter group with a PDU format of 240 or more is broadcast; its PGN includes the group extension (PDU specific).
+    source: "SAE J1939-21, PDU2"
+  J1939-003:
+    text: In a signal of one byte the values 251 to 255 are not data (error, not available); 0xFF in unused bits and bytes means not used.
+    source: "SAE J1939-71, signal ranges"
+
+messages:
+  Eec1:
+    id: 0xF004
+    description: Electronic engine controller 1 (PGN 61444).
+    endian: little
+    bit_order: lsb_first
+    fields:
+      - { name: engineTorqueMode, type: u8, bits: 4 }
+      - { name: reserved_4, type: u8, bits: 4, default: 15, reserved: true }
+      - { name: driverDemandTorque, type: u8, bits: 8, min: 0, max: 250, units: '%', offset: -125 }
+      - { name: actualTorque, type: u8, bits: 8, min: 0, max: 250, units: '%', offset: -125 }
+      - { name: engineSpeed, type: u16, bits: 16, min: 0, max: 64255, units: rpm, scale: 0.125 }
+      - { name: controllingAddress, type: u8, bits: 8 }
+      - { name: starterMode, type: u8, bits: 4 }
+      - { name: reserved_52, type: u8, bits: 4, default: 15, reserved: true }
+      - { name: demandTorque, type: u8, bits: 8, min: 0, max: 250, units: '%', offset: -125 }
+  Ccvs:
+    id: 0xFEF1
+    description: Cruise control and vehicle speed (PGN 65265), the parking brake switch and the wheel-based speed.
+    endian: little
+    bit_order: lsb_first
+    fields:
+      - { name: reserved_0, type: u8, bits: 2, default: 3, reserved: true }
+      - { name: parkingBrakeSwitch, type: u8, bits: 2 }
+      - { name: reserved_4, type: u8, bits: 4, default: 15, reserved: true }
+      - { name: wheelSpeed, type: u16, bits: 16, min: 0, max: 64255, units: km/h, scale: 0.00390625 }
+      - { name: reserved_24, type: u64, bits: 40, default: 1099511627775, reserved: true }
+  Et1:
+    id: 0xFEEE
+    description: Engine temperature 1 (PGN 65262), the coolant, fuel and oil temperatures.
+    endian: little
+    bit_order: lsb_first
+    fields:
+      - { name: coolantTemperature, type: u8, bits: 8, min: 0, max: 250, units: degC, offset: -40 }
+      - { name: fuelTemperature, type: u8, bits: 8, min: 0, max: 250, units: degC, offset: -40 }
+      - { name: oilTemperature, type: u16, bits: 16, min: 0, max: 64255, units: degC, scale: 0.03125, offset: -273 }
+      - { name: reserved_32, type: u32, bits: 32, default: 4294967295, reserved: true }
+
+interfaces:
+  can:
+    version: "1.0.0"
+    reqs: [J1939-001, J1939-002]
+    direction: both
+    header:
+      fields:
+        - { name: control, type: u8, default: 0x98, description: "Bit 7 extended frame (always 1), bit 6 remote request, bit 5 error frame, bits 4 to 2 priority, bit 1 reserved, bit 0 data page. 0x98 is an extended frame of priority 6 and data page 0." }
+        - { name: pduFormatAndSpecific, type: u16, role: message_id, description: "The PDU format and the PDU specific field: the low 16 bits of the PGN, the message id." }
+        - { name: sourceAddress, type: u8, default: 0 }
+        - { name: dlc, type: u8, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 13 }
+    messages: [Eec1, Ccvs, Et1]

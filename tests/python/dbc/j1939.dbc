@@ -1,0 +1,29 @@
+VERSION ""
+
+NS_ :
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+
+BS_:
+
+BU_: Engine Display
+
+BO_ 2364539904 EEC1: 8 Engine
+ SG_ EngineTorqueMode : 0|4@1+ (1,0) [0|15] "" Display
+ SG_ DriverDemandTorque : 8|8@1+ (1,-125) [-125|125] "%" Display
+ SG_ ActualTorque : 16|8@1+ (1,-125) [-125|125] "%" Display
+ SG_ EngineSpeed : 24|16@1+ (0.125,0) [0|8031.875] "rpm" Display
+ SG_ ControllingAddress : 40|8@1+ (1,0) [0|255] "" Display
+ SG_ StarterMode : 48|4@1+ (1,0) [0|15] "" Display
+ SG_ DemandTorque : 56|8@1+ (1,-125) [-125|125] "%" Display
+
+BO_ 2566844672 CCVS: 8 Engine
+ SG_ ParkingBrakeSwitch : 2|2@1+ (1,0) [0|3] "" Display
+ SG_ WheelSpeed : 8|16@1+ (0.00390625,0) [0|250.996] "km/h" Display
+
+BO_ 2566844416 ET1: 8 Engine
+ SG_ CoolantTemperature : 0|8@1+ (1,-40) [-40|210] "degC" Display
+ SG_ FuelTemperature : 8|8@1+ (1,-40) [-40|210] "degC" Display
+ SG_ OilTemperature : 16|16@1+ (0.03125,-273) [-273|1735] "degC" Display

@@ -1,0 +1,98 @@
+[
+  {
+    "frame": "98f0040008f00000000000f000",
+    "interface": "can",
+    "message": "Eec1",
+    "payload": "f00000000000f000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "actualTorque": 0,
+      "controllingAddress": 0,
+      "demandTorque": 0,
+      "driverDemandTorque": 0,
+      "engineSpeed": 0,
+      "engineTorqueMode": 0,
+      "reserved_4": 15,
+      "reserved_52": 15,
+      "starterMode": 0
+    }
+  },
+  {
+    "frame": "98f0040008faa6a654a7aafaa6",
+    "interface": "can",
+    "message": "Eec1",
+    "payload": "faa6a654a7aafaa6",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "actualTorque": 166,
+      "controllingAddress": 170,
+      "demandTorque": 166,
+      "driverDemandTorque": 166,
+      "engineSpeed": 42836,
+      "engineTorqueMode": 10,
+      "reserved_4": 15,
+      "reserved_52": 15,
+      "starterMode": 10
+    }
+  },
+  {
+    "frame": "98fef10008f30000ffffffffff",
+    "interface": "can",
+    "message": "Ccvs",
+    "payload": "f30000ffffffffff",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "parkingBrakeSwitch": 0,
+      "reserved_0": 3,
+      "reserved_24": 1099511627775,
+      "reserved_4": 15,
+      "wheelSpeed": 0
+    }
+  },
+  {
+    "frame": "98fef10008fb54a7ffffffffff",
+    "interface": "can",
+    "message": "Ccvs",
+    "payload": "fb54a7ffffffffff",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "parkingBrakeSwitch": 2,
+      "reserved_0": 3,
+      "reserved_24": 1099511627775,
+      "reserved_4": 15,
+      "wheelSpeed": 42836
+    }
+  },
+  {
+    "frame": "98feee000800000000ffffffff",
+    "interface": "can",
+    "message": "Et1",
+    "payload": "00000000ffffffff",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "coolantTemperature": 0,
+      "fuelTemperature": 0,
+      "oilTemperature": 0,
+      "reserved_32": 4294967295
+    }
+  },
+  {
+    "frame": "98feee0008a6a654a7ffffffff",
+    "interface": "can",
+    "message": "Et1",
+    "payload": "a6a654a7ffffffff",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "coolantTemperature": 166,
+      "fuelTemperature": 166,
+      "oilTemperature": 42836,
+      "reserved_32": 4294967295
+    }
+  }
+]

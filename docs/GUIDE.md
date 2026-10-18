@@ -84,6 +84,7 @@ published protocol that is written from its public documents and checked against
 |----------|--------|-------------------|
 | `modbus_rtu` | Modbus RTU: read holding registers, write single register, exceptions; CRC-16/MODBUS sent low byte first; vectors from the examples of the specification | `pymodbus` |
 | `modbus_tcp` | Modbus TCP: the MBAP header with a length, one message per interface | (vectors of the specification) |
+| `j1939` | SAE J1939: the identifier word (priority, PGN, source address) and the groups EEC1, CCVS, ET1 | `cantools` |
 | `ubx` | u-blox UBX: the frame, ACK-ACK, ACK-NAK, CFG-RATE, NAV-PVT, MON-VER; Fletcher-8 that skips the sync characters | `pyubx2` |
 
 ## Examples
