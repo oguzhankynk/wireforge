@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from wireforge import bundle, c_test_project, test_project, versioning
+from wireforge.c_interface import render_interfaces
 from wireforge.c_model import CModel
 from wireforge.c_names import CGenerationError
 from wireforge.cpp import Names, Writer, guard, plain_count, string_literal, type_order, wire_only
@@ -617,10 +618,11 @@ def render(project: Project, content_hash: str, language: str = "cpp") -> dict[s
     banner = Banner(project.name, project.version, content_hash)
     if language == "c":
         model = CModel(project, banner)
-        return {
+        files = {
             f"{project.name}/model.h": model.render_header(),
             f"{project.name}/model.c": CModel(project, banner).render_source(),
         }
+        return files | render_interfaces(project, banner, model)
     notes = requirement_notes(project)
     files = {
         f"{project.name}/user_prelude.hpp": _user_prelude(project, banner),

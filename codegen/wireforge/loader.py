@@ -330,7 +330,9 @@ def _user_includes(project: Project, root: _Where) -> None:
     for index, header in enumerate(raw.get("headers", [])):
         source = includes.child("headers").source_of(index)
         style = header.get("style", "quote")
-        project.headers.append(UserHeader(header["path"], source, style, header.get("if")))
+        project.headers.append(
+            UserHeader(header["path"], source, style, header.get("if"), header.get("c_path"))
+        )
     if "constants" in raw:
         for name, _, source in includes.child("constants").items():
             constant = raw["constants"][name]

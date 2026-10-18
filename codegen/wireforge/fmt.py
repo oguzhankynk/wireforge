@@ -140,7 +140,7 @@ ORDERS: dict[str, tuple[str, ...]] = {
     "generator": ("name", "version"),
     "bundle": ("content_hash", "source_files"),
     "user_includes": ("include_dirs", "headers", "constants", "prelude"),
-    "header": ("path", "style", "if"),
+    "header": ("path", "c_path", "style", "if"),
     "constant": ("cpp", "c", "description", "value", "profile_values"),
     "user_type": ("cpp", "description", "reqs", "size_bytes", "include", "style"),
     "requirement": ("text", "source", "verification"),

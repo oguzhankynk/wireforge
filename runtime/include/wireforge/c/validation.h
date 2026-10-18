@@ -76,6 +76,16 @@ static inline wf_status wf_check_true(bool valid) {
     return valid ? WF_OK : WF_OUT_OF_RANGE;
 }
 
+/// WF_OK when @p holds, otherwise @p error.
+static inline wf_status wf_status_if(bool holds, wf_status error) {
+    return holds ? WF_OK : error;
+}
+
+/// @p size when @p status is WF_OK, otherwise 0.
+static inline size_t wf_size_if_ok(wf_status status, size_t size) {
+    return status == WF_OK ? size : 0U;
+}
+
 /// The first of two statuses that is not WF_OK, or WF_OK: `status = wf_first_error(status, check)`.
 static inline wf_status wf_first_error(wf_status current, wf_status next) {
     return current == WF_OK ? next : current;

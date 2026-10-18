@@ -62,8 +62,13 @@ with a `wf_` prefix, and the rules are the same: `wf_status` has the values and 
 bit IO of `byte_io.hpp` and `bit_utils.hpp`; `wf_encoder`/`wf_decoder` keep the first error like `Encoder`/`Decoder`;
 `wf_check_*` are the checks of `validation.hpp`, with the value passed as `int64_t`, `uint64_t` or `double`;
 `wf_crc()` is the parametric CRC (bitwise, without a table); `wf_expr_*` are the helpers of generated expressions. A
-checksum of a field is a function `uint64_t f(const uint8_t *data, size_t length)` over the covered bytes. The C runtime
-is tested by `tests/c/runtime_test.c` (plain C99, no framework) and is compiled with the warning set of C code
+checksum of a field is a function `uint64_t f(const uint8_t *data, size_t length)` over the covered bytes.
+For interfaces there is `wf_ring` (a byte ring over caller storage), `wf_frame_decoder` (sync and length, length
+prefixed and fixed framing, a checksum, resynchronisation, counters: `frame_decoder.hpp`) and `wf_link` (reads a
+`wf_transport` into the ring, dispatches every frame, sends frames, counts bytes and frames: `link.hpp`). They have no
+locks and no atomics (C99 has none): a link belongs to one thread at a time, and an interrupt handler that fills a
+ring guards it with a critical section of the application. The C runtime
+is tested by `tests/c/runtime_test.c` and `tests/c/link_test.c` (plain C99, no framework) and is compiled with the warning set of C code
 (`-Wall -Wextra -Wconversion -Wsign-conversion -Wshadow ...` as errors; `/W4 /WX` for MSVC).
 
 ## Thread safety
