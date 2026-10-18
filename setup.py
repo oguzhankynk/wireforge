@@ -17,6 +17,7 @@ DATA = {
     "schema": ROOT / "schema",
     "runtime/include": ROOT / "runtime" / "include",
     "cmake": ROOT / "cmake" / "package",
+    "protocols": ROOT / "protocols",
     "ui": ROOT / "ui" / "dist",
 }
 
@@ -36,7 +37,12 @@ class BuildWithData(build_py):
         target = Path(self.build_lib) / "wireforge" / "_data"
         for name, source in DATA.items():
             if source.is_dir():
-                shutil.copytree(source, target / name, dirs_exist_ok=True)
+                shutil.copytree(
+                    source,
+                    target / name,
+                    dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+                )
         for name, source in FILES.items():
             (target / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target / name)

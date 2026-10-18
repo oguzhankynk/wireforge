@@ -22,9 +22,10 @@ API on port 8000 with the toolchain inside; it has no token by default, so read
 Markdown summary. The repository has a GitHub action for it and a GitLab example (docs/integration/github_actions.md).
 
 ## Quickstart (about 5 minutes)
-0. **Start from a template** (or skip to step 1 with your own ICD):
+0. **Start from a template or a published protocol** (or skip to step 1 with your own ICD):
    ```sh
    wireforge init demo --template telemetry      # also: command, raw; --list shows them
+   wireforge init gps --protocol ubx             # a published protocol, see "Published protocols"
    wireforge validate demo && wireforge test demo -o build/demo
    ```
    The template is a working project with comments; change the names, fields and limits to match your protocol.
@@ -74,6 +75,17 @@ Zero warnings from every compiler and analyzer, a 95 % line-coverage gate on gen
 against the reference codec, big-endian and 32-bit test runs, no-heap evidence and a trace report from model rows to
 code and tests (quality/QUALITY_POLICY.md, docs/SAFETY.md).
 
+## Published protocols
+`wireforge init <dir> --protocol <name>` (or the same choice under "New project" in the web UI) copies the model of a
+published protocol that is written from its public documents and checked against an independent implementation of it
+(byte for byte, in `tests/python/`). Each model has a README with its source, what it covers and what it does not.
+
+| Protocol | Covers | Independent check |
+|----------|--------|-------------------|
+| `modbus_rtu` | Modbus RTU: read holding registers, write single register, exceptions; CRC-16/MODBUS sent low byte first; vectors from the examples of the specification | `pymodbus` |
+| `modbus_tcp` | Modbus TCP: the MBAP header with a length, one message per interface | (vectors of the specification) |
+| `ubx` | u-blox UBX: the frame, ACK-ACK, ACK-NAK, CFG-RATE, NAV-PVT, MON-VER; Fletcher-8 that skips the sync characters | `pyubx2` |
+
 ## Examples
 | Example | Shows |
 |---------|-------|
@@ -81,8 +93,6 @@ code and tests (quality/QUALITY_POLICY.md, docs/SAFETY.md).
 | `examples/02_multi_interface_avionics` | avionics-style node: three interfaces (sync+length with CRC-16, raw, length-prefixed), platform profiles with conditional fields, lsb-first bit-fields, optional field, fill array, user-defined checksum, application constants |
 | `examples/03_edge_cases` | corner cases: zero counts, nested optional, signed bit-fields, u64, wire constants |
 | `examples/04_user_type` | an opaque field type backed by application code |
-| `examples/05_modbus_rtu` | a published protocol: Modbus RTU written from the specification, CRC-16/MODBUS sent low byte first, vectors from the examples of the specification (`pymodbus` agrees byte for byte) |
-| `examples/06_modbus_tcp` | Modbus TCP: the MBAP header with a length, one message per interface |
 | `examples/07_can_dbc` | a CAN network imported from a DBC file: Intel and Motorola signals, factor and offset, value tables as enums, an extended identifier (`wireforge import-dbc`) |
 | `examples/icd/` | ICD sources for the importers (CSV table, C header) |
 | `examples/cmake_consumer/` | an application built with `find_package(WireForge)` |

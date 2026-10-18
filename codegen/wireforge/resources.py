@@ -37,6 +37,11 @@ def cmake_dir() -> Path:
     return _locate("cmake", "cmake/package")
 
 
+def protocols_dir() -> Path:
+    """Return the directory of the published-protocol models (one subdirectory per protocol)."""
+    return _locate("protocols", "protocols")
+
+
 def ui_dir() -> Path | None:
     """Return the built web UI, or None when it was not built."""
     path = _locate("ui", "ui/dist")

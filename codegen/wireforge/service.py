@@ -136,12 +136,27 @@ def templates() -> list[str]:
     return sorted(path.parent.name for path in TEMPLATES.glob("*/project.yaml"))
 
 
+def protocols() -> list[str]:
+    """Return the names of the published-protocol models `init_project` can start from."""
+    return sorted(path.parent.name for path in resources.protocols_dir().glob("*/project.yaml"))
+
+
+def _protocol_summary(name: str) -> str:
+    readme = resources.protocols_dir() / name / "README.md"
+    first = readme.read_text(encoding="utf-8").splitlines()[0] if readme.exists() else name
+    return first.lstrip("# ").strip()
+
+
 def template_summaries() -> list[dict[str, str]]:
-    """Return name and one-line description (the first comment line) of every template."""
+    """Return name, kind and one-line description of every template and published protocol."""
     result = []
     for name in templates():
         first = (TEMPLATES / name / "project.yaml").read_text(encoding="utf-8").splitlines()[0]
-        result.append({"name": name, "summary": first.lstrip("# ").strip()})
+        result.append({"name": name, "kind": "template", "summary": first.lstrip("# ").strip()})
+    result += [
+        {"name": name, "kind": "protocol", "summary": _protocol_summary(name)}
+        for name in protocols()
+    ]
     return result
 
 
@@ -150,26 +165,46 @@ def _identifier(text: str) -> str:
     return cleaned if IDENTIFIER.match(cleaned) else f"p_{cleaned}"
 
 
+def _renamed(text: str, name: str, namespace: str | None, version: str | None) -> str:
+    """Return a root file with its project name, namespace and version replaced."""
+    if not IDENTIFIER.match(name):
+        message = f"'{name}' is not a valid project name (letters, digits and _; not first digit)"
+        raise ServiceError(message)
+    for key, value in (
+        ("project", name),
+        ("namespace", namespace),
+        ("version", f'"{version}"' if version else None),
+    ):
+        if value is not None:
+            text = re.sub(rf"^{key}: .*$", f"{key}: {value}", text, count=1, flags=re.MULTILINE)
+    return text
+
+
 def render_template(
     template: str, name: str, namespace: str | None = None, version: str | None = None
 ) -> str:
     """Return the `project.yaml` of a template with its name, namespace and version replaced."""
     source = TEMPLATES / template / "project.yaml"
     if template not in templates():
-        message = f"unknown template '{template}' (templates: {', '.join(templates())})"
-        raise ServiceError(message)
-    if not IDENTIFIER.match(name):
-        message = f"'{name}' is not a valid project name (letters, digits and _; not first digit)"
+        known = ", ".join([*templates(), *protocols()])
+        message = f"unknown template or protocol '{template}' (known: {known})"
         raise ServiceError(message)
     text = source.read_text(encoding="utf-8")
-    for key, value in (
-        ("project", name),
-        ("namespace", namespace or name),
-        ("version", f'"{version}"' if version else None),
-    ):
-        if value is not None:
-            text = re.sub(rf"^{key}: .*$", f"{key}: {value}", text, count=1, flags=re.MULTILINE)
-    return text
+    return _renamed(text, name, namespace or name, version)
+
+
+def _copy_protocol(
+    directory: Path, protocol: str, name: str, namespace: str | None, version: str | None
+) -> None:
+    """Copy a published-protocol model and replace its project name (and, if given, more)."""
+    source = resources.protocols_dir() / protocol
+    shutil.copytree(
+        source, directory, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__")
+    )
+    root = directory / schema.ROOT_FILE_NAME
+    root.write_text(
+        _renamed(root.read_text(encoding="utf-8"), name, namespace, version), encoding="utf-8"
+    )
 
 
 def init_project(
@@ -179,26 +214,30 @@ def init_project(
     namespace: str | None = None,
     version: str | None = None,
 ) -> Result:
-    """Create a project directory from a template and validate it.
+    """Create a project directory from a template or a published protocol and validate it.
 
     An existing directory must be empty; nothing is overwritten.
     """
     if directory.exists() and (not directory.is_dir() or any(directory.iterdir())):
         message = f"{directory} exists and is not an empty directory"
         raise ServiceError(message)
-    text = render_template(
-        template, name or _identifier(directory.resolve().name), namespace, version
-    )
-    directory.mkdir(parents=True, exist_ok=True)
-    (directory / schema.ROOT_FILE_NAME).write_text(text, encoding="utf-8")
+    project_name = name or _identifier(directory.resolve().name)
+    kind = "protocol" if template in protocols() else "template"
+    if kind == "protocol":
+        directory.mkdir(parents=True, exist_ok=True)
+        _copy_protocol(directory, template, project_name, namespace, version)
+    else:
+        text = render_template(template, project_name, namespace, version)
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / schema.ROOT_FILE_NAME).write_text(text, encoding="utf-8")
     checked = validate(directory)
     steps = (
-        f"created {directory / schema.ROOT_FILE_NAME} from the template '{template}'\n"
+        f"created {directory / schema.ROOT_FILE_NAME} from the {kind} '{template}'\n"
         f"next: wireforge validate {directory}\n"
         f"      wireforge generate {directory} -o gen --tests\n"
         f"      wireforge test {directory} -o build/{directory.name}\n"
     )
-    data = {"template": template, "file": str(directory / schema.ROOT_FILE_NAME)}
+    data = {"template": template, "kind": kind, "file": str(directory / schema.ROOT_FILE_NAME)}
     return Result(checked.ok, checked.issues, data, steps + checked.text)
 
 

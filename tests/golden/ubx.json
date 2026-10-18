@@ -1,0 +1,247 @@
+[
+  {
+    "frame": "b562050102000000082b",
+    "interface": "receiver",
+    "message": "AckAck",
+    "payload": "0000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "clsId": 0,
+      "msgId": 0
+    }
+  },
+  {
+    "frame": "b56205010200aaaa5c29",
+    "interface": "receiver",
+    "message": "AckAck",
+    "payload": "aaaa",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "clsId": 170,
+      "msgId": 170
+    }
+  },
+  {
+    "frame": "b5620500020000000726",
+    "interface": "receiver",
+    "message": "AckNak",
+    "payload": "0000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "clsId": 0,
+      "msgId": 0
+    }
+  },
+  {
+    "frame": "b56205000200aaaa5b24",
+    "interface": "receiver",
+    "message": "AckNak",
+    "payload": "aaaa",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "clsId": 170,
+      "msgId": 170
+    }
+  },
+  {
+    "frame": "b56206080600e803010001000139",
+    "interface": "receiver",
+    "message": "CfgRate",
+    "payload": "e80301000100",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "measRate": 1000,
+      "navRate": 1,
+      "timeRef": 1
+    }
+  },
+  {
+    "frame": "b56206080600aaaaaaaaaaaa10a6",
+    "interface": "receiver",
+    "message": "CfgRate",
+    "payload": "aaaaaaaaaaaa",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "measRate": 43690,
+      "navRate": 43690,
+      "timeRef": 43690
+    }
+  },
+  {
+    "frame": "b56201075c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000064c1",
+    "interface": "receiver",
+    "message": "NavPvt",
+    "payload": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "day": 0,
+      "fixType": 0,
+      "flags": {
+        "carrSoln": 0,
+        "diffSoln": false,
+        "gnssFixOk": false,
+        "headVehValid": false,
+        "psmState": 0
+      },
+      "flags2": {
+        "confirmedAvai": false,
+        "confirmedDate": false,
+        "confirmedTime": false,
+        "reserved": 0
+      },
+      "flags3": 0,
+      "gSpeed": 0,
+      "hAcc": 0,
+      "hMsl": 0,
+      "headAcc": 0,
+      "headMot": 0,
+      "headVeh": 0,
+      "height": 0,
+      "hour": 0,
+      "iTow": 0,
+      "lat": 0,
+      "lon": 0,
+      "magAcc": 0,
+      "magDec": 0,
+      "min": 0,
+      "month": 0,
+      "nano": 0,
+      "numSv": 0,
+      "pDop": 0,
+      "reserved0": 0,
+      "sAcc": 0,
+      "sec": 0,
+      "tAcc": 0,
+      "vAcc": 0,
+      "valid": {
+        "fullyResolved": false,
+        "reserved": 0,
+        "validDate": false,
+        "validMag": false,
+        "validTime": false
+      },
+      "velD": 0,
+      "velE": 0,
+      "velN": 0,
+      "year": 0
+    }
+  },
+  {
+    "frame": "b56201075c00aaaaaaaaaaaaaaaaaaaaaa0faaaaaaaaaaaaaa2aaab3e0aaaaaaaa2aaaaaaa2aaaaaaa2aaaaaaa2aaaaaaaaaaaaaaaaaaaaaaa2aaaaaaa2aaaaaaa2aaaaaaa2aaaaaaa2aaaaaaaaaaaaaaaaaaaaaaaaa00000000aaaaaa2aaa2aaaaa78f1",
+    "interface": "receiver",
+    "message": "NavPvt",
+    "payload": "aaaaaaaaaaaaaaaaaaaaaa0faaaaaaaaaaaaaa2aaab3e0aaaaaaaa2aaaaaaa2aaaaaaa2aaaaaaa2aaaaaaaaaaaaaaaaaaaaaaa2aaaaaaa2aaaaaaa2aaaaaaa2aaaaaaa2aaaaaaaaaaaaaaaaaaaaaaaaa00000000aaaaaa2aaa2aaaaa",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "day": 170,
+      "fixType": 170,
+      "flags": {
+        "carrSoln": 2,
+        "diffSoln": true,
+        "gnssFixOk": true,
+        "headVehValid": true,
+        "psmState": 4
+      },
+      "flags2": {
+        "confirmedAvai": true,
+        "confirmedDate": true,
+        "confirmedTime": true,
+        "reserved": 0
+      },
+      "flags3": 43690,
+      "gSpeed": 715827882,
+      "hAcc": 2863311530,
+      "hMsl": 715827882,
+      "headAcc": 2863311530,
+      "headMot": 715827882,
+      "headVeh": 715827882,
+      "height": 715827882,
+      "hour": 170,
+      "iTow": 2863311530,
+      "lat": 715827882,
+      "lon": 715827882,
+      "magAcc": 43690,
+      "magDec": 10922,
+      "min": 170,
+      "month": 170,
+      "nano": 715827882,
+      "numSv": 170,
+      "pDop": 43690,
+      "reserved0": 0,
+      "sAcc": 2863311530,
+      "sec": 170,
+      "tAcc": 2863311530,
+      "vAcc": 2863311530,
+      "valid": {
+        "fullyResolved": true,
+        "reserved": 0,
+        "validDate": true,
+        "validMag": true,
+        "validTime": true
+      },
+      "velD": 715827882,
+      "velE": 715827882,
+      "velN": 715827882,
+      "year": 43690
+    }
+  },
+  {
+    "frame": "b5620a0428000000000000000000000000000000000000000000000000000000000000000000000000000000000036f4",
+    "interface": "receiver",
+    "message": "MonVer",
+    "payload": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "extensions": [],
+      "hwVersion": "",
+      "swVersion": ""
+    }
+  },
+  {
+    "frame": "b5620a04180157697265466f72676557697265466f72676557697265466f72676557697257697265466f7267655757697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f726765576972589f",
+    "interface": "receiver",
+    "message": "MonVer",
+    "payload": "57697265466f72676557697265466f72676557697265466f72676557697257697265466f7267655757697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f72676557697257697265466f72676557697265466f72676557697265466f726765576972",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "extensions": [
+        {
+          "text": "WireForgeWireForgeWireForgeWir"
+        },
+        {
+          "text": "WireForgeWireForgeWireForgeWir"
+        },
+        {
+          "text": "WireForgeWireForgeWireForgeWir"
+        },
+        {
+          "text": "WireForgeWireForgeWireForgeWir"
+        },
+        {
+          "text": "WireForgeWireForgeWireForgeWir"
+        },
+        {
+          "text": "WireForgeWireForgeWireForgeWir"
+        },
+        {
+          "text": "WireForgeWireForgeWireForgeWir"
+        },
+        {
+          "text": "WireForgeWireForgeWireForgeWir"
+        }
+      ],
+      "hwVersion": "WireForgeW",
+      "swVersion": "WireForgeWireForgeWireForgeWir"
+    }
+  }
+]

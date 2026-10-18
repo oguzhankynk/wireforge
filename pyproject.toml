@@ -42,6 +42,7 @@ dev = [
   "types-openpyxl",
   "pymodbus==3.16.1",
   "cantools==45.0.0",
+  "pyubx2==1.3.8",
 ]
 
 [tool.setuptools.dynamic]

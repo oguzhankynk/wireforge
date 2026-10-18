@@ -6,7 +6,7 @@ equivalent.
 
 | Command | What it does |
 |---------|--------------|
-| `wireforge init [dir] [--template telemetry\|command\|raw] [--name N] [--namespace NS] [--version V] [--list]` | a new project from a working template (never overwrites; the directory must be empty) |
+| `wireforge init [dir] [--template telemetry\|command\|raw \| --protocol P] [--name N] [--namespace NS] [--version V] [--list]` | a new project from a working template or a published protocol (never overwrites; the directory must be empty) |
 | `wireforge ci <project> [--base REV] [--test] [-o DIR] [--summary FILE]` | the check of a CI system: validate, compare with the project at a git revision (wire compatibility and version bump), optionally build and run the tests; one Markdown summary (docs/integration/github_actions.md) |
 | `wireforge import-icd <file> <dir> --name N` / `wireforge import-dbc <file.dbc> <dir> --name N [--node NODE] [--skip-unsupported]` | a project from an ICD table, a C header or a CAN database (docs/IMPORT.md) |
 | `wireforge validate <project>` | structural and semantic validation (file, line, JSON pointer per issue) |

@@ -1,0 +1,152 @@
+# u-blox UBX (the binary protocol of u-blox GNSS receivers): the frame, five messages and the 8-bit Fletcher
+# checksum, written from the public u-blox receiver descriptions (the frame structure and the message fields).
+#
+# The message identifier on the wire is the class byte and then the message-id byte. The interface is little
+# endian, so the identifier field reads as `class | id << 8`: the identifier of NAV-PVT (class 0x01, id 0x07) is
+# 0x0701. The checksum covers class, id, length and payload, not the two sync characters; `ubxsum::Fletcher8` skips them.
+schema_version: 1
+project: ubx
+version: "1.0.0"
+description: u-blox UBX frame and five messages (ACK-ACK, ACK-NAK, CFG-RATE, NAV-PVT, MON-VER).
+namespace: gnss::ubx
+defaults: { endian: little, bit_order: lsb_first, range_check: { encode: true, decode: true } }
+include:
+  - vectors/*.yaml
+
+
+requirements:
+  UBX-001:
+    text: A frame starts with the sync characters 0xB5 0x62, then the class, the message id, a two-byte length (little endian) and the payload.
+    source: "u-blox receiver description, UBX frame structure"
+  UBX-002:
+    text: The frame ends with CK_A and CK_B, the 8-bit Fletcher sums over the class, the message id, the length and the payload.
+    source: "u-blox receiver description, UBX checksum"
+  UBX-003:
+    text: CFG-RATE sets the measurement period in milliseconds, the number of measurements per navigation solution and the time reference.
+    source: "u-blox receiver description, UBX-CFG-RATE"
+  UBX-004:
+    text: ACK-ACK and ACK-NAK answer a configuration message with its class and message id.
+    source: "u-blox receiver description, UBX-ACK"
+
+user_includes:
+  include_dirs: [app/include]
+checksums:
+  fletcher8:
+    algo: custom
+    reqs: [UBX-002]
+    impl: ubxsum::Fletcher8
+    include: ubx/fletcher8.hpp
+    size_bytes: 2
+
+types:
+  PvtValid:
+    description: Validity flags of NAV-PVT.
+    fields:
+      - { name: validDate, type: bool, bits: 1 }
+      - { name: validTime, type: bool, bits: 1 }
+      - { name: fullyResolved, type: bool, bits: 1 }
+      - { name: validMag, type: bool, bits: 1 }
+      - { name: reserved, type: u8, bits: 4, reserved: true }
+  PvtFlags:
+    description: Fix status flags of NAV-PVT.
+    fields:
+      - { name: gnssFixOk, type: bool, bits: 1 }
+      - { name: diffSoln, type: bool, bits: 1 }
+      - { name: psmState, type: u8, bits: 3 }
+      - { name: headVehValid, type: bool, bits: 1 }
+      - { name: carrSoln, type: u8, bits: 2 }
+  PvtFlags2:
+    description: Confirmation flags of NAV-PVT.
+    fields:
+      - { name: reserved, type: u8, bits: 5, reserved: true }
+      - { name: confirmedAvai, type: bool, bits: 1 }
+      - { name: confirmedDate, type: bool, bits: 1 }
+      - { name: confirmedTime, type: bool, bits: 1 }
+  Extension:
+    description: One extension string of MON-VER.
+    fields:
+      - { name: text, type: char, occurs: { max: 30 } }
+
+messages:
+  AckAck:
+    id: 0x0105
+    description: Acknowledge (ACK-ACK, class 0x05, id 0x01).
+    reqs: [UBX-004]
+    fields:
+      - { name: clsId, type: u8 }
+      - { name: msgId, type: u8 }
+  AckNak:
+    id: 0x0005
+    description: Not acknowledge (ACK-NAK, class 0x05, id 0x00).
+    reqs: [UBX-004]
+    fields:
+      - { name: clsId, type: u8 }
+      - { name: msgId, type: u8 }
+  CfgRate:
+    id: 0x0806
+    description: Navigation and measurement rate settings (CFG-RATE, class 0x06, id 0x08).
+    reqs: [UBX-003]
+    fields:
+      - { name: measRate, type: u16, min: 1, default: 1000, units: ms }
+      - { name: navRate, type: u16, default: 1 }
+      - { name: timeRef, type: u16, default: 1 }
+  NavPvt:
+    id: 0x0701
+    description: Navigation position velocity time solution (NAV-PVT, class 0x01, id 0x07).
+    fields:
+      - { name: iTow, type: u32, units: ms }
+      - { name: year, type: u16 }
+      - { name: month, type: u8 }
+      - { name: day, type: u8 }
+      - { name: hour, type: u8 }
+      - { name: min, type: u8 }
+      - { name: sec, type: u8 }
+      - { name: valid, type: PvtValid }
+      - { name: tAcc, type: u32, units: ns }
+      - { name: nano, type: i32, units: ns }
+      - { name: fixType, type: u8 }
+      - { name: flags, type: PvtFlags }
+      - { name: flags2, type: PvtFlags2 }
+      - { name: numSv, type: u8 }
+      - { name: lon, type: i32, units: deg, scale: 1.0e-7 }
+      - { name: lat, type: i32, units: deg, scale: 1.0e-7 }
+      - { name: height, type: i32, units: mm }
+      - { name: hMsl, type: i32, units: mm }
+      - { name: hAcc, type: u32, units: mm }
+      - { name: vAcc, type: u32, units: mm }
+      - { name: velN, type: i32, units: mm/s }
+      - { name: velE, type: i32, units: mm/s }
+      - { name: velD, type: i32, units: mm/s }
+      - { name: gSpeed, type: i32, units: mm/s }
+      - { name: headMot, type: i32, units: deg, scale: 1.0e-5 }
+      - { name: sAcc, type: u32, units: mm/s }
+      - { name: headAcc, type: u32, units: deg, scale: 1.0e-5 }
+      - { name: pDop, type: u16, scale: 0.01 }
+      - { name: flags3, type: u16 }
+      - { name: reserved0, type: u32, reserved: true }
+      - { name: headVeh, type: i32, units: deg, scale: 1.0e-5 }
+      - { name: magDec, type: i16, units: deg, scale: 0.01 }
+      - { name: magAcc, type: u16, units: deg, scale: 0.01 }
+  MonVer:
+    id: 0x040A
+    description: Receiver and software version (MON-VER, class 0x0A, id 0x04).
+    fields:
+      - { name: swVersion, type: char, occurs: { max: 30 } }
+      - { name: hwVersion, type: char, occurs: { max: 10 } }
+      - { name: extensions, type: Extension, occurs: { max: 8, fill: true } }
+
+interfaces:
+  receiver:
+    version: "1.0.0"
+    reqs: [UBX-001, UBX-002]
+    direction: both
+    header:
+      fields:
+        - { name: sync, type: u16, const: 0x62B5, role: sync }
+        - { name: classAndId, type: u16, role: message_id }
+        - { name: length, type: u16, role: payload_length }
+    trailer:
+      fields:
+        - { name: checksum, type: u16, checksum: { use: fletcher8, covers: { scope: header_and_payload } } }
+    framing: { kind: sync_length, max_frame_size: 512, resync: true }
+    messages: [AckAck, AckNak, CfgRate, NavPvt, MonVer]

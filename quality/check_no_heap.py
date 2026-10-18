@@ -65,7 +65,9 @@ def _units(work: Path) -> list[Unit]:
         source.write_text(f"#include <wireforge/{header.name}>\n", encoding="utf-8")
         units.append(Unit(f"runtime {header.name}", source, (RUNTIME,)))
     generated = work / "generated"
-    for root in sorted(ROOT.glob("examples/*/project.yaml")):
+    for root in sorted(
+        [*ROOT.glob("examples/*/project.yaml"), *ROOT.glob("protocols/*/project.yaml")]
+    ):
         example = root.parent
         plugins = next(iter(sorted((example / "plugins").glob("[!_]*.py"))), None)
         options = test_project.TestOptions(plugins=plugins)

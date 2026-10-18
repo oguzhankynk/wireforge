@@ -18,6 +18,7 @@ export type ProjectCreate = components["schemas"]["ProjectCreate"];
 /** A template a new project can start from. */
 export interface TemplateSummary {
   name: string;
+  kind: "template" | "protocol";
   summary: string;
 }
 

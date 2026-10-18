@@ -81,7 +81,9 @@ def main() -> int:
     findings = _scan_tree(RUNTIME, ("wireforge/*.hpp",))
     with tempfile.TemporaryDirectory() as work:
         generated = Path(work)
-        for project in sorted(ROOT.glob("examples/*/project.yaml")):
+        for project in sorted(
+            [*ROOT.glob("examples/*/project.yaml"), *ROOT.glob("protocols/*/project.yaml")]
+        ):
             example = project.parent
             plugins = next(iter(sorted((example / "plugins").glob("[!_]*.py"))), None)
             issues = generate.generate(

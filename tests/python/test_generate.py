@@ -10,7 +10,11 @@ from wireforge.cpp import Names, float_literal, guard, int_literal, string_liter
 from wireforge.loader import load_project
 
 ROOT = Path(__file__).resolve().parents[2]
-EXAMPLES = sorted(path.parent for path in (ROOT / "examples").glob("*/project.yaml"))
+EXAMPLES = sorted(
+    path.parent
+    for folder in ("examples", "protocols")
+    for path in (ROOT / folder).glob("*/project.yaml")
+)
 SNAPSHOTS = Path(__file__).parent / "snapshots"
 UPDATE = os.environ.get("WIREFORGE_UPDATE_SNAPSHOTS") == "1"
 

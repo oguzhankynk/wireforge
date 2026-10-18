@@ -28,12 +28,23 @@ def _inline(tmp_path: Path, text: str) -> Project:
     return _project(tmp_path)
 
 
-EXAMPLE_NAMES = sorted(path.parent.name for path in EXAMPLES.glob("*/project.yaml"))
+LOCATIONS = {
+    path.parent.name: path.parent
+    for folder in (EXAMPLES, ROOT / "protocols")
+    for path in sorted(folder.glob("*/project.yaml"))
+}
+EXAMPLE_NAMES = sorted(LOCATIONS)
+
+
+def _plugins(name: str) -> dict[str, Any]:
+    """Return the checksum plugins of an example (the avionics plugin serves the older ones)."""
+    own = sorted((LOCATIONS[name] / "plugins").glob("[!_]*.py"))
+    return golden.load_plugins(own[0]) if own else PLUGINS
 
 
 @pytest.mark.parametrize("name", EXAMPLE_NAMES)
 def test_golden_files_are_up_to_date(name: str) -> None:
-    text = golden.render(_project(EXAMPLES / name), PLUGINS)
+    text = golden.render(_project(LOCATIONS[name]), _plugins(name))
     assert (GOLDEN / f"{name}.json").read_text(encoding="utf-8") == text
 
 
@@ -73,7 +84,7 @@ def _golden_vectors() -> list[tuple[str, dict[str, Any]]]:
     ),
 )
 def test_golden_vector_round_trip(example: str, vector: dict[str, Any]) -> None:
-    codec = ReferenceCodec(_project(EXAMPLES / example), vector["profile"], PLUGINS)
+    codec = ReferenceCodec(_project(LOCATIONS[example]), vector["profile"], _plugins(example))
     payload = bytes.fromhex(vector["payload"])
     frame = bytes.fromhex(vector["frame"])
     assert codec.encode_message(vector["message"], vector["value"], vector["interface"]) == payload
