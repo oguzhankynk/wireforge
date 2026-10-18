@@ -1,0 +1,108 @@
+# MAVLink 1 (the telemetry protocol of drones and robots): the frame and four messages of the common message set,
+# HEARTBEAT, ATTITUDE, GLOBAL_POSITION_INT and COMMAND_LONG, written from the public MAVLink message definitions and
+# the serialization rules (the fields are sent largest type first, little endian).
+#
+# The checksum is CRC-16/MCRF4XX over the frame without the start byte, then one more byte, CRC_EXTRA, that depends on
+# the message (a hash of its definition). `mavsum::Crc` keeps the message id when it passes by and adds the byte last.
+schema_version: 1
+project: mavlink1
+version: "1.0.0"
+description: MAVLink 1 frame and four messages (HEARTBEAT, ATTITUDE, GLOBAL_POSITION_INT, COMMAND_LONG).
+namespace: drone::mavlink
+defaults: { endian: little, bit_order: lsb_first, range_check: { encode: true, decode: true } }
+
+requirements:
+  MAV1-001:
+    text: A frame starts with 0xFE, then the payload length, the sequence number, the system id, the component id and the message id, the payload and a two-byte checksum.
+    source: "MAVLink 1 serialization"
+  MAV1-002:
+    text: The checksum is CRC-16/MCRF4XX over the frame without the start byte followed by the CRC_EXTRA byte of the message, low byte first.
+    source: "MAVLink 1 serialization, checksum"
+  MAV1-003:
+    text: The fields of a payload are sent largest type first, in little endian byte order.
+    source: "MAVLink 1 serialization, field reordering"
+
+
+user_includes:
+  include_dirs: [app/include]
+checksums:
+  mavlinkCrc:
+    algo: custom
+    reqs: [MAV1-002]
+    impl: mavsum::Crc
+    include: mavsum/crc.hpp
+    size_bytes: 2
+
+messages:
+  Heartbeat:
+    id: 0
+    description: The presence of a system and its state (HEARTBEAT, 1 Hz).
+    reqs: [MAV1-003]
+    fields:
+      - { name: customMode, type: u32 }
+      - { name: type, type: u8 }
+      - { name: autopilot, type: u8 }
+      - { name: baseMode, type: u8 }
+      - { name: systemStatus, type: u8 }
+      - { name: mavlinkVersion, type: u8, const: 3 }
+  Attitude:
+    id: 30
+    description: The attitude in the aeronautical frame (ATTITUDE).
+    reqs: [MAV1-003]
+    fields:
+      - { name: timeBootMs, type: u32, units: ms }
+      - { name: roll, type: f32, units: rad }
+      - { name: pitch, type: f32, units: rad }
+      - { name: yaw, type: f32, units: rad }
+      - { name: rollspeed, type: f32, units: rad/s }
+      - { name: pitchspeed, type: f32, units: rad/s }
+      - { name: yawspeed, type: f32, units: rad/s }
+  GlobalPositionInt:
+    id: 33
+    description: The filtered global position (GLOBAL_POSITION_INT).
+    reqs: [MAV1-003]
+    fields:
+      - { name: timeBootMs, type: u32, units: ms }
+      - { name: lat, type: i32, units: deg, scale: 1.0e-7 }
+      - { name: lon, type: i32, units: deg, scale: 1.0e-7 }
+      - { name: alt, type: i32, units: mm }
+      - { name: relativeAlt, type: i32, units: mm }
+      - { name: vx, type: i16, units: cm/s }
+      - { name: vy, type: i16, units: cm/s }
+      - { name: vz, type: i16, units: cm/s }
+      - { name: hdg, type: u16, max: 36000, units: deg, scale: 0.01 }
+  CommandLong:
+    id: 76
+    description: A command with up to seven parameters (COMMAND_LONG).
+    reqs: [MAV1-003]
+    fields:
+      - { name: param1, type: f32 }
+      - { name: param2, type: f32 }
+      - { name: param3, type: f32 }
+      - { name: param4, type: f32 }
+      - { name: param5, type: f32 }
+      - { name: param6, type: f32 }
+      - { name: param7, type: f32 }
+      - { name: command, type: u16 }
+      - { name: targetSystem, type: u8 }
+      - { name: targetComponent, type: u8 }
+      - { name: confirmation, type: u8 }
+
+interfaces:
+  link:
+    version: "1.0.0"
+    reqs: [MAV1-001, MAV1-002]
+    direction: both
+    header:
+      fields:
+        - { name: start, type: u8, const: 0xFE, role: sync }
+        - { name: length, type: u8, role: payload_length }
+        - { name: sequence, type: u8, role: sequence }
+        - { name: systemId, type: u8, default: 1 }
+        - { name: componentId, type: u8, default: 1 }
+        - { name: messageId, type: u8, role: message_id }
+    trailer:
+      fields:
+        - { name: checksum, type: u16, checksum: { use: mavlinkCrc, covers: { scope: header_and_payload } } }
+    framing: { kind: sync_length, max_frame_size: 64, resync: true }
+    messages: [Heartbeat, Attitude, GlobalPositionInt, CommandLong]
