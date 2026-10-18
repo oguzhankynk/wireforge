@@ -39,8 +39,11 @@ tested on every pull request (ruff and mypy on 3.12 only).
 - A tag `v<version>` starts the workflow `release`: it builds the UI and the distributions, writes a CycloneDX SBOM and
   the `pip-audit` report of the resolved dependencies (a known vulnerability fails the release), and creates the GitHub
   release with all of them. The upload to PyPI is a separate job that runs only when the repository variable
-  `PUBLISH_TO_PYPI` is `true` and the environment `pypi` approves it; it is off until the owner turns it on, after
-  checking that the license metadata (BUSL-1.1 for the tool, MIT for `runtime/`, see `README.md`) says what is intended.
+  `PUBLISH_TO_PYPI` is `true` and the environment `pypi` approves it (the owner is its required reviewer). The package
+  declares both licenses (`License-Expression: BUSL-1.1 AND MIT`, files `LICENSE` and `runtime/LICENSE`), which
+  `quality/check_dist.py` checks. To turn the upload on: on pypi.org add a trusted publisher for this repository
+  (workflow `release.yml`, environment `pypi`), then set the repository variable `PUBLISH_TO_PYPI` to `true`.
+  A published version cannot be replaced, so do the first release as a tag you are sure of.
 - `pymodbus` (pinned) is a development dependency: `tests/python/test_independent.py` compares the Modbus RTU example
   with it, byte for byte.
 - Development tools are pinned to one minor version (`ruff`, `mypy` in `pyproject.toml`) so that a new release of a
