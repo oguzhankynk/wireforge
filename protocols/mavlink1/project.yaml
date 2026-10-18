@@ -31,6 +31,8 @@ checksums:
     reqs: [MAV1-002]
     impl: mavsum::Crc
     include: mavsum/crc.hpp
+    c_impl: mavsum_crc
+    c_include: mavsum/crc.h
     size_bytes: 2
 
 messages:

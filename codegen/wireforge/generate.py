@@ -18,8 +18,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from wireforge import bundle, test_project, versioning
-from wireforge.cpp import Names, Writer, guard, plain_count, string_literal, wire_only
+from wireforge import bundle, c_test_project, test_project, versioning
+from wireforge.c_model import CModel
+from wireforge.c_names import CGenerationError
+from wireforge.cpp import Names, Writer, guard, plain_count, string_literal, type_order, wire_only
 from wireforge.cpp_codec import CodecWriter, checksum_type
 from wireforge.cpp_interface import InterfaceError, InterfaceHeader
 from wireforge.issues import Issue
@@ -100,25 +102,6 @@ def _description(text: str | None, fallback: str) -> str:
     return " ".join((text or fallback).split())
 
 
-def _type_order(project: Project) -> list[Struct]:
-    """Types sorted so that every type comes after the types it contains."""
-    ordered: list[Struct] = []
-    seen: set[str] = set()
-
-    def visit(name: str) -> None:
-        if name in seen:
-            return
-        seen.add(name)
-        for item in project.types[name].fields:
-            if item.type in project.types:
-                visit(item.type)
-        ordered.append(project.types[name])
-
-    for name in project.types:
-        visit(name)
-    return ordered
-
-
 class _ModelHeader:
     """Writes model.hpp."""
 
@@ -165,7 +148,7 @@ class _ModelHeader:
         self.defines()
         self.checksums()
         self.enums()
-        for item in _type_order(self.project):
+        for item in type_order(self.project):
             self.struct(item, "Type")
         for item in self.project.messages.values():
             self.struct(item, "Message")
@@ -629,9 +612,15 @@ def _constant_assert(cpp: str, value: int) -> str:
     )
 
 
-def render(project: Project, content_hash: str) -> dict[str, str]:
+def render(project: Project, content_hash: str, language: str = "cpp") -> dict[str, str]:
     """Return the generated files of a valid project: relative path -> content."""
     banner = Banner(project.name, project.version, content_hash)
+    if language == "c":
+        model = CModel(project, banner)
+        return {
+            f"{project.name}/model.h": model.render_header(),
+            f"{project.name}/model.c": CModel(project, banner).render_source(),
+        }
     notes = requirement_notes(project)
     files = {
         f"{project.name}/user_prelude.hpp": _user_prelude(project, banner),
@@ -646,12 +635,18 @@ def render(project: Project, content_hash: str) -> dict[str, str]:
 
 
 def generate(
-    location: Path, output: Path, tests: test_project.TestOptions | None = None
+    location: Path,
+    output: Path,
+    tests: test_project.TestOptions | None = None,
+    *,
+    language: str | None = None,
 ) -> list[Issue]:
     """Validate the project at `location` and write its generated files below `output`.
 
-    With `tests`, the GoogleTest project `<output>/<project>/generated_tests/` is written as well.
+    The code is C++17, or C99 with `language="c"` (also taken from `tests`). With `tests`, the
+    GoogleTest project `<output>/<project>/generated_tests/` is written as well.
     """
+    language = language or (tests.language if tests is not None else "cpp")
     try:
         content_hash = bundle.build_bundle(location)["bundle"]["content_hash"]
     except bundle.BundleError as error:
@@ -660,9 +655,10 @@ def generate(
     if result.project is None:
         return result.issues
     try:
-        files = render(result.project, content_hash)
-    except InterfaceError as error:
-        return [Issue(str(location), None, "/interfaces", str(error))]
+        files = render(result.project, content_hash, language)
+    except (InterfaceError, CGenerationError) as error:
+        pointer = "/interfaces" if isinstance(error, InterfaceError) else ""
+        return [Issue(str(location), None, pointer, str(error))]
     for relative, text in files.items():
         target = output / relative
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -670,6 +666,8 @@ def generate(
             target.write_text(text, encoding="utf-8")
     if tests is None:
         return []
+    if language == "c":
+        return c_test_project.write_test_project(result.project, location, output, tests)
     return test_project.write_test_project(result.project, location, output, tests)
 
 
@@ -682,6 +680,7 @@ def main(argv: list[str] | None = None) -> int:
         "--tests", action="store_true", help="also write the GoogleTest project generated_tests/"
     )
     parser.add_argument("--plugins", type=Path, help="Python file defining checksum PLUGINS")
+    parser.add_argument("--language", choices=("cpp", "c"), default="cpp")
     parser.add_argument(
         "--runtime",
         type=Path,
@@ -696,11 +695,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     options = (
-        test_project.TestOptions(args.plugins, args.runtime, args.coverage_threshold)
+        test_project.TestOptions(args.plugins, args.runtime, args.coverage_threshold, args.language)
         if args.tests
         else None
     )
-    issues = generate(args.project, args.output, options)
+    issues = generate(args.project, args.output, options, language=args.language)
     for issue in issues:
         sys.stdout.write(f"{issue}\n")
     return 1 if issues else 0

@@ -577,6 +577,83 @@ def to_cpp(node: Node, naming: CppNaming | None = None) -> str:
     return _call_to_cpp(node, active)
 
 
+# --- C emission --------------------------------------------------------------------------------
+
+
+def _c_name(name: str) -> str:
+    return f"((int64_t)({name}))"
+
+
+def _c_member(enum: str, member: str) -> str:
+    return f"((int64_t)({enum}_{member}))"
+
+
+def _c_size(type_name: str) -> str:
+    return f"((int64_t)({type_name}_MAX_WIRE_SIZE))"
+
+
+@dataclass(frozen=True)
+class CNaming:
+    """How names, enum members and sizeof() are spelled in generated C."""
+
+    name: Callable[[str], str] = _c_name
+    member: Callable[[str, str], str] = _c_member
+    size_of: Callable[[str], str] = _c_size
+
+
+def _binary_to_c(node: Binary, naming: CNaming) -> str:
+    left = to_c(node.left, naming)
+    right = to_c(node.right, naming)
+    if node.op in LOGICAL:
+        return f"((int64_t)(({left} != 0) {node.op} ({right} != 0)))"
+    if node.op in COMPARISONS:
+        return f"((int64_t)({left} {node.op} {right}))"
+    return f"({left} {node.op} {right})"
+
+
+def _call_to_c(node: Call, naming: CNaming) -> str:
+    first = node.args[0]
+    if node.function == "sizeof" and isinstance(first, Name):
+        return naming.size_of(first.name)
+    if node.function == "defined":
+        msg = "defined() has no C value form; use to_preprocessor"
+        raise ExprError(msg)
+    args = ", ".join(to_c(arg, naming) for arg in node.args)
+    return f"wf_expr_{node.function}({args})"
+
+
+def _unary_to_c(node: Unary, naming: CNaming) -> str:
+    operand = to_c(node.operand, naming)
+    if node.op == "!":
+        return f"((int64_t)({operand} == 0))"
+    return f"({node.op}{operand})"
+
+
+def _leaf_to_c(node: Int | Name | Member, naming: CNaming) -> str:
+    if isinstance(node, Int):
+        return f"INT64_C({node.value})"
+    if isinstance(node, Name):
+        return naming.name(node.name)
+    return naming.member(node.enum, node.member)
+
+
+def to_c(node: Node, naming: CNaming | None = None) -> str:
+    """Render as a C99 expression of type int64_t (needs <stdint.h> and wireforge/c/expr.h)."""
+    active = naming or CNaming()
+    if isinstance(node, (Int, Name, Member)):
+        return _leaf_to_c(node, active)
+    if isinstance(node, Unary):
+        return _unary_to_c(node, active)
+    if isinstance(node, Binary):
+        return _binary_to_c(node, active)
+    if isinstance(node, Ternary):
+        condition = to_c(node.condition, active)
+        then = to_c(node.then, active)
+        otherwise = to_c(node.otherwise, active)
+        return f"({condition} != 0 ? {then} : {otherwise})"
+    return _call_to_c(node, active)
+
+
 def to_preprocessor(node: Node) -> str:
     """Render an `if:` condition for `#if` (the node must come from parse_condition)."""
     _check_condition(node)

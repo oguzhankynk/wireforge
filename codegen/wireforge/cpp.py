@@ -249,6 +249,25 @@ class Names:
         return 0, (1 << bits) - 1
 
 
+def type_order(project: Project) -> list[Struct]:
+    """Types sorted so that every type comes after the types it contains."""
+    ordered: list[Struct] = []
+    seen: set[str] = set()
+
+    def visit(name: str) -> None:
+        if name in seen:
+            return
+        seen.add(name)
+        for item in project.types[name].fields:
+            if item.type in project.types:
+                visit(item.type)
+        ordered.append(project.types[name])
+
+    for name in project.types:
+        visit(name)
+    return ordered
+
+
 def plain_count(item: Field) -> str | None:
     """Field name when `occurs.count` is a single field name."""
     count = item.occurs.count if item.occurs is not None else None

@@ -76,6 +76,11 @@ static inline wf_status wf_check_true(bool valid) {
     return valid ? WF_OK : WF_OUT_OF_RANGE;
 }
 
+/// The first of two statuses that is not WF_OK, or WF_OK: `status = wf_first_error(status, check)`.
+static inline wf_status wf_first_error(wf_status current, wf_status next) {
+    return current == WF_OK ? next : current;
+}
+
 /// WF_COUNT_EXCEEDS_MAX unless @p low <= @p count <= @p high.
 static inline wf_status wf_check_count(size_t count, size_t low, size_t high) {
     return count >= low && count <= high ? WF_OK : WF_COUNT_EXCEEDS_MAX;

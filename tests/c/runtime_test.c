@@ -306,8 +306,13 @@ static void test_encoder(void) {
     wf_enc_checksum(&encoder, 0U, 3U, sum_checksum, 2U);
     CHECK(wf_encoder_position(&encoder) == 10U);
 
+    wf_encoder_init(&encoder, buffer, sizeof(buffer), &BIG);
+    wf_enc_unsigned(&encoder, 1U, 2U);
+    CHECK(wf_encoder_size(&encoder) == 2U);
+
     wf_encoder_init(&encoder, buffer, 2U, &BIG);
     wf_enc_unsigned(&encoder, 1U, 4U);
+    CHECK(wf_encoder_size(&encoder) == 0U);
     CHECK(encoder.status == WF_BUFFER_TOO_SMALL);
     wf_enc_f32(&encoder, 1.0F);
     wf_enc_f64(&encoder, 1.0);
@@ -353,6 +358,10 @@ static void test_decoder(void) {
     wf_decoder_init(&decoder, bad_bool, 1U, &BIG);
     CHECK(!wf_dec_bool(&decoder));
     CHECK(decoder.status == WF_OUT_OF_RANGE);
+    const uint8_t two_bools[] = {1U, 0U};
+    wf_decoder_init(&decoder, two_bools, 2U, &BIG);
+    CHECK(wf_dec_count_bool(&decoder) == 1U);
+    CHECK(wf_dec_count_bool(&decoder) == 0U);
 
     const uint8_t consts[] = {0x12U, 0xFEU, 0x01U, 0x3FU, 0xC0U, 0x00U, 0x00U, 0x40U,
                               0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U};
@@ -500,6 +509,30 @@ static void test_decoder_bit_groups(void) {
     CHECK(decoder.status == WF_INVALID_STATE);
 }
 
+static void test_decoder_resize_and_bool_bits(void) {
+    const uint8_t input[] = {0x80U, 0xC0U};
+    size_t count = 7U;
+    wf_decoder decoder;
+    wf_bit_unpacker group;
+    wf_decoder_init(&decoder, input, sizeof(input), &BIG);
+    wf_dec_resize(&decoder, &count, 3U, 1U, 5U);
+    CHECK(decoder.status == WF_OK && count == 3U);
+    wf_dec_resize(&decoder, &count, 9U, 1U, 5U);
+    CHECK(decoder.status == WF_COUNT_EXCEEDS_MAX && count == 3U);
+    wf_dec_resize(&decoder, &count, 2U, 1U, 5U);
+    CHECK(count == 3U);
+
+    wf_decoder_init(&decoder, input, 1U, &BIG);
+    wf_dec_group(&decoder, &group, 8U);
+    CHECK(wf_dec_get_bool(&decoder, &group, 1U));
+    CHECK(!wf_dec_get_bool(&decoder, &group, 1U));
+    CHECK(decoder.status == WF_OK);
+    wf_decoder_init(&decoder, &input[1], 1U, &BIG);
+    wf_dec_group(&decoder, &group, 8U);
+    CHECK(!wf_dec_get_bool(&decoder, &group, 2U));
+    CHECK(decoder.status == WF_OUT_OF_RANGE);
+}
+
 static void test_decoder_checksum(void) {
     const uint8_t good[] = {7U, 8U, 9U, 0U, 24U};
     const uint8_t bad[] = {7U, 8U, 9U, 0U, 25U};
@@ -542,6 +575,9 @@ static void test_validation(void) {
     CHECK(wf_check_bits_s(-8, 4U) == WF_OK && wf_check_bits_s(8, 4U) == WF_OUT_OF_RANGE);
     CHECK(wf_check_bits_u(15U, 4U) == WF_OK && wf_check_bits_u(16U, 4U) == WF_OUT_OF_RANGE);
     CHECK(wf_check_true(true) == WF_OK && wf_check_true(false) == WF_OUT_OF_RANGE);
+    CHECK(wf_first_error(WF_OK, WF_OK) == WF_OK);
+    CHECK(wf_first_error(WF_OK, WF_TRUNCATED) == WF_TRUNCATED);
+    CHECK(wf_first_error(WF_OUT_OF_RANGE, WF_TRUNCATED) == WF_OUT_OF_RANGE);
     CHECK(wf_check_count(3U, 1U, 5U) == WF_OK);
     CHECK(wf_check_count(0U, 1U, 5U) == WF_COUNT_EXCEEDS_MAX);
     CHECK(wf_check_count(6U, 1U, 5U) == WF_COUNT_EXCEEDS_MAX);
@@ -590,6 +626,7 @@ int main(void) {
     test_decoder();
     test_decoder_text_and_counts();
     test_decoder_bit_groups();
+    test_decoder_resize_and_bool_bits();
     test_decoder_checksum();
     test_validation();
     test_expressions();

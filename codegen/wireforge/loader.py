@@ -190,6 +190,8 @@ def _checksum(name: str, where: _Where, source: Source) -> Checksum:
         impl=raw.get("impl"),
         include=raw.get("include"),
         size_bytes=raw.get("size_bytes"),
+        c_impl=raw.get("c_impl"),
+        c_include=raw.get("c_include"),
         reqs=_reqs(raw),
     )
 
@@ -338,6 +340,7 @@ def _user_includes(project: Project, root: _Where) -> None:
                 source,
                 value=constant.get("value"),
                 profile_values=constant.get("profile_values", {}),
+                c=constant.get("c"),
             )
 
 

@@ -36,4 +36,6 @@ checksums:
     algo: custom
     impl: vendor::SumChecksum
     include: vendor_sum.hpp
+    c_impl: vendor_sum_c
+    c_include: vendor_sum.h
     size_bytes: 2

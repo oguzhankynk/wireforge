@@ -315,7 +315,7 @@ system or downloaded.
 """
 
 
-def _relative(target: Path, start: Path) -> str:
+def relative_path(target: Path, start: Path) -> str:
     """CMake path of `target`: relative to `start` when they share a directory, else absolute."""
     target, start = target.resolve(), start.resolve()
     try:
@@ -327,7 +327,7 @@ def _relative(target: Path, start: Path) -> str:
     return "${CMAKE_CURRENT_SOURCE_DIR}/" + Path(os.path.relpath(target, start)).as_posix()
 
 
-def _profiles(project: Project) -> list[tuple[str, list[str]]]:
+def profiles_of(project: Project) -> list[tuple[str, list[str]]]:
     """Per profile: target name suffix and compile definitions."""
     if not project.profiles:
         return [("", [])]
@@ -341,10 +341,11 @@ def _profiles(project: Project) -> list[tuple[str, list[str]]]:
 
 def executables(project: Project, kind: str) -> list[str]:
     """Names of the `tests`, `diff` or `fuzz` executables, one per profile."""
-    return [f"{project.name}_{kind}{suffix}" for suffix, _ in _profiles(project)]
+    return [f"{project.name}_{kind}{suffix}" for suffix, _ in profiles_of(project)]
 
 
-def _fill(template: str, values: dict[str, str]) -> str:
+def fill_template(template: str, values: dict[str, str]) -> str:
+    """Return the template with every `@KEY@` replaced by its value."""
     for key, value in values.items():
         template = template.replace(f"@{key}@", value)
     return template
@@ -356,13 +357,13 @@ def sources(project: Project) -> tuple[str, ...]:
 
 
 def _cmake(project: Project, directory: Path, location: Path, options: TestOptions) -> str:
-    profiles = _profiles(project)
+    profiles = profiles_of(project)
     values = {
         "TOOL": f"WireForge {versioning.TOOL_VERSION}",
         "NAME": project.name,
         "THRESHOLD": str(options.threshold),
-        "RUNTIME": _relative(options.runtime, directory),
-        "MODEL": _relative(location, directory),
+        "RUNTIME": relative_path(options.runtime, directory),
+        "MODEL": relative_path(location, directory),
         "SOURCES": " ".join(sources(project)),
         "INCLUDES": "".join(
             f" ${{WIREFORGE_MODEL_DIR}}/{path}" for path, _ in project.include_dirs
@@ -374,10 +375,11 @@ def _cmake(project: Project, directory: Path, location: Path, options: TestOptio
         "TARGET_NAMES": " ".join(executables(project, "tests")),
     }
     model_dir = CMAKE_MODEL_DIR if project.include_dirs else ""
-    return _fill(CMAKE_HEAD + model_dir + CMAKE_BODY, values)
+    return fill_template(CMAKE_HEAD + model_dir + CMAKE_BODY, values)
 
 
-def _presets(project: Project) -> str:
+def presets_text(project: Project) -> str:
+    """Return the CMakePresets.json of a generated test project."""
     variants = {
         "dev": {},
         "asan-ubsan": {"WIREFORGE_SANITIZE": "address,undefined"},
@@ -414,6 +416,7 @@ class TestOptions:
     plugins: Path | None = None
     runtime: Path = RUNTIME_INCLUDE
     threshold: int = DEFAULT_COVERAGE
+    language: str = "cpp"
 
 
 def render(
@@ -436,7 +439,7 @@ def render(
     threshold = options.threshold
     return {
         "CMakeLists.txt": _cmake(project, directory, location, options),
-        "CMakePresets.json": _presets(project),
+        "CMakePresets.json": presets_text(project),
         ".clang-tidy": CLANG_TIDY.format(name=project.name),
         "README.md": README.format(
             name=project.name,

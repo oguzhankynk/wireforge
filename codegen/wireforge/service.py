@@ -306,10 +306,14 @@ def migrate(location: Path, *, check: bool = False) -> Result:
 
 
 def generate_code(
-    location: Path, output: Path, tests: test_project.TestOptions | None = None
+    location: Path,
+    output: Path,
+    tests: test_project.TestOptions | None = None,
+    *,
+    language: str | None = None,
 ) -> Result:
-    """Generate the C++ code (and with `tests` the GoogleTest project) below `output`."""
-    issues = generate.generate(location, output, tests)
+    """Generate the C++ or C code (and with `tests` the GoogleTest project) below `output`."""
+    issues = generate.generate(location, output, tests, language=language)
     result = load_project(location)
     name = result.project.name if result.project is not None else ""
     data = {"output": str(output), "project": name, "tests": tests is not None}

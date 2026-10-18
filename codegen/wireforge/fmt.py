@@ -121,6 +121,8 @@ ORDERS: dict[str, tuple[str, ...]] = {
         "check",
         "impl",
         "include",
+        "c_impl",
+        "c_include",
         "size_bytes",
     ),
     "enum": ("type", "description", "reqs", "values"),
@@ -139,7 +141,7 @@ ORDERS: dict[str, tuple[str, ...]] = {
     "bundle": ("content_hash", "source_files"),
     "user_includes": ("include_dirs", "headers", "constants", "prelude"),
     "header": ("path", "style", "if"),
-    "constant": ("cpp", "description", "value", "profile_values"),
+    "constant": ("cpp", "c", "description", "value", "profile_values"),
     "user_type": ("cpp", "description", "reqs", "size_bytes", "include", "style"),
     "requirement": ("text", "source", "verification"),
     "vector": (

@@ -86,6 +86,7 @@ REQUIRED = (
     "checksum:crc16",
     "checksum:parametric",
     "checksum:custom",
+    "checksum:custom_c",
     "checksum:scope_payload",
     "checksum:scope_header_and_payload",
     "checksum:range",
@@ -165,6 +166,8 @@ SCHEMA_PROPERTIES: dict[str, dict[str, str | None]] = {
         "check": "checksum:parametric",
         "description": None,
         "impl": "checksum:custom",
+        "c_impl": "checksum:custom_c",
+        "c_include": "checksum:custom_c",
         "include": "checksum:custom",
         "init": "checksum:parametric",
         "poly": "checksum:parametric",
@@ -261,6 +264,8 @@ def _checksum_features(project: Project) -> set[str]:
             found.add("checksum:crc32")
         elif item.algo == "custom":
             found.add("checksum:custom")
+            if item.c_impl:
+                found.add("checksum:custom_c")
         else:
             found.add("checksum:parametric")
             if item.width == HALF_WORD:

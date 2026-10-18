@@ -12,7 +12,7 @@ equivalent.
 | `wireforge validate <project>` | structural and semantic validation (file, line, JSON pointer per issue) |
 | `wireforge fmt <project> [--check]` | canonical layout of every project file (comments kept) |
 | `wireforge migrate <project> [--check]` | upgrade the file format and refresh the version stamps |
-| `wireforge generate <project> -o <dir> [--tests] [--plugins F]` | C++ code, with `--tests` the GoogleTest project |
+| `wireforge generate <project> -o <dir> [--tests] [--plugins F] [--language cpp\|c]` | C++17 code (or C99 with `--language c`, docs/CODEGEN.md), with `--tests` the GoogleTest project |
 | `wireforge wireshark <project> -o <file>.lua` | Wireshark Lua dissector plugin (docs/WIRESHARK.md) |
 | `wireforge analyze <project> [--profile P] [--format markdown\|csv\|json]` | layout report / ICD (docs/LAYOUT.md) |
 | `wireforge compat <old> <new> [--interface I]` | interface compatibility and version bump check |
@@ -20,7 +20,7 @@ equivalent.
 | `wireforge reqs-lock <project>`, `reqs-rename-key`, `reqs-list` | number the low-level requirements in `llr_ids.lock`, keep a number across a rename, list them (docs/DO178C.md) |
 | `wireforge docs <project> -o <dir> [--strict] [--results <build>] [--export reqif,csv] [--source-url T] [--since REV] [--rule-findings FILE]` | requirements, design, test and traceability documents (docs/LIFECYCLE.md) |
 | `wireforge trace <project> [--format markdown\|csv] [-o file]` | requirements, model elements, generated code and tests (docs/SAFETY.md) |
-| `wireforge test <project> -o <dir> [--coverage] [--coverage-runtime] [--generator Ninja]` | generate, build and run the generated tests; the coverage build writes `results/` for `docs --results` |
+| `wireforge test <project> -o <dir> [--language cpp\|c] [--coverage] [--coverage-runtime] [--generator Ninja]` | generate, build and run the generated tests; the coverage build writes `results/` for `docs --results` |
 | `wireforge export <project> -o bundle.yaml` / `wireforge import <bundle> <dir>` | single-file bundles |
 | `wireforge get <project> <pointer>` | value at a JSON pointer, e.g. `/messages/NavSolution/fields/2` |
 | `wireforge set <project> <pointer> <value> [--dry-run] [--strict]` | set a value (`-` as last index appends) |

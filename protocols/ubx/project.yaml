@@ -36,6 +36,8 @@ checksums:
     reqs: [UBX-002]
     impl: ubxsum::Fletcher8
     include: ubx/fletcher8.hpp
+    c_impl: ubxsum_fletcher8
+    c_include: ubxsum/fletcher8.h
     size_bytes: 2
 
 types:

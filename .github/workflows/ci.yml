@@ -214,13 +214,19 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ninja-build
       - run: pip install -e ".[mcp]" gcovr
       - run: quality/run_generated_tests.sh
+      - run: quality/run_generated_tests_c.sh
       - run: python3 quality/random_models.py
+      - run: WIREFORGE_RANDOM_LANGUAGE=c python3 quality/random_models.py
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: evidence-results, path: build/evidence-results }
       - uses: actions/upload-artifact@v4
         if: failure()
-        with: { name: random-model-failures, path: build/random-models/failures }
+        with:
+          name: random-model-failures
+          path: |
+            build/random-models/failures
+            build/random-models-c/failures
 
   wireshark:
     runs-on: ubuntu-24.04

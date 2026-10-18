@@ -11,6 +11,7 @@ echo "== build+test ==";    cmake --preset dev && cmake --build --preset dev && 
 echo "== asan+ubsan ==";    cmake --preset asan-ubsan && cmake --build --preset asan-ubsan && "${no_aslr[@]}" ctest --preset asan-ubsan
 echo "== tsan ==";          cmake --preset tsan && cmake --build --preset tsan && "${no_aslr[@]}" ctest --preset tsan
 echo "== generated test projects + differential =="; quality/run_generated_tests.sh
+echo "== generated C test projects ==";  quality/run_generated_tests_c.sh
 echo "== fuzz ==";          quality/run_fuzz.sh
 echo "== wireshark ==";     quality/run_wireshark.sh
 echo "== portability ==";   quality/run_portability.sh
