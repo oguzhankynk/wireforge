@@ -22,7 +22,7 @@ docs/integration/). For projects that apply standards such as DO-178C, ISO 26262
 supports your processes and your tool assessment; it does not by itself give conformity, certification or tool
 qualification, which depend on the whole project and its assessor (docs/DO178C.md).
 
-**Start with docs/GUIDE.md** (install, 5-minute quickstart, examples). Reference:
+**Start with docs/GUIDE.md** (install, 5-minute quickstart, examples), or with the [wiki](https://github.com/oguzhankynk/wireforge/wiki) for a short tour. Reference:
 
 | Topic | Document |
 |-------|----------|
@@ -48,7 +48,7 @@ Development: see CONTRIBUTING.md (`pip install -e ".[dev]"`, `cmake --preset dev
 pull request and runs the generated tests (docs/integration/github_actions.md):
 
 ```yaml
-- uses: oguzhankynk/wireforge@v0.2.0
+- uses: oguzhankynk/wireforge@v0.2.1
   with: { project: icd }
 ```
 

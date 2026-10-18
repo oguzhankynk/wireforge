@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }          # the base revision must be readable
-      - uses: oguzhankynk/wireforge@v0.2.0
+      - uses: oguzhankynk/wireforge@v0.2.1
         with:
           project: icd                    # directory with project.yaml
           # test: "true"                  # generate, build and run the tests
