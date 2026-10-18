@@ -30,6 +30,15 @@ from wireforge.cpp_codec import encoding_literal
 from wireforge.cpp_interface import header_is_written, is_checked_constant, needs_frame_check
 from wireforge.llr import Verifier
 from wireforge.model import BUILTIN_BITS, Field
+from wireforge.scaling import (
+    function_names,
+    is_float,
+    number,
+    physical,
+    probe,
+    scaled_fields,
+    widened,
+)
 from wireforge.test_cases import CLEAR, OK, Edit, Outcome
 
 if TYPE_CHECKING:
@@ -732,7 +741,13 @@ class _MessageTests:
 
     def render(self, profiles: tuple[ProfileCases, ...]) -> str:
         out = self.out
-        _header(out, self.project, ["test_support.hpp"])
+        scaled = any(scaled_fields(item) for item in self._structs())
+        _header(
+            out,
+            self.project,
+            ["test_support.hpp"],
+            (*TEST_SYSTEM_HEADERS, *(("limits",) if scaled else ())),
+        )
         out.line("using wireforge::Status;")
         out.line()
         for profile in profiles:
@@ -745,11 +760,69 @@ class _MessageTests:
         self.points.check()
         return out.text()
 
+    def _structs(self) -> list[Struct]:
+        return [*self.project.types.values(), *self.project.messages.values()]
+
     def profile(self, cases: ProfileCases) -> None:
         self.profile_name = cases.profile
         for message in cases.messages:
             self.require(message)
             self.message(message)
+        for item in self._structs():
+            for field in scaled_fields(item):
+                self.points.require("physical", self.profile_name, item.name, field.name)
+            self.physical(item)
+
+    def physical(self, item: Struct) -> None:
+        """Test the physical getter and setter of every scaled field of a struct."""
+        out = self.out
+        for field in scaled_fields(item):
+            self.points.exercise("physical", self.profile_name, item.name, field.name)
+            getter, setter = function_names(item.name, field)
+            call = f"model::{setter}(value"
+            lines = [f"model::{item.name} value{{}};"]
+            if is_float(field):
+                lines += [
+                    "constexpr double kInfinity = std::numeric_limits<double>::infinity();",
+                    f"EXPECT_TRUE({call}, {number(physical(field, 1.5))}));",
+                    f"EXPECT_NEAR({widened(field, f'value.{field.name}')}, 1.5, 1e-6);",
+                    f"EXPECT_NEAR(model::{getter}(value), {number(physical(field, 1.5))}, 1e-6);",
+                    f"EXPECT_FALSE({call}, kInfinity));",
+                    f"EXPECT_FALSE({call}, -kInfinity));",
+                ]
+            else:
+                ends = probe(field)
+                high = self.assignments.literal(field, ends.high)
+                low = self.assignments.literal(field, ends.low)
+                zero = self.assignments.literal(field, 0)
+                lines += [
+                    f"EXPECT_TRUE({call}, {number(physical(field, ends.high))}));",
+                    f"EXPECT_EQ(value.{field.name}, {high});",
+                    (
+                        f"EXPECT_DOUBLE_EQ(model::{getter}(value), "
+                        f"{number(physical(field, ends.high))});"
+                    ),
+                    f"EXPECT_TRUE({call}, {number(physical(field, ends.low))}));",
+                    f"EXPECT_EQ(value.{field.name}, {low});",
+                    # A little below zero still rounds to the raw value 0.
+                    f"EXPECT_TRUE({call}, {number(physical(field, -0.25))}));",
+                    f"EXPECT_EQ(value.{field.name}, {zero});",
+                    f"EXPECT_TRUE({call}, {number(physical(field, ends.low))}));",
+                    f"EXPECT_FALSE({call}, {number(physical(field, ends.above))}));",
+                    f"EXPECT_FALSE({call}, {number(physical(field, ends.below))}));",
+                    f"EXPECT_EQ(value.{field.name}, {low});",
+                ]
+            if field.condition is not None:
+                out.line(f"#if {self.assignments.names.condition(field.condition)}")
+            if item.condition is not None:
+                out.line(f"#if {self.assignments.names.condition(item.condition)}")
+            _test(out, item.name, f"Physical_{field.name}", lines)
+            if item.condition is not None:
+                out.line("#endif")
+                out.line()
+            if field.condition is not None:
+                out.line("#endif")
+                out.line()
 
     def require(self, cases: MessageCases) -> None:
         """Declare what the tests of a message must exercise, from the cases of the model."""

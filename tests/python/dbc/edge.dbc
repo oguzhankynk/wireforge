@@ -1,0 +1,42 @@
+VERSION ""
+
+NS_ :
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	SIG_VALTYPE_
+
+BS_:
+
+BU_: Alpha Beta
+
+BO_ 1 IntelMix: 8 Alpha
+ SG_ Small : 3|5@1+ (1,0) [0|31] "" Beta
+ SG_ Signed : 8|13@1- (-0.5,10) [0|0] "unit" Beta
+ SG_ Wide : 21|11@1+ (2,0) [0|0] "" Beta
+ SG_ Single : 32|32@1+ (1,0) [0|0] "" Beta
+
+BO_ 2 MotorolaMix: 8 Beta
+ SG_ Across : 3|12@0+ (1,0) [0|0] "" Alpha
+ SG_ Negative : 23|9@0- (0.25,-4) [0|0] "" Alpha
+ SG_ Flag : 62|2@0+ (1,0) [0|0] "" Alpha
+
+BO_ 2566844672 Extended: 8 Alpha
+ SG_ Low : 0|32@1+ (1,0) [0|0] "" Beta
+ SG_ High : 32|31@1- (1,0) [0|0] "" Beta
+ SG_ Last : 63|1@1+ (1,0) [0|0] "" Beta
+
+BO_ 4 Floats: 8 Alpha
+ SG_ Value : 0|32@1+ (1,0) [0|0] "" Beta
+ SG_ Other : 32|32@1+ (1,0) [0|0] "" Beta
+
+BO_ 5 Double: 8 Alpha
+ SG_ Precise : 0|64@1+ (1,0) [0|0] "" Beta
+
+BO_ 6 Short: 2 Beta
+ SG_ Lone : 4|8@1+ (1,0) [0|0] "" Alpha
+
+SIG_VALTYPE_ 4 Value : 1;
+SIG_VALTYPE_ 4 Other : 1;
+SIG_VALTYPE_ 5 Precise : 2;

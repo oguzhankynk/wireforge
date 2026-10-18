@@ -88,6 +88,8 @@ class Field:
     condition: str | None = None
     description: str | None = None
     units: str | None = None
+    scale: float | None = None
+    offset: float | None = None
     reqs: tuple[str, ...] = ()
 
 

@@ -1,0 +1,112 @@
+[
+  {
+    "frame": "00000100080000000000000000",
+    "interface": "Gateway_rx",
+    "message": "EngineData",
+    "payload": "0000000000000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "CoolantTemp": 0,
+      "EngineSpeed": 0,
+      "EngineState": "Off",
+      "ThrottlePosition": 0,
+      "TorqueDemand": 0,
+      "reserved_37": 0,
+      "reserved_52": 0
+    }
+  },
+  {
+    "frame": "0000010008aaaaaa9a12aa0200",
+    "interface": "Gateway_rx",
+    "message": "EngineData",
+    "payload": "aaaaaa9a12aa0200",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "CoolantTemp": 170,
+      "EngineSpeed": 43690,
+      "EngineState": "Fault",
+      "ThrottlePosition": 666,
+      "TorqueDemand": 682,
+      "reserved_37": 0,
+      "reserved_52": 0
+    }
+  },
+  {
+    "frame": "00000300080000000000000000",
+    "interface": "Gateway_rx",
+    "message": "Odometer",
+    "payload": "0000000000000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "Distance": 0
+    }
+  },
+  {
+    "frame": "0000030008aaaaaaaaaaaaaaaa",
+    "interface": "Gateway_rx",
+    "message": "Odometer",
+    "payload": "aaaaaaaaaaaaaaaa",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "Distance": 12297829382473034410
+    }
+  },
+  {
+    "frame": "000002000400000000",
+    "interface": "Gateway_tx",
+    "message": "BrakeStatus",
+    "payload": "00000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "AbsActive": 0,
+      "BrakePressed": "Released",
+      "BrakeTorque": 0,
+      "WheelSpeedFront": 0,
+      "reserved_18": 0
+    }
+  },
+  {
+    "frame": "0000020004aaaa802a",
+    "interface": "Gateway_tx",
+    "message": "BrakeStatus",
+    "payload": "aaaa802a",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "AbsActive": 0,
+      "BrakePressed": "Pressed",
+      "BrakeTorque": 42,
+      "WheelSpeedFront": 43690,
+      "reserved_18": 0
+    }
+  },
+  {
+    "frame": "98fef1fe080000000000000000",
+    "interface": "Gateway_tx",
+    "message": "BatteryInfo",
+    "payload": "0000000000000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "PackCurrent": 0,
+      "PackVoltage": 0
+    }
+  },
+  {
+    "frame": "98fef1fe08aaaaaaaaaaaaaa2a",
+    "interface": "Gateway_tx",
+    "message": "BatteryInfo",
+    "payload": "aaaaaaaaaaaaaa2a",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "PackCurrent": 715827882,
+      "PackVoltage": 2863311530
+    }
+  }
+]

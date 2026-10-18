@@ -210,6 +210,13 @@ def _import_icd(args: argparse.Namespace) -> Result:
     return service.import_icd(args.source, args.destination, options, args.messages)
 
 
+def _import_dbc(args: argparse.Namespace) -> Result:
+    options = importers.Project(args.name, args.namespace, args.version)
+    return service.import_dbc(
+        args.source, args.destination, options, args.node, skip_unsupported=args.skip_unsupported
+    )
+
+
 def _get(args: argparse.Namespace) -> Result:
     return service.get(args.project, args.pointer)
 
@@ -524,6 +531,22 @@ def _import_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]
     parser.add_argument("--endian", choices=("big", "little"))
     parser.add_argument(
         "--message", action="append", dest="messages", help="C header: struct that is a message"
+    )
+    _dbc_commands(add)
+
+
+def _dbc_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]) -> None:
+    parser = add("import-dbc", _import_dbc, "Import a CAN database (.dbc).")
+    parser.add_argument("source", type=Path)
+    parser.add_argument("destination", type=Path)
+    parser.add_argument("--name", required=True, help="project name")
+    parser.add_argument("--namespace")
+    parser.add_argument("--version", default="0.1.0")
+    parser.add_argument("--node", help="network node: interfaces <node>_rx and <node>_tx")
+    parser.add_argument(
+        "--skip-unsupported",
+        action="store_true",
+        help="leave out messages that cannot be expressed instead of failing",
     )
 
 

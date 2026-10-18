@@ -744,6 +744,7 @@ class Validator:
             self._field_role(field, context)
             self._field_checksum(field, index, context)
             self._field_values(field, at)
+            self._check_scaling(field, at)
             self._condition(field.condition, at.below("/if"), context)
         pure_bits_type = item is not None and item.message is None and self._pure_bits(item)
         self._bit_groups(context, check_total=not pure_bits_type)
@@ -950,6 +951,21 @@ class Validator:
             if field.occurs is not None:
                 self.report(at, "SR-6", f"field {field.name}: const cannot have occurs", "/const")
             self._check_scalar(field, field.const, at.below("/const"), kind, limits)
+
+    def _check_scaling(self, field: Field, at: _At) -> None:
+        """SR-24: scale and offset describe the physical value of a plain number."""
+        if field.scale is None and field.offset is None:
+            return
+        problem = None
+        if self._value_kind(field) not in {"int", "float"}:
+            problem = f"{field.type} is not a number"
+        elif field.occurs is not None:
+            problem = "it has occurs"
+        elif field.reserved or field.const is not None or field.role or field.checksum:
+            problem = "it is reserved, constant, a role or a checksum"
+        if problem is not None:
+            message = f"field {field.name}: scale and offset need a plain number field ({problem})"
+            self.report(at, "SR-24", message)
 
     def _check_enum_start(self, field: Field, kind: str, at: _At) -> None:
         """SR-23: a field starts as zero, so an enum field without a default needs a member 0."""

@@ -64,6 +64,8 @@ FIELD = (
     "const",
     "reserved",
     "units",
+    "scale",
+    "offset",
     "occurs",
     "checksum",
     "role",

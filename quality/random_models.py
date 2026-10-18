@@ -183,6 +183,9 @@ class _Builder:
             field["default"] = self.rng.randint(minimum, maximum)
         elif self.rng.percent(30):
             field["const"] = self.rng.randint(max(low, 0), min(high, 200))
+        if "const" not in field and self.rng.percent(25):
+            field["scale"] = self.rng.choice((0.5, 0.25, 2, 10, 0.01, -0.5))
+            field["offset"] = self.rng.choice((-40, 0, 100, 273.15))
         return field
 
     def scalar(self, *, allow_struct: bool = True) -> dict[str, Any]:
@@ -243,6 +246,9 @@ class _Builder:
         for field in fields:
             if field["type"] in {"char", "bool"} or "bits" in field:
                 for key in ("min", "max", "default", "const"):
+                    field.pop(key, None)
+            if "occurs" in field or field.get("reserved") or "role" in field:
+                for key in ("scale", "offset"):
                     field.pop(key, None)
         return fields
 
@@ -374,6 +380,7 @@ def _field_features(field: dict[str, Any]) -> set[str]:
         ("reserved", "reserved"),
         ("const", "const"),
         ("min", "range"),
+        ("scale", "scale_offset"),
     ):
         if key in field:
             found.add(feature)

@@ -578,7 +578,7 @@ export interface components {
         };
         /**
          * ImportRequest
-         * @description An ICD to import as a new project: CSV or C header text, or a base64 Excel workbook.
+         * @description An ICD to import as a new project: CSV, C header or DBC text, or a base64 Excel workbook.
          */
         ImportRequest: {
             /** Id */
@@ -589,7 +589,7 @@ export interface components {
              * Format
              * @enum {string}
              */
-            format: "csv" | "xlsx" | "h";
+            format: "csv" | "xlsx" | "h" | "dbc";
             /** Content */
             content: string;
             /** Namespace */
@@ -603,6 +603,13 @@ export interface components {
             endian?: ("big" | "little") | null;
             /** Messages */
             messages?: string[] | null;
+            /** Node */
+            node?: string | null;
+            /**
+             * Skip Unsupported
+             * @default false
+             */
+            skip_unsupported?: boolean;
         };
         /**
          * IssueModel

@@ -36,6 +36,7 @@ from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 from wireforge import (
     bundle,
     compat,
+    dbc,
     fmt,
     generate,
     golden,
@@ -67,6 +68,7 @@ from wireforge.cpp_interface import InterfaceError
 from wireforge.issues import Issue, errors_only
 from wireforge.loader import SECTIONS, load_project
 from wireforge.plain import to_plain
+from wireforge.scaling import physical_values
 from wireforge.validate import Validator
 
 if TYPE_CHECKING:
@@ -470,9 +472,15 @@ def decode(location: Path, data: bytes, target: CodecTarget) -> Result:
                 "header": _jsonable(frame.header),
                 "trailer": _jsonable(frame.trailer),
             }
+            name, raw = frame.message, frame.value
         else:
             value = codec.decode_message(target.message, data, target.interface)
             decoded = {"message": target.message, "value": _jsonable(value)}
+            name, raw = target.message, value
+        struct = codec.project.messages.get(name)
+        found = physical_values(codec.project, struct, raw) if struct is not None else {}
+        if found:
+            decoded["physical"] = _jsonable(found)
     except CodecError as error:
         return Result(
             ok=False, data={"status": error.status, "path": error.path}, text=f"{error}\n"
@@ -983,6 +991,39 @@ def import_icd(
     checked = validate(destination)
     checked.data["project"] = str(root)
     checked.text = _issues_text(checked.issues) or f"imported {source.name} into {root}\n"
+    return checked
+
+
+def import_dbc(
+    source: Path,
+    destination: Path,
+    options: importers.Project,
+    node: str | None = None,
+    *,
+    skip_unsupported: bool = False,
+) -> Result:
+    """Import a CAN database (.dbc) as a new project in `destination`."""
+    if destination.exists() and any(destination.iterdir()):
+        message = f"{destination} is not empty"
+        raise ServiceError(message)
+    try:
+        document, notes = dbc.from_dbc(
+            source.read_text(encoding="utf-8", errors="replace"),
+            options,
+            node,
+            skip_unsupported=skip_unsupported,
+            source=str(source),
+        )
+    except dbc.DbcImportError as error:
+        return Result(ok=False, issues=error.issues, text=_issues_text(error.issues))
+    destination.mkdir(parents=True, exist_ok=True)
+    root = destination / schema.ROOT_FILE_NAME
+    root.write_text(_document_text(document), encoding="utf-8")
+    checked = validate(destination)
+    checked.data["project"] = str(root)
+    checked.data["notes"] = notes
+    summary = _issues_text(checked.issues) or f"imported {source.name} into {root}\n"
+    checked.text = summary + "".join(f"note: {note}\n" for note in notes)
     return checked
 
 

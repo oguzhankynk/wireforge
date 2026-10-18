@@ -81,6 +81,19 @@ A field of this type (`occurs`, arrays and nesting inside other `types` all work
 field; `Encoder::write_bytes`/`Decoder::read_bytes` (docs/RUNTIME.md) copy bytes onto/from the wire unchanged,
 leaving the type's own encoding entirely up to these two functions. `Fixed16` must be default-constructible.
 
+## Physical values
+A field with `scale` and `offset` keeps its raw value in the struct (that is what the wire carries). Two functions next
+to the struct convert (SR-24 limits them to plain integer and floating-point fields):
+```cpp
+double celsius = physical_Climate_temperature(climate);        // raw * scale + offset
+bool fits = set_physical_Climate_temperature(climate, 21.5);   // false, field unchanged, when the raw value does not fit
+```
+The setter rounds to the nearest raw value (halves away from zero) and refuses a value outside the range of the type or
+bit width, and NaN or infinity. `min` and `max` are not applied by the setter: they are checked by `validate()` and on
+encode, as for every field. The generated tests set both ends of the raw range through the setter, a value just below
+zero, values outside each end, and for floating-point fields a normal value and both infinities. The reference codec
+adds the physical values of the scaled fields to its decode result (`physical`).
+
 ## Codec
 ```cpp
 std::array<std::uint8_t, max_wire_size(wireforge::type_tag<SensorReading>)> buffer{};
@@ -190,6 +203,7 @@ model a user can write:
   `random-models-nightly` runs 1000 more each night. A failure is a defect of the generator: fix it, reduce the
   model and add it to `tests/models/`.
 - `SR-23`: an enum field without a default needs a member with the value 0, because `init()` starts it at zero.
+- `SR-24`: `scale` and `offset` are allowed on plain integer and floating-point fields only.
 
 A fourth check is made while the tests are written (`wireforge.coverage_points`): the model decides which points the
 tests must exercise (the frame writer of every message with too little room, the receiver check of every message,

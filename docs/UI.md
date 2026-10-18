@@ -12,7 +12,7 @@ the CLI; the form does not offer them.
 ## Struct editor
 - **Entries:** the project's enums, types, messages, interfaces, profiles and checksums, with "New ..." buttons.
 - **Field table** of a type or message: name, type (builtins, enums, types), occurrence (single, optional 0..1,
-  fixed array, counted array, fill payload) with capacity and count, bits, min, max, default, units, `if` condition,
+  fixed array, counted array, fill payload) with capacity and count, bits, min, max, default, units, scale, offset, `if` condition,
   description, checksum (`use`) and covered scope; rows can be added, moved and removed. Message editors add the
   message id and the message's encoding settings: byte order, bit order and range checks on encode and decode, each
   either set or inherited from the project defaults.

@@ -172,6 +172,14 @@ export interface Field {
   type: TypeRef;
   description?: string;
   units?: string;
+  /**
+   * Physical value = raw value * scale + offset. The wire carries the raw value.
+   */
+  scale?: number;
+  /**
+   * Physical value = raw value * scale + offset. The wire carries the raw value.
+   */
+  offset?: number;
   bits?: number;
   min?: NumOrExpr;
   max?: NumOrExpr;

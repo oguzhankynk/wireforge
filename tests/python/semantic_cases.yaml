@@ -458,6 +458,20 @@
   expect: "has no member with value 0"
   patch: [{ set: [enums, Mode, values], value: { run: 1, stop: 2 } }]
 
+# SR-24 scale and offset need a plain number
+- name: scale_on_enum
+  rule: SR-24
+  expect: "Mode is not a number"
+  patch: [{ set: [messages, Status, fields, 5, scale], value: 0.5 }]
+- name: offset_on_array
+  rule: SR-24
+  expect: "it has occurs"
+  patch: [{ set: [messages, Status, fields, 4, offset], value: 1.5 }]
+- name: scale_on_reserved
+  rule: SR-24
+  expect: "reserved, constant, a role or a checksum"
+  patch: [{ set: [messages, Command, fields, 1, scale], value: 2 }]
+
 # SR-22 requirement test vectors
 - name: vector_unknown_message
   rule: SR-22

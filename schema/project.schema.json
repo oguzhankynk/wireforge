@@ -305,6 +305,17 @@
         "units": {
           "type": "string"
         },
+        "scale": {
+          "type": "number",
+          "not": {
+            "const": 0
+          },
+          "description": "Physical value = raw value * scale + offset. The wire carries the raw value."
+        },
+        "offset": {
+          "type": "number",
+          "description": "Physical value = raw value * scale + offset. The wire carries the raw value."
+        },
         "bits": {
           "type": "integer",
           "minimum": 1,
