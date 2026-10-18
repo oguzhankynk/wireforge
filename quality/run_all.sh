@@ -24,4 +24,5 @@ echo "== python ==";        ruff format --check . && ruff check . && mypy && pyt
 echo "== ui ==";            (cd ui && npm ci --no-audit --no-fund --silent && npm run -s typecheck && npm run -s lint \
                              && npm run -s check:types && npm test --silent && npx vite build --logLevel warn)
 echo "== suppressions =="; python3 quality/check_suppressions.py
+echo "== feature matrix =="; python3 quality/feature_matrix.py
 echo "ALL GATES PASSED"

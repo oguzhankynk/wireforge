@@ -24,6 +24,7 @@ from wireforge.model import FLOAT_TYPES, Field, Project
 
 if TYPE_CHECKING:
     from wireforge.codec import ChecksumPlugin
+    from wireforge.validate import Variant
 
 FLOAT_SPAN = 1000.0
 CHAR_PATTERN = "WireForge"
@@ -131,6 +132,16 @@ class Sampler:
         )
 
 
+def holds(condition: str | None, variant: Variant) -> bool:
+    """Return whether an `if:` condition is true in a profile (a missing one always is)."""
+    if condition is None:
+        return True
+    try:
+        return expr.evaluate(expr.parse_condition(condition), variant.scope) != 0
+    except ExprError:
+        return True
+
+
 def _profiles(project: Project) -> list[str | None]:
     return list(project.profiles) or [None]
 
@@ -161,7 +172,12 @@ def vectors(
         sampler = Sampler(codec)
         for interface_name, interface in sorted(project.interfaces.items()):
             for entry in interface.messages:
-                fields = project.messages[entry.name].fields
+                message = project.messages[entry.name]
+                if not holds(entry.condition, codec.variant) or not holds(
+                    message.condition, codec.variant
+                ):
+                    continue  # the message does not exist in this profile
+                fields = message.fields
                 samples = (
                     ("default", codec.default_value(entry.name)),
                     ("pattern", sampler.struct(fields)),

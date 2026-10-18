@@ -1,0 +1,61 @@
+# Models that the examples do not cover: fixed framing, a length that counts the whole frame, a
+# checksum over a field range and over the payload only, array defaults, nested structs, and the
+# interface bit order and buffer sizes.
+schema_version: 1
+project: framing_variants
+version: "0.1.0"
+namespace: models::framing
+defaults: { endian: big, bit_order: msb_first, range_check: { encode: true, decode: true } }
+
+checksums:
+  crc16: { algo: crc, width: 16, poly: 0x1021, init: 0xFFFF, refin: false, refout: false, xorout: 0 }
+  crc32: { algo: crc32 }
+
+types:
+  Pair:
+    fields:
+      - { name: low, type: u8, default: 1 }
+      - { name: high, type: u8, default: 2 }
+  Wrapper:
+    fields:
+      - { name: pair, type: Pair }
+      - { name: gain, type: i16, min: -50, max: 50, default: 0 }
+
+messages:
+  Sample:
+    id: 1
+    fields:
+      - { name: label, type: char, occurs: { max: 4 }, default: "ab" }
+      - { name: gains, type: u8, occurs: { max: 3 }, default: [1, 2, 3] }
+      - { name: inner, type: Wrapper }
+      - { name: pairs, type: Pair, occurs: { max: 2 } }
+      - { name: sum, type: u16, checksum: { use: crc16, covers: { from: label, to: inner } } }
+  Note:
+    id: 2
+    fields:
+      - { name: level, type: u8, min: 0, max: 9, default: 3 }
+
+interfaces:
+  fixed_link:
+    version: "1.0.0"
+    direction: both
+    bit_order: lsb_first
+    header:
+      fields:
+        - { name: id, type: u8, role: message_id }
+    framing: { kind: fixed, frame_size: 18 }
+    buffers: { rx_bytes: 200, tx_bytes: 80 }
+    messages: [Sample]
+  whole_frame_link:
+    version: "1.0.0"
+    direction: tx
+    header:
+      fields:
+        - { name: sync, type: u8, const: 0x7E, role: sync }
+        - { name: id, type: u8, role: message_id }
+        - { name: length, type: u16, role: payload_length }
+    trailer:
+      fields:
+        - { name: crc, type: u32, checksum: { use: crc32, covers: { scope: payload } } }
+    framing: { kind: sync_length, max_frame_size: 80, length_counts: frame, resync: true }
+    messages: [Sample, Note]

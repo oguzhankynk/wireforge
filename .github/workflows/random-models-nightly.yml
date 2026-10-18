@@ -1,0 +1,34 @@
+name: random-models-nightly
+# Many more random models than the pull requests build (quality/random_models.py): each shard
+# generates, builds and measures its own range of seeds. A failing model is uploaded.
+on:
+  schedule:
+    - cron: "43 3 * * *"
+  workflow_dispatch:
+    inputs:
+      first:
+        description: First seed
+        default: "1000"
+
+jobs:
+  random-models:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - run: pip install -e ".[mcp]" gcovr
+      - run: |
+          first=$(( ${{ inputs.first || '1000' }} + ${{ matrix.shard }} * 125 ))
+          python3 quality/random_models.py "${first}-$(( first + 124 ))"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: random-model-failures-${{ matrix.shard }}
+          path: build/random-models/failures

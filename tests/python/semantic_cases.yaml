@@ -452,6 +452,12 @@
     - { set: [enums, Mode, reqs], value: [HLR-X] }
     - { set: [checksums, crc32, reqs], value: [HLR-Y] }
 
+# SR-23 enum fields start at zero
+- name: enum_without_zero_member_and_no_default
+  rule: SR-23
+  expect: "has no member with value 0"
+  patch: [{ set: [enums, Mode, values], value: { run: 1, stop: 2 } }]
+
 # SR-22 requirement test vectors
 - name: vector_unknown_message
   rule: SR-22

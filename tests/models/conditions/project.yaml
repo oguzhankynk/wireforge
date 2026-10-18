@@ -1,0 +1,41 @@
+# Conditional layout: a message, a field and an interface message that exist only for some
+# defines, in two profiles.
+schema_version: 1
+project: conditions
+version: "0.1.0"
+namespace: models::conditions
+defaults: { endian: little, bit_order: msb_first }
+
+defines:
+  EXTENDED: 0
+  LANES: 2
+
+profiles:
+  basic: { defines: { EXTENDED: 0, LANES: 2 } }
+  extended: { defines: { EXTENDED: 1, LANES: 4 } }
+
+messages:
+  Status:
+    id: 1
+    fields:
+      - { name: state, type: u8, min: 0, max: 3, default: 0 }
+      - { name: lanes, type: u16, occurs: { max: LANES } }
+      - { name: detail, type: u32, if: EXTENDED > 0 }
+  Debug:
+    id: 2
+    if: EXTENDED > 0
+    fields:
+      - { name: code, type: u16, default: 7 }
+
+interfaces:
+  link:
+    version: "1.0.0"
+    direction: both
+    header:
+      fields:
+        - { name: id, type: u8, role: message_id }
+        - { name: length, type: u8, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 64 }
+    messages:
+      - Status
+      - { name: Debug, if: EXTENDED > 0 }

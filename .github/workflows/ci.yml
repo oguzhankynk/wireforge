@@ -92,6 +92,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: python3 quality/check_suppressions.py
+      - run: pip install -e . && python3 quality/feature_matrix.py
 
   coverage:
     runs-on: ubuntu-24.04
@@ -118,9 +119,13 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ninja-build
       - run: pip install -e ".[mcp]" gcovr
       - run: quality/run_generated_tests.sh
+      - run: python3 quality/random_models.py
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: evidence-results, path: build/evidence-results }
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: random-model-failures, path: build/random-models/failures }
 
   wireshark:
     runs-on: ubuntu-24.04

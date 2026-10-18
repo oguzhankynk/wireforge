@@ -65,7 +65,7 @@ ignore = ["D203", "D213", "COM812", "ISC001", "D104", "D100", "CPY001", "S603"]
 strict = true
 python_version = "3.10"
 files = ["codegen", "quality", "tests/python"]
-mypy_path = "codegen"
+mypy_path = "codegen:quality"
 explicit_package_bases = true
 
 [tool.pytest.ini_options]
