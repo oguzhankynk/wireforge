@@ -1,9 +1,9 @@
 # WireForge
 
-Schema-driven wire-format toolkit for C++17: describe binary messages in YAML (by hand, in the web UI, through the CLI
-or an AI agent) and generate allocation-free C++ serializers, validators, framers and dispatchers together with a
-GoogleTest project that proves them against a reference codec and gates the generated code at 100 % line, branch and
-function coverage.
+Schema-driven wire-format toolkit for C++17 and C99: describe binary messages in YAML (by hand, in the web UI, through
+the CLI or an AI agent) and generate allocation-free serializers, validators, framers and dispatchers (C++17, or C99
+with `--language c`) together with a GoogleTest project that proves them against a reference codec and gates the
+generated code at 100 % line, branch and function coverage.
 
 - The wire format is imposed by the remote party: generated code never adds bytes.
 - Runtime and generated code use only pre-allocated storage: no heap, no exceptions, no RTTI required.
@@ -36,7 +36,7 @@ qualification, which depend on the whole project and its assessor (docs/DO178C.m
 | Server, web UI, MCP | docs/SERVER.md, docs/UI.md, docs/MCP.md |
 | Secure deployment and operation | docs/SERVER.md, "Deployment and operation" |
 | Importers (CSV/Excel ICD, C headers, CAN databases) | docs/IMPORT.md |
-| Published protocols (`wireforge init --protocol`) | docs/GUIDE.md, `protocols/` |
+| Published protocols (Modbus, CRSF, J1939, MAVLink 1, UBX; `wireforge init --protocol`) | docs/GUIDE.md, `protocols/` |
 | Quality, safety, traceability | quality/QUALITY_POLICY.md, docs/SAFETY.md, docs/CODING_RULES.md |
 | Architecture and design decisions | docs/ARCHITECTURE.md, docs/DECISIONS.md |
 
@@ -49,4 +49,4 @@ only on this MIT-licensed runtime, so shipping it in your product carries no res
 
 Everything else (the CLI, code generator, server, web UI, and MCP server) is licensed under the Business Source
 License 1.1 (see LICENSE): free for development, testing, and evaluation; a commercial license is required for
-production use. It converts to MIT on 2036-10-17. Contact the Licensor for commercial licensing.
+production use. It converts to MIT on 2036-10-17. Contact the Licensor for commercial licensing: kaynak.oguzhan0@gmail.com.
