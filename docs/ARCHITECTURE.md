@@ -4,7 +4,7 @@
  Web UI (React) --HTTP--> Server (FastAPI) --> Service layer <-- MCP server (AI agents)
  wireforge CLI / Python API -----------------> |-- Model (loader, validator, expressions)
                                                |-- Reference codec (Python)
-                                               |-- Code generator --> C++17 headers + test project
+                                               |-- Code generator --> C++17 or C99 code + test project
                                                |-- Wireshark dissector --> Lua plugin
                                                |-- Analysis (layout/ICD, trace, compatibility)
  Project files (YAML, git) <------------------ storage (files are the source of truth)
@@ -25,8 +25,8 @@ wheel. Web UI: `ui/` (React, Vite). C++ runtime: `runtime/include/wireforge/` (h
 ## Boundaries
 - The service layer is the single API; the CLI, the HTTP server and the MCP server are thin adapters, so every
   operation is available in all of them.
-- The runtime does not depend on the Python tooling; generated code depends only on the runtime and the C++17
-  standard library.
+- The runtime does not depend on the Python tooling; generated code depends only on the runtime
+  (`runtime/include/wireforge/` for C++17, `.../wireforge/c/` for C99) and the standard library of its language.
 - Project layout: `project.yaml` and optional fragments (`types/*.yaml`, `messages/*.yaml`, `interfaces/*.yaml`,
   `profiles/*.yaml`) listed by `include`.
 
