@@ -1165,6 +1165,25 @@ class _InterfaceTests:
         lines.line("EXPECT_EQ(recorder.count(), 0U);")
         name = "RejectsAFrameWithAWrongConstantOrChecksum"
         _test(self.out, suite, name, lines.lines, self.requirements(cases, name))
+        # TEMPORARY DIAGNOSTICS
+        ident = _identifier(interface.name)
+        first = cases.frames[0][1]
+        _test(self.out, suite, "DiagConstruct", [
+            f"generated_tests::Recorder_{ident} recorder;",
+            f"const model::{interface.name}::Endpoint endpoint{{recorder}};",
+            f"EXPECT_EQ(endpoint.status(), {STATUS}Ok);"], ())
+        dl = Writer()
+        _byte_array(dl, "kFrame", first)
+        dl.line(f"std::array<std::uint8_t, {len(first)}U> broken = kFrame;")
+        dl.line("broken[2U] = static_cast<std::uint8_t>(broken[2U] ^ 0xFFU);")
+        dl.line(f"static_cast<void>(model::{interface.name}::detail::check_frame({CSPAN}(broken.data(), broken.size())));")
+        _test(self.out, suite, "DiagCheckFrame", dl.lines, ())
+        dd = Writer()
+        _byte_array(dd, "kFrame", first)
+        dd.line(f"generated_tests::Recorder_{ident} recorder;")
+        dd.line(f"const model::{interface.name}::Endpoint endpoint{{recorder}};")
+        dd.line(f"static_cast<void>(endpoint.dispatcher().dispatch_frame({CSPAN}(kFrame.data(), kFrame.size())));")
+        _test(self.out, suite, "DiagDispatchGood", dd.lines, ())
 
     def too_small(self, cases: InterfaceCases, suite: str) -> None:
         interface = cases.interface
