@@ -191,6 +191,12 @@ model a user can write:
   model and add it to `tests/models/`.
 - `SR-23`: an enum field without a default needs a member with the value 0, because `init()` starts it at zero.
 
+A fourth check is made while the tests are written (`wireforge.coverage_points`): the model decides which points the
+tests must exercise (the frame writer of every message with too little room, the receiver check of every message,
+serialize without room, the decode error and the edit of every field, ...), every test records the points it
+covers, and a point that no test covers stops the generation with "defect of the generator". A generator that tests only
+the first message of an interface can no longer produce a project that misses the 100 % gate in a user's hands.
+
 The checks found, and the generator now handles: the frame writer of every message of an interface (not only the first)
 is tried with too little room; a raw-decode error test uses the byte order of the interface; a message that is on no
 interface has a golden round trip of its own; serialize into a buffer without room is tested for every message; a message
