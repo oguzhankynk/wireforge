@@ -1,7 +1,5 @@
 name: WireForge check
-description: >-
-  Checks a WireForge wire-format project in CI: validation, wire compatibility with the pull request
-  base, and the generated tests. The summary appears on the run.
+description: "Validates a WireForge project in CI: wire compatibility with the PR base, and the generated tests."
 author: WireForge
 branding:
   icon: check-circle
