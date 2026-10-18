@@ -28,4 +28,4 @@ copy of the tools yet.
 
 ## Pages
 `TAGS.md` (the tag convention), `CSV.md` (columns of the CSV files), `doors_next.md`, `polarion.md`, `codebeamer.md`,
-`jama.md`, `reqtify.md`, `strictdoc.md`, `word_templates.md`, `rule_checkers.md` (reports of your coding-rule checker).
+`jama.md`, `reqtify.md`, `strictdoc.md`, `word_templates.md`, `rule_checkers.md` (reports of your coding-rule checker), `github_actions.md` and `gitlab_ci.yml` (the check on every pull request).
