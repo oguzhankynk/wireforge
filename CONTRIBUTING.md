@@ -44,8 +44,8 @@ tested on every pull request (ruff and mypy on 3.12 only).
   `quality/check_dist.py` checks. To turn the upload on: on pypi.org add a trusted publisher for this repository
   (workflow `release.yml`, environment `pypi`), then set the repository variable `PUBLISH_TO_PYPI` to `true`.
   A published version cannot be replaced, so do the first release as a tag you are sure of.
-- `pymodbus`, `pyubx2` and `cantools` (pinned) are development dependencies: `tests/python/test_independent.py`,
-  `test_ubx.py` and `test_dbc.py` compare the Modbus RTU and UBX models and the DBC importer with them, byte for byte.
+- `pymodbus`, `pyubx2`, `pymavlink` and `cantools` (pinned) are development dependencies: `tests/python/test_independent.py`,
+  `test_ubx.py`, `test_mavlink.py`, `test_j1939.py` and `test_dbc.py` compare the Modbus RTU, UBX, MAVLink 1 and J1939 models and the DBC importer with them, byte for byte.
 - Development tools are pinned to one minor version (`ruff`, `mypy` in `pyproject.toml`) so that a new release of a
   linter does not turn CI red by itself; raise them deliberately.
 
