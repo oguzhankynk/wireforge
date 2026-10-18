@@ -1,0 +1,48 @@
+/* Memory map of the QEMU machine mps2-an386 (Cortex-M4): code at 0, data at 0x20000000. */
+ENTRY(Reset_Handler)
+
+MEMORY
+{
+    CODE (rx) : ORIGIN = 0x00000000, LENGTH = 4M
+    DATA (rwx) : ORIGIN = 0x20000000, LENGTH = 4M
+}
+
+_stack_size = 16K;
+_libc_heap_size = 256K; /* for newlib's malloc, which printf may use; the library itself allocates nothing */
+
+SECTIONS
+{
+    .vectors : { KEEP(*(.vectors)) } > CODE
+
+    .text :
+    {
+        *(.text*)
+        KEEP(*(.init))
+        KEEP(*(.fini))
+        *(.rodata*)
+        . = ALIGN(4);
+        __init_array_start = .;
+        KEEP(*(SORT(.init_array.*)))
+        KEEP(*(.init_array))
+        __init_array_end = .;
+        . = ALIGN(4);
+    } > CODE
+
+    .ARM.extab : { *(.ARM.extab* .gnu.linkonce.armextab.*) } > CODE
+    .ARM.exidx : { *(.ARM.exidx* .gnu.linkonce.armexidx.*) } > CODE
+
+    _data_load = LOADADDR(.data);
+    .data : { _data_start = .; *(.data*) . = ALIGN(4); _data_end = .; } > DATA AT> CODE
+
+    .bss : { _bss_start = .; *(.bss*) *(COMMON) . = ALIGN(4); _bss_end = .; } > DATA
+
+    .heap (NOLOAD) : { . = ALIGN(8); end = .; _heap_start = .; . += _libc_heap_size; } > DATA
+
+    .stack (NOLOAD) :
+    {
+        . = ALIGN(8);
+        _stack_bottom = .;
+        . += _stack_size;
+        _stack_top = .;
+    } > DATA
+}

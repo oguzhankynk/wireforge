@@ -111,6 +111,26 @@ Conversions whose source width depends on the platform use `narrow_to<T>(value)`
 unsigned amount. The runtime uses atomics of at most the size of a pointer, so targets without 64-bit atomics (32-bit
 PowerPC, Cortex-M) need no `libatomic`.
 
+## Environments
+The runtime and the generated code use only the C++17 standard library (an allow list of headers, checked by
+`quality/check_os_neutral.py`) and test for no operating system. The CI proves it in these environments:
+
+| Environment | Compiler | What is proved |
+|---|---|---|
+| Linux | GCC 13, Clang 18 | build, all tests, sanitizers |
+| Windows | MSVC x64, MSVC x86, clang-cl | build with `/W4 /WX`, all tests |
+| macOS (Apple silicon) | AppleClang | build, all tests |
+| Android | NDK Clang, Bionic, libc++ (arm64-v8a, armeabi-v7a, x86_64) | the runtime tests and the tests of the generated code build and link with the full warning set; they are not run, because a Bionic binary does not run on a glibc host |
+| FreeRTOS | arm-none-eabi-gcc, newlib-nano, Cortex-M4F | the generated self-tests of three examples and the runtime with several tasks run on QEMU `mps2-an386` |
+
+The generator, the command line and the server (Python) are tested on Linux, Windows and macOS.
+
+On an RTOS the locking of the runtime is the lock of the kernel. `tests/rtos/freertos_lock.hpp` is a complete lock
+policy on a FreeRTOS mutex; the harness makes it the default lock of the library with
+`-DWIREFORGE_NO_STD_MUTEX -DWIREFORGE_DEFAULT_LOCK=FreeRtosLock` (see the table of `config.hpp`) and uses it for a ring
+and a link between tasks. The library allocates nothing, so a kernel that only allocates for its own objects is enough.
+`quality/run_freertos.sh` builds and runs the harness; `quality/run_android.sh` builds for the NDK.
+
 ## Requirements
 `runtime/requirements.yaml` holds the requirements of the runtime (`RTR-<header>-NNN`): the text, the header and the
 symbols that implement it (checked against the header), the kinds of generated low-level requirements it realizes

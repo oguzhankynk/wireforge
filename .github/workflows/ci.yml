@@ -13,19 +13,76 @@ jobs:
         include:
           - { os: ubuntu-24.04, cc: gcc, cxx: g++ }
           - { os: ubuntu-24.04, cc: clang, cxx: clang++ }
-          - { os: windows-2022, cc: cl, cxx: cl }
+          - { os: windows-2022, cc: cl, cxx: cl } # the name is a required check
+          - { os: windows-2022, cc: cl, cxx: cl, arch: x86 }
+          - { os: windows-2022, cc: clang-cl, cxx: clang-cl, arch: x64 }
+          - { os: macos-14, cc: clang, cxx: clang++ }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: ilammy/msvc-dev-cmd@v1
         if: runner.os == 'Windows'
+        with: { arch: "${{ matrix.arch || 'x64' }}" }
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
+      - run: brew install ninja
+        if: runner.os == 'macOS'
       - run: pip install -e .
       - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
         env: { CC: "${{ matrix.cc }}", CXX: "${{ matrix.cxx }}" }
       - run: cmake --build build
       - run: ctest --test-dir build --output-on-failure
+
+  # The generator, the CLI and the server on the other desktop systems.
+  python-os:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]"
+      - run: pytest -q --deselect tests/python/test_wireshark.py
+
+  # Android NDK (Clang, Bionic, libc++): every ABI builds and links with the full warning set.
+  android:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - run: pip install -e .
+      - run: quality/run_android.sh
+
+  # FreeRTOS on a Cortex-M4F (QEMU mps2-an386): the generated self-tests and the runtime with the
+  # lock of the kernel, several tasks.
+  freertos:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: >
+          sudo apt-get update && sudo apt-get install -y ninja-build gcc-arm-none-eabi
+          libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib qemu-system-arm
+      - run: pip install -e .
+      - run: quality/run_freertos.sh
+
+  # The single check of the operating-system matrix: build-test, python-os, android and freertos.
+  os-matrix:
+    runs-on: ubuntu-24.04
+    needs: [build-test, python-os, android, freertos]
+    if: always()
+    steps:
+      - run: |
+          test "${{ needs.build-test.result }}" = success
+          test "${{ needs.python-os.result }}" = success
+          test "${{ needs.android.result }}" = success
+          test "${{ needs.freertos.result }}" = success
 
   sanitizers:
     runs-on: ubuntu-24.04
