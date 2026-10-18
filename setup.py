@@ -21,7 +21,10 @@ DATA = {
 }
 
 
-FILES = {"runtime/requirements.yaml": ROOT / "runtime" / "requirements.yaml"}
+FILES = {
+    "runtime/requirements.yaml": ROOT / "runtime" / "requirements.yaml",
+    "runtime/LICENSE": ROOT / "runtime" / "LICENSE",
+}
 
 
 class BuildWithData(build_py):

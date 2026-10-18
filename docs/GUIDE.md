@@ -6,6 +6,7 @@ project that proves the code against a reference codec. The wire format is the o
 adds bytes.
 
 ## Install
+Python 3.10 to 3.13.
 ```sh
 pip install "wireforge[server,mcp,import]"   # or, in a checkout: pip install -e ".[server,mcp,import]"
 pip install "wireforge[oidc]"                # OIDC login for the server (docs/SERVER.md)
