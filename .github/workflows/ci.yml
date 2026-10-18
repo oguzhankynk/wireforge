@@ -47,6 +47,16 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: pytest -q --deselect tests/python/test_wireshark.py
 
+  # The reusable action of the repository, on an example project.
+  wireforge-action:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: ./
+        with:
+          project: examples/01_basic_telemetry
+
   # Android NDK (Clang, Bionic, libc++): every ABI builds and links with the full warning set.
   android:
     runs-on: ubuntu-24.04

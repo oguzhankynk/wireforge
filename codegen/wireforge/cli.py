@@ -21,7 +21,16 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from wireforge import fmt, hlr_import, importers, resources, service, test_project, versioning
+from wireforge import (
+    ci_check,
+    fmt,
+    hlr_import,
+    importers,
+    resources,
+    service,
+    test_project,
+    versioning,
+)
 from wireforge.plain import to_plain
 from wireforge.service import BuildOptions, CodecTarget, EditOptions, Result, ServiceError
 
@@ -102,6 +111,15 @@ def _init(args: argparse.Namespace) -> Result:
     return service.init_project(
         args.directory, args.template, args.name, args.namespace, args.version
     )
+
+
+def _ci(args: argparse.Namespace) -> Result:
+    build = BuildOptions(generator=args.generator, extra_cmake_args=tuple(args.cmake_args or ()))
+    options = ci_check.CiOptions(args.base, args.test, args.output, build, _tests(args))
+    result = ci_check.run(args.project, options)
+    if args.summary is not None:
+        args.summary.write_text(str(result.data["summary"]) + "\n", encoding="utf-8")
+    return result
 
 
 def _generate(args: argparse.Namespace) -> Result:
@@ -364,6 +382,7 @@ def _commands(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     _project(parser)
     parser.add_argument("--check", action="store_true", help="only report files that differ")
     _init_command(add)
+    _ci_command(add)
     parser = add("generate", _generate, "Generate C++ code (and the test project).")
     _project(parser)
     parser.add_argument("-o", "--output", type=Path, required=True)
@@ -401,6 +420,22 @@ def _commands(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser.add_argument("--token", help="require this bearer token")
     _oidc_options(parser)
     parser.add_argument("--openapi", type=Path, help="write the OpenAPI document and exit")
+
+
+def _ci_command(add: Callable[[str, Handler, str], argparse.ArgumentParser]) -> None:
+    parser = add("ci", _ci, "The check of a CI system: validate, compare with a base, test.")
+    _project(parser)
+    parser.add_argument("--base", help="git revision to compare with (the base of a pull request)")
+    parser.add_argument(
+        "--test", action="store_true", help="also generate, build and run the tests"
+    )
+    parser.add_argument("-o", "--output", type=Path, default=Path("wireforge-ci"))
+    parser.add_argument("--summary", type=Path, help="write the Markdown summary to this file")
+    parser.add_argument("--generator", help="CMake generator, e.g. Ninja")
+    parser.add_argument(
+        "--cmake-arg", action="append", dest="cmake_args", help="extra argument for cmake"
+    )
+    _test_options(parser)
 
 
 def _init_command(add: Callable[[str, Handler, str], argparse.ArgumentParser]) -> None:

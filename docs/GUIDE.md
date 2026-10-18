@@ -15,6 +15,11 @@ A C++17 compiler, CMake 3.21+ and (for the tests) Ninja or Make are needed to bu
 API on port 8000 with the toolchain inside; it has no token by default, so read
 [Deployment and operation](SERVER.md#deployment-and-operation) before exposing it.
 
+## In CI
+`wireforge ci <project> --base <revision> --test` validates the project, compares it with the base of a pull request
+(wire compatibility and the version bump each changed interface needs) and builds and runs the generated tests, with one
+Markdown summary. The repository has a GitHub action for it and a GitLab example (docs/integration/github_actions.md).
+
 ## Quickstart (about 5 minutes)
 0. **Start from a template** (or skip to step 1 with your own ICD):
    ```sh

@@ -7,6 +7,7 @@ equivalent.
 | Command | What it does |
 |---------|--------------|
 | `wireforge init [dir] [--template telemetry\|command\|raw] [--name N] [--namespace NS] [--version V] [--list]` | a new project from a working template (never overwrites; the directory must be empty) |
+| `wireforge ci <project> [--base REV] [--test] [-o DIR] [--summary FILE]` | the check of a CI system: validate, compare with the project at a git revision (wire compatibility and version bump), optionally build and run the tests; one Markdown summary (docs/integration/github_actions.md) |
 | `wireforge validate <project>` | structural and semantic validation (file, line, JSON pointer per issue) |
 | `wireforge fmt <project> [--check]` | canonical layout of every project file (comments kept) |
 | `wireforge migrate <project> [--check]` | upgrade the file format and refresh the version stamps |

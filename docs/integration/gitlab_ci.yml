@@ -1,0 +1,22 @@
+# GitLab CI: the same check as the GitHub action, on merge requests.
+# Copy into .gitlab-ci.yml (change `icd` to the directory of project.yaml).
+wireforge:
+  image: python:3.12
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GIT_DEPTH: "0"                      # the base revision must be readable
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq cmake g++ make
+    - pip install wireforge             # pin a version: wireforge==X.Y.Z
+  script:
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+    - >-
+      wireforge ci icd --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --test
+      --summary wireforge-summary.md || status=$?
+    - cat wireforge-summary.md
+    - exit "${status:-0}"
+  artifacts:
+    when: always
+    paths:
+      - wireforge-summary.md
