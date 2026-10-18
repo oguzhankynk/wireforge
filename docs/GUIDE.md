@@ -65,6 +65,8 @@ Markdown summary. The repository has a GitHub action for it and a GitLab example
   (docs/WIRESHARK.md).
 
 ## Generated code
+With `--language c` the code is C99 instead (`model.h`, `model.c`; docs/CODEGEN.md, runtime in `runtime/include/wireforge/c/`).
+
 `model.hpp` (types with defaults, `validate()`, sizes, `serialize()`/`deserialize()`), one header per interface (ids,
 `encode_frame()`, `Handler`, `Endpoint`, `Link`) and `user_prelude.hpp`; see docs/CODEGEN.md. The runtime is
 header-only (`runtime/include/wireforge/`, docs/RUNTIME.md). Bare-metal builds define `WIREFORGE_NO_STD_MUTEX`.

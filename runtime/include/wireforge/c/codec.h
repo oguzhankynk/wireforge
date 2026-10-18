@@ -17,7 +17,7 @@
 #include <stdint.h>
 
 /// Encoding settings of one message on one interface.
-typedef struct {
+typedef struct wf_encoding {
     wf_endian endian;          ///< Byte order of multi-byte values.
     wf_bit_order bit_order;    ///< Placement of fields in bit groups.
     bool check_encode;         ///< Check min/max and enum values when encoding.
@@ -33,7 +33,7 @@ typedef uint64_t (*wf_checksum_fn)(const uint8_t* data, size_t length);
 /* ------------------------------------------------------------------------------------------- */
 
 /// Sequential encoder with a sticky status.
-typedef struct {
+typedef struct wf_encoder {
     wf_writer writer;     ///< Destination.
     wf_encoding encoding; ///< Settings in use.
     wf_status status;     ///< The first error, or WF_OK.
@@ -50,6 +50,11 @@ static inline void wf_encoder_init(wf_encoder* encoder, uint8_t* buffer, size_t 
 /// Bytes written so far.
 static inline size_t wf_encoder_position(const wf_encoder* encoder) {
     return encoder->writer.position;
+}
+
+/// Bytes written when the encoding succeeded, 0 after an error.
+static inline size_t wf_encoder_size(const wf_encoder* encoder) {
+    return encoder->status == WF_OK ? encoder->writer.position : 0U;
 }
 
 /// Records @p status unless an earlier error is already recorded.
@@ -168,7 +173,7 @@ static inline void wf_enc_checksum(wf_encoder* encoder, size_t begin, size_t end
 /* ------------------------------------------------------------------------------------------- */
 
 /// Sequential decoder with a sticky status.
-typedef struct {
+typedef struct wf_decoder {
     wf_reader reader;     ///< Source.
     wf_encoding encoding; ///< Settings in use.
     wf_status status;     ///< The first error, or WF_OK.
@@ -305,6 +310,11 @@ static inline size_t wf_dec_count(wf_decoder* decoder, size_t width) {
     return (size_t)wf_dec_unsigned(decoder, width);
 }
 
+/// Reads an element count stored as a bool (0 or 1).
+static inline size_t wf_dec_count_bool(wf_decoder* decoder) {
+    return wf_dec_bool(decoder) ? 1U : 0U;
+}
+
 /**
  * Reads @p width characters into @p text (capacity @p capacity).
  * @param[out] length Number of characters kept; a fixed-width text drops trailing zeros.
@@ -344,6 +354,18 @@ static inline size_t wf_dec_fill_count(wf_decoder* decoder, size_t element_size)
     return wf_decoder_remaining(decoder) / element_size;
 }
 
+/**
+ * Sets @p *target to @p count unless the count is outside [@p low, @p capacity]
+ * (WF_COUNT_EXCEEDS_MAX) or an earlier error is recorded; the target then keeps its value.
+ */
+static inline void wf_dec_resize(wf_decoder* decoder, size_t* target, size_t count, size_t low,
+                                 size_t capacity) {
+    wf_dec_count_in(decoder, count, low, capacity);
+    if (decoder->status == WF_OK) {
+        *target = count;
+    }
+}
+
 /// Reads a bit group of @p total_bits bits.
 static inline void wf_dec_group(wf_decoder* decoder, wf_bit_unpacker* group, unsigned total_bits) {
     wf_unpacker_init(group, 0U, total_bits, decoder->encoding.bit_order);
@@ -366,6 +388,15 @@ static inline int64_t wf_dec_get_signed(wf_decoder* decoder, wf_bit_unpacker* gr
     int64_t value = 0;
     wf_dec_check(decoder, wf_unpacker_get_signed(group, &value, bits));
     return value;
+}
+
+/// Extracts the next field of a bit group as a bool (WF_OUT_OF_RANGE when it is more than 1).
+static inline bool wf_dec_get_bool(wf_decoder* decoder, wf_bit_unpacker* group, unsigned bits) {
+    const uint64_t wire = wf_dec_get(decoder, group, bits);
+    if (wire > 1U) {
+        wf_dec_check(decoder, WF_OUT_OF_RANGE);
+    }
+    return wire == 1U;
 }
 
 /// Extracts a constant unsigned field of a bit group (WF_CONST_MISMATCH when it differs).

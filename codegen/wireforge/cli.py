@@ -73,6 +73,7 @@ def _tests(args: argparse.Namespace) -> test_project.TestOptions:
         plugins=args.plugins,
         runtime=args.runtime,
         threshold=args.coverage_threshold,
+        language=args.language,
     )
 
 
@@ -128,7 +129,9 @@ def _ci(args: argparse.Namespace) -> Result:
 
 
 def _generate(args: argparse.Namespace) -> Result:
-    return service.generate_code(args.project, args.output, _tests(args) if args.tests else None)
+    return service.generate_code(
+        args.project, args.output, _tests(args) if args.tests else None, language=args.language
+    )
 
 
 def _wireshark(args: argparse.Namespace) -> Result:
@@ -344,6 +347,9 @@ def _test_options(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--coverage-threshold", type=int, default=test_project.DEFAULT_COVERAGE, metavar="PERCENT"
+    )
+    parser.add_argument(
+        "--language", choices=("cpp", "c"), default="cpp", help="generate C++17 (default) or C99"
     )
 
 

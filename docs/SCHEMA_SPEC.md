@@ -105,6 +105,11 @@ Used in `min`, `max`, `occurs.*`, `buffers.*`, `frame_size`, `max_frame_size`, c
   contract (`wireforge/checksum.hpp`, D16): `static constexpr std::size_t kSize` (= `size_bytes`, 1..8), a copyable
   `State`, `static State init() noexcept`, `static void update(State&, wireforge::Span<const std::uint8_t>) noexcept`,
   `static std::uint64_t finalize(const State&) noexcept`; checked with `static_assert(wireforge::is_checksum_v<impl>)`.
+  For generated C99 code a custom checksum also names `c_impl`, a C function
+  `uint64_t f(const uint8_t *data, size_t length)` over the covered bytes, and `c_include`, the header that declares it
+  (relative to an include directory). A user constant (`user_includes.constants`) used in an expression of generated C
+  has a `c` spelling, a macro or an enumerator; without it the C code uses `value` when the constant has no
+  `profile_values`.
 A field uses it with `checksum: {use, covers}`. `covers` is `{from, to}` (inclusive field range in the same struct)
 or `{scope: preceding | payload | header_and_payload}`; the latter two are for header/trailer fields.
 The field is computed on encode and verified on decode (`ChecksumMismatch`). Its width must equal the algorithm

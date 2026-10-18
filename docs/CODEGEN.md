@@ -81,6 +81,25 @@ A field of this type (`occurs`, arrays and nesting inside other `types` all work
 field; `Encoder::write_bytes`/`Decoder::read_bytes` (docs/RUNTIME.md) copy bytes onto/from the wire unchanged,
 leaving the type's own encoding entirely up to these two functions. `Fixed16` must be default-constructible.
 
+## C99 code (`--language c`)
+`wireforge generate <project> -o <dir> --language c` writes `<project>/model.h` and `<project>/model.c` instead of the
+C++ headers; `wireforge test ... --language c` also writes, builds and runs a GoogleTest project that calls the C
+functions (the tests are C++, the code under test is C99), and the `coverage` target requires 100 % of the lines,
+branches and functions of `model.c`. The rules are those of the C++ code: the same layout on the wire, the same checks
+in the same order, the same statuses (`wireforge/c/`, docs/RUNTIME.md). What differs is the shape:
+- Everything global starts with the namespace of the project, `::` replaced by `_` (`gnss::ubx` gives `gnss_ubx_`):
+  types `<prefix>_<Type>`, functions `<prefix>_<Type>_init/validate/encode/decode`, macros `<prefix>_<NAME>`.
+- An enum is an integer type with one macro per member (`<prefix>_<Enum>_<member>`) and `<prefix>_<Enum>_is_valid()`.
+- An array of variable size (a counted array, a fill array, an optional field, a string) has a member
+  `<name>_count` next to the array `<name>[capacity]`; a fixed array has none.
+- `<prefix>_<Type>_init()` sets the defaults, `_validate()` returns the first error, a message has
+  `_serialize()`/`_deserialize()` (its own encoding) and `_serialize_with()`/`_deserialize_with()` (an explicit
+  `wf_encoding`). `<prefix>_<Type>_MIN_WIRE_SIZE` and `_MAX_WIRE_SIZE` are macros.
+- A checksum is the function `<prefix>_checksum_<name>(data, length)`; a custom one calls the `c_impl` of the model.
+- A field with `scale` has `<prefix>_physical_<Type>_<field>()` and `<prefix>_set_physical_<Type>_<field>()`.
+Only the types and enums that a message or an interface uses get functions. Not supported yet: user types, and the
+interfaces (framing, receiver, link).
+
 ## Physical values
 A field with `scale` and `offset` keeps its raw value in the struct (that is what the wire carries). Two functions next
 to the struct convert (SR-24 limits them to plain integer and floating-point fields):

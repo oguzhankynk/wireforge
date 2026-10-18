@@ -26,6 +26,14 @@ export type ChecksumDef = {
    */
   impl?: string;
   include?: string;
+  /**
+   * Name of the C function `uint64_t f(const uint8_t *data, size_t length)` that computes the checksum when C code is generated.
+   */
+  c_impl?: string;
+  /**
+   * Header with the declaration of `c_impl`, relative to an include directory.
+   */
+  c_include?: string;
   size_bytes?: number;
   reqs?: Reqs;
 };
@@ -308,6 +316,10 @@ export interface UserConstant {
    * C++ spelling emitted in generated code (constexpr variable, enumerator or macro).
    */
   cpp: string;
+  /**
+   * C spelling emitted in generated C code (a macro or an enumerator); without it generated C uses `value`.
+   */
+  c?: string;
   /**
    * Value the tools use for analysis, docs and tests; verified against the real constant by a generated static_assert.
    */

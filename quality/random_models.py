@@ -39,7 +39,9 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 ROOT = Path(__file__).resolve().parents[1]
-WORK = ROOT / "build" / "random-models"
+# WIREFORGE_RANDOM_LANGUAGE=c builds the C code of the models instead of the C++ code.
+LANGUAGE = os.environ.get("WIREFORGE_RANDOM_LANGUAGE", "cpp")
+WORK = ROOT / "build" / ("random-models" if LANGUAGE == "cpp" else f"random-models-{LANGUAGE}")
 RANDOM_RANGE = (0, 23)  # the seeds the CI builds and measures
 
 Model = dict[str, Any]
@@ -495,6 +497,8 @@ def run_seed(seed: int) -> Outcome:
                 "--tests",
                 "--coverage-threshold",
                 "100",
+                "--language",
+                LANGUAGE,
             ],
         ),
     ]

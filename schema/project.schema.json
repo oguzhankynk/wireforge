@@ -533,6 +533,16 @@
           "type": "string",
           "minLength": 1
         },
+        "c_impl": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "description": "Name of the C function `uint64_t f(const uint8_t *data, size_t length)` that computes the checksum when C code is generated."
+        },
+        "c_include": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Header with the declaration of `c_impl`, relative to an include directory."
+        },
         "size_bytes": {
           "type": "integer",
           "minimum": 1,
@@ -568,7 +578,9 @@
                   "check",
                   "impl",
                   "include",
-                  "size_bytes"
+                  "size_bytes",
+                  "c_impl",
+                  "c_include"
                 ]
               }
             }
@@ -595,7 +607,9 @@
                 "enum": [
                   "impl",
                   "include",
-                  "size_bytes"
+                  "size_bytes",
+                  "c_impl",
+                  "c_include"
                 ]
               }
             }
@@ -1048,6 +1062,11 @@
           "type": "string",
           "pattern": "^(::)?[A-Za-z_][A-Za-z0-9_]*(::[A-Za-z_][A-Za-z0-9_]*)*$",
           "description": "C++ spelling emitted in generated code (constexpr variable, enumerator or macro)."
+        },
+        "c": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "description": "C spelling emitted in generated C code (a macro or an enumerator); without it generated C uses `value`."
         },
         "value": {
           "type": "integer",

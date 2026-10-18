@@ -144,6 +144,8 @@ class Checksum:
     impl: str | None = None
     include: str | None = None
     size_bytes: int | None = None
+    c_impl: str | None = None
+    c_include: str | None = None
     reqs: tuple[str, ...] = ()
 
 
@@ -240,6 +242,7 @@ class UserConstant:
     source: Source
     value: int | None = None
     profile_values: dict[str, int] = field(default_factory=dict)
+    c: str | None = None
 
 
 @dataclass(frozen=True)
