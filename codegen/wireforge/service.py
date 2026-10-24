@@ -48,6 +48,7 @@ from wireforge import (
     lifecycle_runtime,
     llr,
     llr_ids,
+    mavlink_xml,
     reqif,
     resources,
     runtime_reqs,
@@ -1079,6 +1080,40 @@ def import_dbc(
     checked.data["project"] = str(root)
     checked.data["notes"] = notes
     summary = _issues_text(checked.issues) or f"imported {source.name} into {root}\n"
+    checked.text = summary + "".join(f"note: {note}\n" for note in notes)
+    return checked
+
+
+def import_mavlink(
+    source: Path,
+    destination: Path,
+    options: importers.Project,
+    messages: list[str] | None = None,
+) -> Result:
+    """Import a MAVLink XML dialect (with the files it includes) as a project in `destination`."""
+    if destination.exists() and any(destination.iterdir()):
+        message = f"{destination} is not empty"
+        raise ServiceError(message)
+    try:
+        document, files, notes = mavlink_xml.to_project(
+            mavlink_xml.parse(source), options, messages
+        )
+    except mavlink_xml.MavlinkImportError as error:
+        return Result(ok=False, issues=error.issues, text=_issues_text(error.issues))
+    destination.mkdir(parents=True, exist_ok=True)
+    root = destination / schema.ROOT_FILE_NAME
+    root.write_text(_document_text(document), encoding="utf-8")
+    for relative, text in files.items():
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8")
+    checked = validate(destination)
+    checked.data["project"] = str(root)
+    checked.data["messages"] = len(document["messages"])
+    checked.data["notes"] = notes
+    count = len(document["messages"])
+    done = f"imported {count} messages of {source.name} into {root}\n"
+    summary = _issues_text(checked.issues) or done
     checked.text = summary + "".join(f"note: {note}\n" for note in notes)
     return checked
 

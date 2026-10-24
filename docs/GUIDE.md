@@ -34,7 +34,7 @@ Markdown summary. The repository has a GitHub action for it and a GitLab example
    The template is a working project with comments; change the names, fields and limits to match your protocol.
    The web UI has the same start under "New project"; its "Generate" tab shows the generated code and downloads it
    with the test project.
-1. **Describe messages.** Write a `project.yaml` (docs/SCHEMA_SPEC.md, `examples/`), or import an ICD table, a C header or a CAN database (`wireforge import-dbc`, docs/IMPORT.md):
+1. **Describe messages.** Write a `project.yaml` (docs/SCHEMA_SPEC.md, `examples/`), or import an ICD table, a C header, a CAN database (`wireforge import-dbc`) or a MAVLink XML dialect (`wireforge import-mavlink`, docs/IMPORT.md):
    ```sh
    wireforge import-icd examples/icd/telemetry_icd.csv demo --name telemetry --namespace demo::imu --endian little
    ```

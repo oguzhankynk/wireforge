@@ -54,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }          # the base revision must be readable
-      - uses: oguzhankynk/wireforge@v0.3.0
+      - uses: oguzhankynk/wireforge@v0.4.0
         with:
           project: drone
           test: "true"                    # generate, build and run the tests

@@ -1,0 +1,245 @@
+schema_version: 1
+project: mavlink_import
+version: "0.1.0"
+description: MAVLink 2 messages imported from common.xml.
+namespace: tests::mavlink
+defaults:
+  endian: little
+  bit_order: lsb_first
+  range_check:
+    encode: true
+    decode: true
+user_includes:
+  include_dirs: [app/include]
+checksums:
+  mavlinkCrc:
+    algo: custom
+    impl: mav2sum::Crc
+    include: mav2sum/crc.hpp
+    c_impl: mav2sum_crc
+    c_include: mav2sum/crc.h
+    size_bytes: 2
+enums:
+  MAV_AUTOPILOT:
+    type: u8
+    description: Micro air vehicle / autopilot classes. This identifies the individual model.
+    values: { MAV_AUTOPILOT_GENERIC: 0, MAV_AUTOPILOT_RESERVED: 1, MAV_AUTOPILOT_SLUGS: 2, MAV_AUTOPILOT_ARDUPILOTMEGA: 3, MAV_AUTOPILOT_OPENPILOT: 4, MAV_AUTOPILOT_GENERIC_WAYPOINTS_ONLY: 5, MAV_AUTOPILOT_GENERIC_WAYPOINTS_AND_SIMPLE_NAVIGATION_ONLY: 6, MAV_AUTOPILOT_GENERIC_MISSION_FULL: 7, MAV_AUTOPILOT_INVALID: 8, MAV_AUTOPILOT_PPZ: 9, MAV_AUTOPILOT_UDB: 10, MAV_AUTOPILOT_FP: 11, MAV_AUTOPILOT_PX4: 12, MAV_AUTOPILOT_SMACCMPILOT: 13, MAV_AUTOPILOT_AUTOQUAD: 14, MAV_AUTOPILOT_ARMAZILA: 15, MAV_AUTOPILOT_AEROB: 16, MAV_AUTOPILOT_ASLUAV: 17, MAV_AUTOPILOT_SMARTAP: 18, MAV_AUTOPILOT_AIRRAILS: 19, MAV_AUTOPILOT_REFLEX: 20 }
+  MAV_TYPE:
+    type: u8
+    description: MAVLINK component type reported in HEARTBEAT message. Flight controllers must report the type of the vehicle on which they are mounted (e.g. MAV_TYPE_OCTOROTOR). All other components must report a value appropriate for their type (e.g. a camera must use MAV_TYPE_CAMERA).
+    values: { MAV_TYPE_GENERIC: 0, MAV_TYPE_FIXED_WING: 1, MAV_TYPE_QUADROTOR: 2, MAV_TYPE_COAXIAL: 3, MAV_TYPE_HELICOPTER: 4, MAV_TYPE_ANTENNA_TRACKER: 5, MAV_TYPE_GCS: 6, MAV_TYPE_AIRSHIP: 7, MAV_TYPE_FREE_BALLOON: 8, MAV_TYPE_ROCKET: 9, MAV_TYPE_GROUND_ROVER: 10, MAV_TYPE_SURFACE_BOAT: 11, MAV_TYPE_SUBMARINE: 12, MAV_TYPE_HEXAROTOR: 13, MAV_TYPE_OCTOROTOR: 14, MAV_TYPE_TRICOPTER: 15, MAV_TYPE_FLAPPING_WING: 16, MAV_TYPE_KITE: 17, MAV_TYPE_ONBOARD_CONTROLLER: 18, MAV_TYPE_VTOL_DUOROTOR: 19, MAV_TYPE_VTOL_QUADROTOR: 20, MAV_TYPE_VTOL_TILTROTOR: 21, MAV_TYPE_VTOL_RESERVED2: 22, MAV_TYPE_VTOL_RESERVED3: 23, MAV_TYPE_VTOL_RESERVED4: 24, MAV_TYPE_VTOL_RESERVED5: 25, MAV_TYPE_GIMBAL: 26, MAV_TYPE_ADSB: 27, MAV_TYPE_PARAFOIL: 28, MAV_TYPE_DODECAROTOR: 29, MAV_TYPE_CAMERA: 30, MAV_TYPE_CHARGING_STATION: 31, MAV_TYPE_FLARM: 32, MAV_TYPE_SERVO: 33, MAV_TYPE_ODID: 34, MAV_TYPE_DECAROTOR: 35, MAV_TYPE_BATTERY: 36, MAV_TYPE_PARACHUTE: 37, MAV_TYPE_LOG: 38, MAV_TYPE_OSD: 39, MAV_TYPE_IMU: 40, MAV_TYPE_GPS: 41, MAV_TYPE_WINCH: 42, MAV_TYPE_GENERIC_MULTIROTOR: 43, MAV_TYPE_ILLUMINATOR: 44, MAV_TYPE_SPACECRAFT_ORBITER: 45, MAV_TYPE_GROUND_QUADRUPED: 46, MAV_TYPE_VTOL_GYRODYNE: 47, MAV_TYPE_GRIPPER: 48 }
+  MAV_MODE_FLAG:
+    type: u8
+    description: These flags encode the MAV mode, see MAV_MODE enum for useful combinations.
+    values: { MAV_MODE_FLAG_SAFETY_ARMED: 128, MAV_MODE_FLAG_MANUAL_INPUT_ENABLED: 64, MAV_MODE_FLAG_HIL_ENABLED: 32, MAV_MODE_FLAG_STABILIZE_ENABLED: 16, MAV_MODE_FLAG_GUIDED_ENABLED: 8, MAV_MODE_FLAG_AUTO_ENABLED: 4, MAV_MODE_FLAG_TEST_ENABLED: 2, MAV_MODE_FLAG_CUSTOM_MODE_ENABLED: 1 }
+  MAV_STATE:
+    type: u8
+    values: { MAV_STATE_UNINIT: 0, MAV_STATE_BOOT: 1, MAV_STATE_CALIBRATING: 2, MAV_STATE_STANDBY: 3, MAV_STATE_ACTIVE: 4, MAV_STATE_CRITICAL: 5, MAV_STATE_EMERGENCY: 6, MAV_STATE_POWEROFF: 7, MAV_STATE_FLIGHT_TERMINATION: 8 }
+  MAV_SYS_STATUS_SENSOR:
+    type: u32
+    description: These encode the sensors whose status is sent as part of the SYS_STATUS message.
+    values: { MAV_SYS_STATUS_SENSOR_3D_GYRO: 1, MAV_SYS_STATUS_SENSOR_3D_ACCEL: 2, MAV_SYS_STATUS_SENSOR_3D_MAG: 4, MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE: 8, MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE: 16, MAV_SYS_STATUS_SENSOR_GPS: 32, MAV_SYS_STATUS_SENSOR_OPTICAL_FLOW: 64, MAV_SYS_STATUS_SENSOR_VISION_POSITION: 128, MAV_SYS_STATUS_SENSOR_LASER_POSITION: 256, MAV_SYS_STATUS_SENSOR_EXTERNAL_GROUND_TRUTH: 512, MAV_SYS_STATUS_SENSOR_ANGULAR_RATE_CONTROL: 1024, MAV_SYS_STATUS_SENSOR_ATTITUDE_STABILIZATION: 2048, MAV_SYS_STATUS_SENSOR_YAW_POSITION: 4096, MAV_SYS_STATUS_SENSOR_Z_ALTITUDE_CONTROL: 8192, MAV_SYS_STATUS_SENSOR_XY_POSITION_CONTROL: 16384, MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS: 32768, MAV_SYS_STATUS_SENSOR_RC_RECEIVER: 65536, MAV_SYS_STATUS_SENSOR_3D_GYRO2: 131072, MAV_SYS_STATUS_SENSOR_3D_ACCEL2: 262144, MAV_SYS_STATUS_SENSOR_3D_MAG2: 524288, MAV_SYS_STATUS_GEOFENCE: 1048576, MAV_SYS_STATUS_AHRS: 2097152, MAV_SYS_STATUS_TERRAIN: 4194304, MAV_SYS_STATUS_REVERSE_MOTOR: 8388608, MAV_SYS_STATUS_LOGGING: 16777216, MAV_SYS_STATUS_SENSOR_BATTERY: 33554432, MAV_SYS_STATUS_SENSOR_PROXIMITY: 67108864, MAV_SYS_STATUS_SENSOR_SATCOM: 134217728, MAV_SYS_STATUS_PREARM_CHECK: 268435456, MAV_SYS_STATUS_OBSTACLE_AVOIDANCE: 536870912, MAV_SYS_STATUS_SENSOR_PROPULSION: 1073741824, MAV_SYS_STATUS_EXTENSION_USED: 2147483648 }
+  MAV_SYS_STATUS_SENSOR_EXTENDED:
+    type: u8
+    description: These encode the sensors whose status is sent as part of the SYS_STATUS message in the extended fields.
+    values: { MAV_SYS_STATUS_RECOVERY_SYSTEM: 1, MAV_SYS_STATUS_SENSOR_LEAK: 2 }
+  MAV_FRAME:
+    type: u8
+    description: 'Coordinate frames used by MAVLink. Not all frames are supported by all commands, messages, or vehicles. Global frames use the following naming conventions: - "GLOBAL": Global coordinate frame with WGS84 latitude/longitude and altitude positive over mean sea level (MSL) by default. The following modifiers may be used with "GLOBAL": - "RELATIVE_ALT": Altitude is relative to the vehicle home position rather than MSL. - "TERRAIN_ALT": Altitude is relative to ground level rather than MSL. - "INT": Latitude/longitude (in degrees) are scaled by multiplying by 1E7. Local frames use the following naming conventions: - "LOCAL": Origin of local frame is fixed relative to earth. Unless otherwise specified this origin is the origin of the vehicle position-estimator ("EKF"). - "BODY": Origin of local frame travels with the vehicle. NOTE, "BODY" does NOT indicate alignment of frame axis with vehicle attitude. - "OFFSET": Deprecated synonym for "BODY" (origin travels with the vehicle). Not to be used for new frames. Some deprecated frames do not follow these conventions (e.g. MAV_FRAME_BODY_NED and MAV_FRAME_BODY_OFFSET_NED).'
+    values: { MAV_FRAME_GLOBAL: 0, MAV_FRAME_LOCAL_NED: 1, MAV_FRAME_MISSION: 2, MAV_FRAME_GLOBAL_RELATIVE_ALT: 3, MAV_FRAME_LOCAL_ENU: 4, MAV_FRAME_GLOBAL_INT: 5, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT: 6, MAV_FRAME_LOCAL_OFFSET_NED: 7, MAV_FRAME_BODY_NED: 8, MAV_FRAME_BODY_OFFSET_NED: 9, MAV_FRAME_GLOBAL_TERRAIN_ALT: 10, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT: 11, MAV_FRAME_BODY_FRD: 12, MAV_FRAME_RESERVED_13: 13, MAV_FRAME_RESERVED_14: 14, MAV_FRAME_RESERVED_15: 15, MAV_FRAME_RESERVED_16: 16, MAV_FRAME_RESERVED_17: 17, MAV_FRAME_RESERVED_18: 18, MAV_FRAME_RESERVED_19: 19, MAV_FRAME_LOCAL_FRD: 20, MAV_FRAME_LOCAL_FLU: 21 }
+  MAV_CMD:
+    type: u16
+    description: "Commands to be executed by the MAV. They can be executed on user request, or as part of a mission script. If the action is used in a mission, the parameter mapping to the waypoint/mission message is as follows: Param 1, Param 2, Param 3, Param 4, X: Param 5, Y:Param 6, Z:Param 7. This command list is similar what ARINC 424 is for commercial aircraft: A data format how to interpret waypoint/mission data. NaN and INT32_MAX may be used in float/integer params (respectively) to indicate optional/default values (e.g. to use the component's current yaw or latitude rather than a specific value). See https://mavlink.io/en/guide/xml_schema.html#MAV_CMD for information about the structure of the MAV_CMD entries"
+    values: { MAV_CMD_NAV_WAYPOINT: 16, MAV_CMD_NAV_LOITER_UNLIM: 17, MAV_CMD_NAV_LOITER_TURNS: 18, MAV_CMD_NAV_LOITER_TIME: 19, MAV_CMD_NAV_RETURN_TO_LAUNCH: 20, MAV_CMD_NAV_LAND: 21, MAV_CMD_NAV_TAKEOFF: 22, MAV_CMD_NAV_LAND_LOCAL: 23, MAV_CMD_NAV_TAKEOFF_LOCAL: 24, MAV_CMD_NAV_FOLLOW: 25, MAV_CMD_NAV_CONTINUE_AND_CHANGE_ALT: 30, MAV_CMD_NAV_LOITER_TO_ALT: 31, MAV_CMD_DO_FOLLOW: 32, MAV_CMD_DO_FOLLOW_REPOSITION: 33, MAV_CMD_DO_ORBIT: 34, MAV_CMD_DO_FIGURE_EIGHT: 35, MAV_CMD_NAV_ARC_WAYPOINT: 36, MAV_CMD_NAV_ROI: 80, MAV_CMD_NAV_PATHPLANNING: 81, MAV_CMD_NAV_SPLINE_WAYPOINT: 82, MAV_CMD_NAV_VTOL_TAKEOFF: 84, MAV_CMD_NAV_VTOL_LAND: 85, MAV_CMD_NAV_GUIDED_ENABLE: 92, MAV_CMD_NAV_DELAY: 93, MAV_CMD_NAV_PAYLOAD_PLACE: 94, MAV_CMD_NAV_LAST: 95, MAV_CMD_CONDITION_DELAY: 112, MAV_CMD_CONDITION_CHANGE_ALT: 113, MAV_CMD_CONDITION_DISTANCE: 114, MAV_CMD_CONDITION_YAW: 115, MAV_CMD_CONDITION_LAST: 159, MAV_CMD_DO_SET_MODE: 176, MAV_CMD_DO_JUMP: 177, MAV_CMD_DO_CHANGE_SPEED: 178, MAV_CMD_DO_SET_HOME: 179, MAV_CMD_DO_SET_PARAMETER: 180, MAV_CMD_DO_SET_RELAY: 181, MAV_CMD_DO_REPEAT_RELAY: 182, MAV_CMD_DO_SET_SERVO: 183, MAV_CMD_DO_REPEAT_SERVO: 184, MAV_CMD_DO_FLIGHTTERMINATION: 185, MAV_CMD_DO_CHANGE_ALTITUDE: 186, MAV_CMD_DO_SET_ACTUATOR: 187, MAV_CMD_DO_RETURN_PATH_START: 188, MAV_CMD_DO_LAND_START: 189, MAV_CMD_DO_RALLY_LAND: 190, MAV_CMD_DO_GO_AROUND: 191, MAV_CMD_DO_REPOSITION: 192, MAV_CMD_DO_PAUSE_CONTINUE: 193, MAV_CMD_DO_SET_REVERSE: 194, MAV_CMD_DO_SET_ROI_LOCATION: 195, MAV_CMD_DO_SET_ROI_WPNEXT_OFFSET: 196, MAV_CMD_DO_SET_ROI_NONE: 197, MAV_CMD_DO_SET_ROI_SYSID: 198, MAV_CMD_DO_CONTROL_VIDEO: 200, MAV_CMD_DO_SET_ROI: 201, MAV_CMD_DO_DIGICAM_CONFIGURE: 202, MAV_CMD_DO_DIGICAM_CONTROL: 203, MAV_CMD_DO_MOUNT_CONFIGURE: 204, MAV_CMD_DO_MOUNT_CONTROL: 205, MAV_CMD_DO_SET_CAM_TRIGG_DIST: 206, MAV_CMD_DO_FENCE_ENABLE: 207, MAV_CMD_DO_PARACHUTE: 208, MAV_CMD_DO_MOTOR_TEST: 209, MAV_CMD_DO_INVERTED_FLIGHT: 210, MAV_CMD_DO_GRIPPER: 211, MAV_CMD_DO_AUTOTUNE_ENABLE: 212, MAV_CMD_NAV_SET_YAW_SPEED: 213, MAV_CMD_DO_SET_CAM_TRIGG_INTERVAL: 214, MAV_CMD_DO_MOUNT_CONTROL_QUAT: 220, MAV_CMD_DO_GUIDED_MASTER: 221, MAV_CMD_DO_GUIDED_LIMITS: 222, MAV_CMD_DO_ENGINE_CONTROL: 223, MAV_CMD_DO_SET_MISSION_CURRENT: 224, MAV_CMD_DO_LAST: 240, MAV_CMD_PREFLIGHT_CALIBRATION: 241, MAV_CMD_PREFLIGHT_SET_SENSOR_OFFSETS: 242, MAV_CMD_PREFLIGHT_UAVCAN: 243, MAV_CMD_PREFLIGHT_STORAGE: 245, MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN: 246, MAV_CMD_OVERRIDE_GOTO: 252, MAV_CMD_OBLIQUE_SURVEY: 260, MAV_CMD_DO_SET_STANDARD_MODE: 262, MAV_CMD_MISSION_START: 300, MAV_CMD_ACTUATOR_TEST: 310, MAV_CMD_CONFIGURE_ACTUATOR: 311, MAV_CMD_COMPONENT_ARM_DISARM: 400, MAV_CMD_RUN_PREARM_CHECKS: 401, MAV_CMD_ILLUMINATOR_ON_OFF: 405, MAV_CMD_DO_ILLUMINATOR_CONFIGURE: 406, MAV_CMD_GET_HOME_POSITION: 410, MAV_CMD_INJECT_FAILURE: 420, MAV_CMD_START_RX_PAIR: 500, MAV_CMD_GET_MESSAGE_INTERVAL: 510, MAV_CMD_SET_MESSAGE_INTERVAL: 511, MAV_CMD_REQUEST_MESSAGE: 512, MAV_CMD_REQUEST_PROTOCOL_VERSION: 519, MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES: 520, MAV_CMD_REQUEST_CAMERA_INFORMATION: 521, MAV_CMD_REQUEST_CAMERA_SETTINGS: 522, MAV_CMD_REQUEST_STORAGE_INFORMATION: 525, MAV_CMD_STORAGE_FORMAT: 526, MAV_CMD_REQUEST_CAMERA_CAPTURE_STATUS: 527, MAV_CMD_REQUEST_FLIGHT_INFORMATION: 528, MAV_CMD_RESET_CAMERA_SETTINGS: 529, MAV_CMD_SET_CAMERA_MODE: 530, MAV_CMD_SET_CAMERA_ZOOM: 531, MAV_CMD_SET_CAMERA_FOCUS: 532, MAV_CMD_SET_STORAGE_USAGE: 533, MAV_CMD_SET_CAMERA_SOURCE: 534, MAV_CMD_JUMP_TAG: 600, MAV_CMD_DO_JUMP_TAG: 601, MAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW: 1000, MAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE: 1001, MAV_CMD_IMAGE_START_CAPTURE: 2000, MAV_CMD_IMAGE_STOP_CAPTURE: 2001, MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE: 2002, MAV_CMD_DO_TRIGGER_CONTROL: 2003, MAV_CMD_CAMERA_TRACK_POINT: 2004, MAV_CMD_CAMERA_TRACK_RECTANGLE: 2005, MAV_CMD_CAMERA_STOP_TRACKING: 2010, MAV_CMD_VIDEO_START_CAPTURE: 2500, MAV_CMD_VIDEO_STOP_CAPTURE: 2501, MAV_CMD_VIDEO_START_STREAMING: 2502, MAV_CMD_VIDEO_STOP_STREAMING: 2503, MAV_CMD_REQUEST_VIDEO_STREAM_INFORMATION: 2504, MAV_CMD_REQUEST_VIDEO_STREAM_STATUS: 2505, 
+        MAV_CMD_LOGGING_START: 2510, MAV_CMD_LOGGING_STOP: 2511, MAV_CMD_AIRFRAME_CONFIGURATION: 2520, MAV_CMD_CONTROL_HIGH_LATENCY: 2600, MAV_CMD_PANORAMA_CREATE: 2800, MAV_CMD_DO_VTOL_TRANSITION: 3000, MAV_CMD_ARM_AUTHORIZATION_REQUEST: 3001, MAV_CMD_SET_GUIDED_SUBMODE_STANDARD: 4000, MAV_CMD_SET_GUIDED_SUBMODE_CIRCLE: 4001, MAV_CMD_CONDITION_GATE: 4501, MAV_CMD_NAV_FENCE_RETURN_POINT: 5000, MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION: 5001, MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION: 5002, MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION: 5003, MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION: 5004, MAV_CMD_NAV_RALLY_POINT: 5100, MAV_CMD_UAVCAN_GET_NODE_INFO: 5200, MAV_CMD_DO_SET_SAFETY_SWITCH_STATE: 5300, MAV_CMD_DO_ADSB_OUT_IDENT: 10001, MAV_CMD_PAYLOAD_PREPARE_DEPLOY: 30001, MAV_CMD_PAYLOAD_CONTROL_DEPLOY: 30002, MAV_CMD_FIXED_MAG_CAL_YAW: 42006, MAV_CMD_DO_WINCH: 42600, MAV_CMD_GUIDED_CHANGE_SPEED: 43000, MAV_CMD_GUIDED_CHANGE_ALTITUDE: 43001, MAV_CMD_GUIDED_CHANGE_HEADING: 43002, MAV_CMD_EXTERNAL_POSITION_ESTIMATE: 43003, MAV_CMD_WAYPOINT_USER_1: 31000, MAV_CMD_WAYPOINT_USER_2: 31001, MAV_CMD_WAYPOINT_USER_3: 31002, MAV_CMD_WAYPOINT_USER_4: 31003, MAV_CMD_WAYPOINT_USER_5: 31004, MAV_CMD_SPATIAL_USER_1: 31005, MAV_CMD_SPATIAL_USER_2: 31006, MAV_CMD_SPATIAL_USER_3: 31007, MAV_CMD_SPATIAL_USER_4: 31008, MAV_CMD_SPATIAL_USER_5: 31009, MAV_CMD_USER_1: 31010, MAV_CMD_USER_2: 31011, MAV_CMD_USER_3: 31012, MAV_CMD_USER_4: 31013, MAV_CMD_USER_5: 31014, MAV_CMD_CAN_FORWARD: 32000 }
+  MAV_PARAM_TYPE:
+    type: u8
+    description: Specifies the datatype of a MAVLink parameter.
+    values: { MAV_PARAM_TYPE_UINT8: 1, MAV_PARAM_TYPE_INT8: 2, MAV_PARAM_TYPE_UINT16: 3, MAV_PARAM_TYPE_INT16: 4, MAV_PARAM_TYPE_UINT32: 5, MAV_PARAM_TYPE_INT32: 6, MAV_PARAM_TYPE_UINT64: 7, MAV_PARAM_TYPE_INT64: 8, MAV_PARAM_TYPE_REAL32: 9, MAV_PARAM_TYPE_REAL64: 10 }
+  MAV_RESULT:
+    type: u8
+    description: Result from a MAVLink command (MAV_CMD)
+    values: { MAV_RESULT_ACCEPTED: 0, MAV_RESULT_TEMPORARILY_REJECTED: 1, MAV_RESULT_DENIED: 2, MAV_RESULT_UNSUPPORTED: 3, MAV_RESULT_FAILED: 4, MAV_RESULT_IN_PROGRESS: 5, MAV_RESULT_COMMAND_LONG_ONLY: 7, MAV_RESULT_COMMAND_INT_ONLY: 8 }
+  MAV_SEVERITY:
+    type: u8
+    description: 'Indicates the severity level, generally used for status messages to indicate their relative urgency. Based on RFC-5424 using expanded definitions at: http://www.kiwisyslog.com/kb/info:-syslog-message-levels/.'
+    values: { MAV_SEVERITY_EMERGENCY: 0, MAV_SEVERITY_ALERT: 1, MAV_SEVERITY_CRITICAL: 2, MAV_SEVERITY_ERROR: 3, MAV_SEVERITY_WARNING: 4, MAV_SEVERITY_NOTICE: 5, MAV_SEVERITY_INFO: 6, MAV_SEVERITY_DEBUG: 7 }
+  MAV_MISSION_TYPE:
+    type: u8
+    description: Type of mission items being requested/sent in mission protocol.
+    values: { MAV_MISSION_TYPE_MISSION: 0, MAV_MISSION_TYPE_FENCE: 1, MAV_MISSION_TYPE_RALLY: 2, MAV_MISSION_TYPE_ALL: 255 }
+  GPS_FIX_TYPE:
+    type: u8
+    description: Type of GPS fix
+    values: { GPS_FIX_TYPE_NO_GPS: 0, GPS_FIX_TYPE_NO_FIX: 1, GPS_FIX_TYPE_2D_FIX: 2, GPS_FIX_TYPE_3D_FIX: 3, GPS_FIX_TYPE_DGPS: 4, GPS_FIX_TYPE_RTK_FLOAT: 5, GPS_FIX_TYPE_RTK_FIXED: 6, GPS_FIX_TYPE_STATIC: 7, GPS_FIX_TYPE_PPP: 8 }
+messages:
+  Heartbeat:
+    id: 0
+    description: The heartbeat message shows that a system or component is present and responding. The type and autopilot fields (along with the message component id), allow the receiving system to treat further messages from this system appropriately (e.g. by laying out the user interface based on the autopilot). This microservice is documented at https://mavlink.io/en/services/heartbeat.html
+    fields:
+      - { name: customMode, type: u32, description: A bitfield for use for autopilot-specific flags }
+      - { name: type, type: u8, description: 'Vehicle or component type. For a flight controller component the vehicle type (quadrotor, helicopter, etc.). For other components the component type (e.g. camera, gimbal, etc.). This should be used in preference to component id for identifying the component type. (enum MAV_TYPE)' }
+      - { name: autopilot, type: u8, description: Autopilot type / class. Use MAV_AUTOPILOT_INVALID for components that are not flight controllers. (enum MAV_AUTOPILOT) }
+      - { name: baseMode, type: u8, description: System mode bitmap. (enum MAV_MODE_FLAG) }
+      - { name: systemStatus, type: u8, description: System status flag. (enum MAV_STATE) }
+      - { name: mavlinkVersion, type: u8, const: 3, description: 'MAVLink version, not writable by user, gets added by protocol because of magic data type: uint8_t_mavlink_version' }
+  SysStatus:
+    id: 1
+    description: Sensor and subsystem status information. Provides a compact representation of sensor/subsystem status and a few other basic statistics.
+    fields:
+      - { name: onboardControlSensorsPresent, type: u32, description: 'Bitmap showing which onboard controllers and sensors are present. Value of 0: not present. Value of 1: present. (enum MAV_SYS_STATUS_SENSOR)' }
+      - { name: onboardControlSensorsEnabled, type: u32, description: 'Bitmap showing which onboard controllers and sensors are enabled: Value of 0: not enabled. Value of 1: enabled. (enum MAV_SYS_STATUS_SENSOR)' }
+      - { name: onboardControlSensorsHealth, type: u32, description: 'Bitmap showing which onboard controllers and sensors have an error (or are operational). Value of 0: error. Value of 1: healthy. (enum MAV_SYS_STATUS_SENSOR)' }
+      - { name: load, type: u16, units: d%, description: 'Maximum usage in percent of the mainloop time. Values: [0-1000] - should always be below 1000' }
+      - { name: voltageBattery, type: u16, units: mV, description: 'Battery voltage, UINT16_MAX: Voltage not sent by autopilot. Value is ambiguous on multi-battery systems. BATTERY_STATUS is a recommended alternative.' }
+      - { name: currentBattery, type: i16, units: cA, description: 'Battery current, -1: Current not sent by autopilot. Value may overflow/rollover for very high currents (> 327.67A). Value is ambiguous on multi-battery systems. BATTERY_STATUS is a recommended alternative.' }
+      - { name: dropRateComm, type: u16, units: c%, description: 'Communication drop rate, (UART, I2C, SPI, CAN), dropped packets on all links (packets that were corrupted on reception on the MAV)' }
+      - { name: errorsComm, type: u16, description: 'Communication errors (UART, I2C, SPI, CAN), dropped packets on all links (packets that were corrupted on reception on the MAV)' }
+      - { name: errorsCount1, type: u16, description: Autopilot-specific errors }
+      - { name: errorsCount2, type: u16, description: Autopilot-specific errors }
+      - { name: errorsCount3, type: u16, description: Autopilot-specific errors }
+      - { name: errorsCount4, type: u16, description: Autopilot-specific errors }
+      - { name: batteryRemaining, type: i8, units: '%', description: 'Battery energy remaining, -1: Battery remaining energy not sent by autopilot. Value is ambiguous on multi-battery systems. BATTERY_STATUS is a recommended alternative.' }
+      - { name: onboardControlSensorsPresentExtended, type: u32, description: 'Bitmap showing which onboard controllers and sensors are present. Value of 0: not present. Value of 1: present. (enum MAV_SYS_STATUS_SENSOR_EXTENDED) (extension)' }
+      - { name: onboardControlSensorsEnabledExtended, type: u32, description: 'Bitmap showing which onboard controllers and sensors are enabled: Value of 0: not enabled. Value of 1: enabled. (enum MAV_SYS_STATUS_SENSOR_EXTENDED) (extension)' }
+      - { name: onboardControlSensorsHealthExtended, type: u32, description: 'Bitmap showing which onboard controllers and sensors have an error (or are operational). Value of 0: error. Value of 1: healthy. (enum MAV_SYS_STATUS_SENSOR_EXTENDED) (extension)' }
+  ParamValue:
+    id: 22
+    description: Emit the value of a onboard parameter. The inclusion of param_count and param_index in the message allows the recipient to keep track of received parameters and allows him to re-request missing parameters after a loss or timeout. The parameter microservice is documented at https://mavlink.io/en/services/parameter.html
+    fields:
+      - { name: paramValue, type: f32, description: Onboard parameter value }
+      - { name: paramCount, type: u16, description: Total number of onboard parameters }
+      - { name: paramIndex, type: u16, description: Index of this onboard parameter }
+      - name: paramId
+        type: char
+        occurs: { max: 16 }
+        description: Onboard parameter id, terminated by NULL if the length is less than 16 human-readable chars and WITHOUT null termination (NULL) byte if the length is exactly 16 chars - applications have to provide 16+1 bytes storage if the ID is stored as string
+      - { name: paramType, type: u8, description: Onboard parameter type. (enum MAV_PARAM_TYPE) }
+  GpsRawInt:
+    id: 24
+    description: The global position, as returned by the Global Positioning System (GPS). This is NOT the global position estimate of the system, but rather a RAW sensor value. See message GLOBAL_POSITION_INT for the global position estimate.
+    fields:
+      - { name: timeUsec, type: u64, units: us, description: Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number. }
+      - { name: lat, type: i32, units: degE7, description: 'Latitude (WGS84, EGM96 ellipsoid)' }
+      - { name: lon, type: i32, units: degE7, description: 'Longitude (WGS84, EGM96 ellipsoid)' }
+      - { name: alt, type: i32, units: mm, description: Altitude (MSL). Positive for up. Note that virtually all GPS modules provide the MSL altitude in addition to the WGS84 altitude. }
+      - { name: eph, type: u16, description: 'GPS HDOP horizontal dilution of position (unitless * 100). If unknown, set to: UINT16_MAX' }
+      - { name: epv, type: u16, description: 'GPS VDOP vertical dilution of position (unitless * 100). If unknown, set to: UINT16_MAX' }
+      - { name: vel, type: u16, units: cm/s, description: 'GPS ground speed. If unknown, set to: UINT16_MAX' }
+      - { name: cog, type: u16, units: cdeg, description: 'Course over ground (NOT heading, but direction of movement) in degrees * 100, 0.0..359.99 degrees. If unknown, set to: UINT16_MAX' }
+      - { name: fixType, type: u8, description: GPS fix type. (enum GPS_FIX_TYPE) }
+      - { name: satellitesVisible, type: u8, description: 'Number of satellites visible. If unknown, set to UINT8_MAX' }
+      - { name: altEllipsoid, type: i32, units: mm, description: 'Altitude (above WGS84, EGM96 ellipsoid). Positive for up. (extension)' }
+      - { name: hAcc, type: u32, units: mm, description: Position uncertainty. (extension) }
+      - { name: vAcc, type: u32, units: mm, description: Altitude uncertainty. (extension) }
+      - { name: velAcc, type: u32, units: mm/s, description: Speed uncertainty. (extension) }
+      - { name: hdgAcc, type: u32, units: degE5, description: Heading / track uncertainty (extension) }
+      - { name: yaw, type: u16, units: cdeg, description: Yaw in earth frame from north. Use 0 if this GPS does not provide yaw. Use UINT16_MAX if this GPS is configured to provide yaw and is currently unable to provide it. Use 36000 for north. (extension) }
+  AttitudeQuaternion:
+    id: 31
+    description: The attitude in the aeronautical frame (right-handed, Z-down, X-front, Y-right), expressed as quaternion. Quaternion order is w, x, y, z and a zero rotation would be expressed as (1 0 0 0).
+    fields:
+      - { name: timeBootMs, type: u32, units: ms, description: Timestamp (time since system boot). }
+      - { name: q1, type: f32, description: 'Quaternion component 1, w (1 in null-rotation)' }
+      - { name: q2, type: f32, description: 'Quaternion component 2, x (0 in null-rotation)' }
+      - { name: q3, type: f32, description: 'Quaternion component 3, y (0 in null-rotation)' }
+      - { name: q4, type: f32, description: 'Quaternion component 4, z (0 in null-rotation)' }
+      - { name: rollspeed, type: f32, units: rad/s, description: Roll angular speed }
+      - { name: pitchspeed, type: f32, units: rad/s, description: Pitch angular speed }
+      - { name: yawspeed, type: f32, units: rad/s, description: Yaw angular speed }
+      - name: reprOffsetQ
+        type: f32
+        occurs: { max: 4 }
+        description: Rotation offset by which the attitude quaternion and angular speed vector should be rotated for user display (quaternion with [w, x, y, z] order, zero-rotation is [1, 0, 0, 0], send [0, 0, 0, 0] if field not supported). This field is intended for systems in which the reference attitude may change during flight. For example, tailsitters VTOLs rotate their reference attitude by 90 degrees between hover mode and fixed wing mode, thus repr_offset_q is equal to [1, 0, 0, 0] in hover mode and equal to [0.7071, 0, 0.7071, 0] in fixed wing mode. (extension)
+  MissionItemInt:
+    id: 73
+    description: "Message encoding a mission item. This message is emitted to announce the presence of a mission item and to set a mission item on the system. The mission item can be either in x, y, z meters (type: LOCAL) or x:lat, y:lon, z:altitude. Local frame is Z-down, right handed (NED), global frame is Z-up, right handed (ENU). NaN or INT32_MAX may be used in float/integer params (respectively) to indicate optional/default values (e.g. to use the component's current latitude, yaw rather than a specific value). See also https://mavlink.io/en/services/mission.html."
+    fields:
+      - { name: param1, type: f32, description: 'PARAM1, see MAV_CMD enum' }
+      - { name: param2, type: f32, description: 'PARAM2, see MAV_CMD enum' }
+      - { name: param3, type: f32, description: 'PARAM3, see MAV_CMD enum' }
+      - { name: param4, type: f32, description: 'PARAM4, see MAV_CMD enum' }
+      - { name: x, type: i32, description: 'PARAM5 / local: x position in meters * 1e4, global: latitude in degrees * 10^7' }
+      - { name: y, type: i32, description: 'PARAM6 / y position: local: x position in meters * 1e4, global: longitude in degrees *10^7' }
+      - { name: z, type: f32, description: 'PARAM7 / z position: global: altitude in meters (relative or absolute, depending on frame.' }
+      - { name: seq, type: u16, description: 'Waypoint ID (sequence number). Starts at zero. Increases monotonically for each waypoint, no gaps in the sequence (0,1,2,3,4).' }
+      - { name: command, type: u16, description: The scheduled action for the waypoint. (enum MAV_CMD) }
+      - { name: targetSystem, type: u8, description: System ID }
+      - { name: targetComponent, type: u8, description: Component ID }
+      - { name: frame, type: u8, description: The coordinate system of the waypoint. (enum MAV_FRAME) }
+      - { name: current, type: u8, description: 'false:0, true:1' }
+      - { name: autocontinue, type: u8, description: 'Autocontinue to next waypoint. 0: false, 1: true. Set false to pause mission after the item completes.' }
+      - { name: missionType, type: u8, description: Mission type. (enum MAV_MISSION_TYPE) (extension) }
+  CommandLong:
+    id: 76
+    description: Send a command with up to seven parameters to the MAV. COMMAND_INT is generally preferred when sending MAV_CMD commands that include positional information; it offers higher precision and allows the MAV_FRAME to be specified (which may otherwise be ambiguous, particularly for altitude). The command microservice is documented at https://mavlink.io/en/services/command.html
+    fields:
+      - { name: param1, type: f32, description: Parameter 1 (for the specific command). }
+      - { name: param2, type: f32, description: Parameter 2 (for the specific command). }
+      - { name: param3, type: f32, description: Parameter 3 (for the specific command). }
+      - { name: param4, type: f32, description: Parameter 4 (for the specific command). }
+      - { name: param5, type: f32, description: Parameter 5 (for the specific command). }
+      - { name: param6, type: f32, description: Parameter 6 (for the specific command). }
+      - { name: param7, type: f32, description: Parameter 7 (for the specific command). }
+      - { name: command, type: u16, description: Command ID (of command to send). (enum MAV_CMD) }
+      - { name: targetSystem, type: u8, description: System which should execute the command }
+      - { name: targetComponent, type: u8, description: 'Component which should execute the command, 0 for all components' }
+      - { name: confirmation, type: u8, description: '0: First transmission of this command. 1-255: Confirmation transmissions (e.g. for kill command)' }
+  CommandAck:
+    id: 77
+    description: Report status of a command. Includes feedback whether the command was executed. The command microservice is documented at https://mavlink.io/en/services/command.html
+    fields:
+      - { name: command, type: u16, description: Command ID (of acknowledged command). (enum MAV_CMD) }
+      - { name: result, type: u8, description: Result of command. (enum MAV_RESULT) }
+      - { name: progress, type: u8, description: 'Also used as result_param1, it can be set with a enum containing the errors reasons of why the command was denied or the progress percentage or 255 if unknown the progress when result is MAV_RESULT_IN_PROGRESS. (extension)' }
+      - { name: resultParam2, type: i32, description: 'Additional parameter of the result, example: which parameter of MAV_CMD_NAV_WAYPOINT caused it to be denied. (extension)' }
+      - { name: targetSystem, type: u8, description: System which requested the command to be executed (extension) }
+      - { name: targetComponent, type: u8, description: Component which requested the command to be executed (extension) }
+  EncapsulatedData:
+    id: 131
+    description: 'Data packet for images sent using the Image Transmission Protocol: https://mavlink.io/en/services/image_transmission.html.'
+    fields:
+      - { name: seqnr, type: u16, description: sequence number (starting with 0 on every transmission) }
+      - name: data
+        type: u8
+        occurs: { max: 253 }
+        description: image data bytes
+  Statustext:
+    id: 253
+    description: 'Status text message. These messages are printed in yellow in the COMM console of QGroundControl. WARNING: They consume quite some bandwidth, so use only for important status and error messages. If implemented wisely, these messages are buffered on the MCU and sent only at a limited rate (e.g. 10 Hz).'
+    fields:
+      - { name: severity, type: u8, description: Severity of status. Relies on the definitions within RFC-5424. (enum MAV_SEVERITY) }
+      - name: text
+        type: char
+        occurs: { max: 50 }
+        description: Status text message, without null termination character. UTF-8 encoded.
+      - { name: id, type: u16, description: Unique (opaque) identifier for this statustext message. May be used to reassemble a logical long-statustext message from a sequence of chunks. A value of zero indicates this is the only chunk in the sequence and the message can be emitted immediately. (extension) }
+      - { name: chunkSeq, type: u8, description: This chunk's sequence number; indexing is from zero. Any null character in the text field is taken to mean this was the last chunk. (extension) }
+interfaces:
+  link:
+    version: 1.0.0
+    direction: both
+    header:
+      fields:
+        - { name: start, type: u8, const: 253, role: sync }
+        - { name: length, type: u8, role: payload_length }
+        - { name: incompatFlags, type: u8, const: 0, description: Signed frames (0x01) are refused. }
+        - { name: compatFlags, type: u8 }
+        - { name: sequence, type: u8, role: sequence }
+        - { name: systemId, type: u8, default: 1 }
+        - { name: componentId, type: u32, bits: 8, default: 1 }
+        - { name: messageId, type: u32, bits: 24, role: message_id }
+    trailer:
+      fields:
+        - name: checksum
+          type: u16
+          checksum:
+            use: mavlinkCrc
+            covers:
+              scope: header_and_payload
+    framing:
+      kind: sync_length
+      max_frame_size: 267
+      resync: true
+    trim_trailing_zeros: true
+    messages: [Heartbeat, SysStatus, ParamValue, GpsRawInt, AttitudeQuaternion, MissionItemInt, CommandLong, CommandAck, EncapsulatedData, Statustext]
