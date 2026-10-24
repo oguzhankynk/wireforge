@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Api, Issue, ProjectSummary, ServiceResult } from "./api";
 import { ChecksumEditor } from "./components/ChecksumEditor";
 import { EnumEditor } from "./components/EnumEditor";
+import { GeneratePanel } from "./components/GeneratePanel";
 import { CppPreview, structSource } from "./components/CppPreview";
 import { InterfaceEditor } from "./components/InterfaceEditor";
 import { NewProject } from "./components/NewProject";
+import { NextSteps } from "./components/NextSteps";
 import { IssuesPanel } from "./components/IssuesPanel";
 import { LayoutDiagram } from "./components/LayoutDiagram";
 import { Playground } from "./components/Playground";
@@ -15,7 +17,7 @@ import { VersionPanel } from "./components/VersionPanel";
 import { BUILTIN_TYPES } from "./model";
 
 type Section = "enums" | "types" | "messages" | "checksums" | "interfaces" | "profiles" | "settings";
-type Tool = "preview" | "layout" | "playground" | "versions";
+type Tool = "preview" | "layout" | "playground" | "versions" | "generate";
 
 interface Selection {
   section: Section;
@@ -38,6 +40,7 @@ const TOOLS: readonly [Tool, string][] = [
   ["layout", "Layout"],
   ["playground", "Playground"],
   ["versions", "Versions"],
+  ["generate", "Generate"],
 ];
 
 /** The editor application: project, entry tree, editors, issues and tools. */
@@ -53,12 +56,17 @@ export function App({ api }: { api: Api }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [creating, setCreating] = useState(false);
+  // The project just created: its next steps are shown, and its first message opens once loaded.
+  const [started, setStarted] = useState("");
+  const openFirstOf = useRef("");
 
-  // Loads the project list; keeps the selected project when it still exists.
+  // Loads the project list; keeps the selected project when it still exists. An empty workspace
+  // opens the new project form.
   const loadProjects = useCallback(async () => {
     try {
       const list = await api.projects();
       setProjects(list);
+      if (list.length === 0) setCreating(true);
       setProject((current) =>
         list.some((item) => item.id === current) ? current : (list[0]?.id ?? ""),
       );
@@ -74,7 +82,13 @@ export function App({ api }: { api: Api }) {
   const refresh = useCallback(async () => {
     if (project === "") return;
     const result = await api.project(project);
-    setSections((result.sections as Sections | undefined) ?? {});
+    const loaded = (result.sections as Sections | undefined) ?? {};
+    setSections(loaded);
+    if (openFirstOf.current === project) {
+      openFirstOf.current = "";
+      const first = loaded.messages?.[0];
+      if (first !== undefined) setSelection({ section: "messages", name: first });
+    }
     setIssues(result.issues);
     setEtag(result.etag ?? "");
     const name = projects.find((item) => item.id === project)?.name ?? "";
@@ -185,6 +199,7 @@ export function App({ api }: { api: Api }) {
             onChange={(event) => {
               setProject(event.target.value);
               setSelection(null);
+              setStarted("");
               setNotice("");
             }}
           >
@@ -231,12 +246,17 @@ export function App({ api }: { api: Api }) {
               setCreating(false);
               setSelection(null);
               setNotice(`Created ${id}.`);
+              openFirstOf.current = id;
+              setStarted(id);
               setProject(id);
               void loadProjects();
             }}
           />
         ) : (
           editor()
+        )}
+        {started !== "" && started === project && !creating && (
+          <NextSteps project={project} onTool={setTool} onClose={() => { setStarted(""); }} />
         )}
         <output aria-label="Save result">{notice}</output>
         <IssuesPanel issues={issues} local={[]} />
@@ -267,6 +287,7 @@ export function App({ api }: { api: Api }) {
           />
         )}
         {tool === "versions" && project !== "" && <VersionPanel api={api} project={project} etag={etag} />}
+        {tool === "generate" && project !== "" && <GeneratePanel api={api} project={project} etag={etag} />}
       </div>
     </main>
   );
