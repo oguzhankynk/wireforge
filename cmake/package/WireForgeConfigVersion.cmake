@@ -1,5 +1,5 @@
 # Version of the WireForge CMake package; compatible within the same major version.
-set(PACKAGE_VERSION "0.3.0")
+set(PACKAGE_VERSION "0.4.0")
 if(PACKAGE_FIND_VERSION VERSION_GREATER PACKAGE_VERSION)
   set(PACKAGE_VERSION_COMPATIBLE FALSE)
 else()

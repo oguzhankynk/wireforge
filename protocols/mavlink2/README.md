@@ -32,7 +32,9 @@ How the model says what MAVLink 2 does:
 Wireshark: `wireforge wireshark <project> -o mavlink2.lua` writes the dissector; load `wireshark/mav2sum.lua` as another
 Lua plugin next to it and the dissector also verifies the checksum.
 
-Not covered: message signing (signed frames are refused), the other messages of the common set, and strings. A
+Not covered: message signing (signed frames are refused) and the other messages of the common set; for all of them,
+or for ArduPilot's or your own dialect, `wireforge import-mavlink <dialect.xml>` writes a project with the same frame
+(docs/IMPORT.md). A
 payload longer than its message in this model (extension fields that a newer message definition added) is refused with
 `TrailingBytes`; add the new fields at the end of the message to read them.
 

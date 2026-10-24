@@ -5,7 +5,7 @@ Security fixes go into the latest release. Older versions are not patched; updat
 
 | Version | Supported |
 |---------|-----------|
-| latest release (0.3.x) | yes |
+| latest release (0.4.x) | yes |
 | older | no |
 
 ## Reporting a vulnerability

@@ -230,6 +230,11 @@ def _import_dbc(args: argparse.Namespace) -> Result:
     )
 
 
+def _import_mavlink(args: argparse.Namespace) -> Result:
+    options = importers.Project(args.name, args.namespace, args.version)
+    return service.import_mavlink(args.source, args.destination, options, args.messages)
+
+
 def _get(args: argparse.Namespace) -> Result:
     return service.get(args.project, args.pointer)
 
@@ -565,6 +570,20 @@ def _import_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]
 
 
 def _dbc_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]) -> None:
+    parser = add("import-mavlink", _import_mavlink, "Import a MAVLink XML dialect as MAVLink 2.")
+    parser.add_argument(
+        "source", type=Path, help="dialect file, e.g. common.xml (includes are read)"
+    )
+    parser.add_argument("destination", type=Path)
+    parser.add_argument("--name", required=True, help="project name")
+    parser.add_argument("--namespace")
+    parser.add_argument("--version", default="0.1.0")
+    parser.add_argument(
+        "--message",
+        action="append",
+        dest="messages",
+        help="take only this message (MAVLink name, e.g. HEARTBEAT); repeat for more",
+    )
     parser = add("import-dbc", _import_dbc, "Import a CAN database (.dbc).")
     parser.add_argument("source", type=Path)
     parser.add_argument("destination", type=Path)

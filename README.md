@@ -52,7 +52,7 @@ CI, Wireshark and AI agents), **docs/GUIDE.md** (install, 5-minute quickstart, e
 | Fitting into a DO-178C process, tool integration | docs/DO178C.md, docs/integration/ |
 | Server, web UI, MCP | docs/SERVER.md, docs/UI.md, docs/MCP.md |
 | Secure deployment and operation | docs/SERVER.md, "Deployment and operation" |
-| Importers (CSV/Excel ICD, C headers, CAN databases) | docs/IMPORT.md |
+| Importers (CSV/Excel ICD, C headers, CAN databases, MAVLink XML dialects) | docs/IMPORT.md |
 | Published protocols (Modbus, CRSF, J1939, MAVLink 1 and 2, UBX; `wireforge init --protocol`) | docs/GUIDE.md, `protocols/` |
 | Quality, safety, traceability | quality/QUALITY_POLICY.md, docs/SAFETY.md, docs/CODING_RULES.md |
 | Architecture and design decisions | docs/ARCHITECTURE.md, docs/DECISIONS.md |
@@ -65,7 +65,7 @@ Development: see CONTRIBUTING.md (`pip install -e ".[dev]"`, `cmake --preset dev
 pull request and runs the generated tests (docs/integration/github_actions.md):
 
 ```yaml
-- uses: oguzhankynk/wireforge@v0.3.0
+- uses: oguzhankynk/wireforge@v0.4.0
   with: { project: icd }
 ```
 

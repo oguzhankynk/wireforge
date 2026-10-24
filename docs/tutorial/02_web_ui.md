@@ -62,6 +62,8 @@ Python reference use. Add the line for VFR_HUD above the marker line:
 ```
 The value comes from the MAVLink definitions; pymavlink prints it with
 `python -c "from pymavlink.dialects.v20 import common; print(common.MAVLink_vfr_hud_message.crc_extra)"`.
+For many messages at once, `wireforge import-mavlink common.xml` imports a whole dialect, with these bytes computed
+(see the import guide).
 
 <!-- tutorial: hidden
 python - <<'PY'

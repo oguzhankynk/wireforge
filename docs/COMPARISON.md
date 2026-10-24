@@ -11,7 +11,7 @@ below solve neighbouring problems; several of them are the better choice when yo
 | nanopb | protobuf | C for microcontrollers, static allocation | as protobuf, on small targets |
 | FlatBuffers, Cap'n Proto | the library (zero-copy layout) | many languages | large messages read in place, both ends yours |
 | Kaitai Struct | you describe an existing format | parsers in many languages (serialization is limited) | reading and exploring existing binary formats and files |
-| mavgen (MAVLink) | MAVLink | complete MAVLink libraries from the XML dialects | you need all of MAVLink: every message of a dialect, signing, the standard microservices |
+| mavgen (MAVLink) | MAVLink | complete MAVLink libraries from the XML dialects | you need message signing, the standard microservices or languages other than C and C++ |
 | cantools | CAN databases (DBC) | Python encoding and decoding, C source for signals | CAN analysis and tooling in Python |
 | ASN.1 compilers | ASN.1 encoding rules (BER, PER, ...) | many languages | the protocol is specified in ASN.1 |
 | Packed structs and `memcpy` | the compiler | nothing | never for a wire format: byte order, alignment and padding differ between targets |
@@ -28,12 +28,11 @@ languages. It focuses on parsing; WireForge generates both directions, the frami
 messages to handlers, and the tests that check the generated code against an independent reference codec. Kaitai is
 the better tool for reverse engineering file formats and for languages other than C and C++.
 
-**mavgen and the official MAVLink libraries.** For a vehicle or a ground station that speaks MAVLink with the rest of
-the ecosystem, use them: they cover every message of a dialect, message signing and the MAVLink microservices.
-WireForge's MAVLink models (`wireforge init --protocol mavlink2`) cover a part of the common message set, refuse
-signed frames, and are checked byte for byte against pymavlink. They are useful when MAVLink is one of several
-protocols of a system that WireForge already describes, when you want generated tests, coverage and traceability for
-the messages you use, or as a worked example of a real protocol (the tutorial).
+**mavgen and the official MAVLink libraries.** They are the reference: message signing, the MAVLink microservices
+and many languages. WireForge reads the same XML dialects (`wireforge import-mavlink common.xml`, every message,
+checked byte for byte against pymavlink) and generates allocation-free C++17 or C99 with its own tests, coverage gates,
+a Wireshark dissector and traceability; it refuses signed frames. It fits when MAVLink is one of several protocols of a
+system that WireForge already describes, or when the generated code must come with evidence.
 
 **cantools** imports CAN databases and encodes and decodes in Python. WireForge imports the same DBC files
 (`wireforge import-dbc`) and generates C or C++ for the target, with the same tests as any other model.

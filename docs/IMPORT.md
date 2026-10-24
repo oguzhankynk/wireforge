@@ -65,3 +65,35 @@ multiplexed signals (`M`, `mN`), extended multiplexing (`SG_MUL_VAL_`), frames o
 both byte orders in one message, overlapping signals and signals outside the data length, a factor of 0, and floating
 point signals that do not fill whole bytes. Statements that do not change a frame (`VERSION`, `BU_`, the other `BA_`
 attributes, environment variables, signal groups) are counted in the notes.
+
+## MAVLink dialects (XML)
+`wireforge import-mavlink <dialect.xml> <directory> --name <project> [--namespace NS] [--version V]
+[--message NAME ...]` writes a complete MAVLink 2 project from a MAVLink XML message definition file, such as
+`common.xml`, `ardupilotmega.xml` or your own dialect (Python: `wireforge.service.import_mavlink`). The files the
+dialect includes (`<include>`) are read from its directory, each once. `--message` (repeatable, MAVLink names such as
+`HEARTBEAT`) takes only those messages and the enums they use.
+
+| XML | WireForge |
+|-----|-----------|
+| `<message>` | message `HEARTBEAT` → `Heartbeat` with the message `id`; fields `time_boot_ms` → `timeBootMs` (a C++ keyword gets the suffix `Value`, with a note) |
+| field order | the order MAVLink sends: the base fields by the size of their type, largest first (equal sizes keep their order), then the `<extensions/>` fields as written |
+| `uint8_t` .. `int64_t`, `float`, `double` | `u8` .. `i64`, `f32`, `f64` |
+| `char[N]`, `T[N]` | `char` with `occurs: {max: N}` (zero padded, as MAVLink strings), a fixed array |
+| `uint8_t_mavlink_version` | `u8` with `const: 3` |
+| `units`, description | `units`, `description`; an `enum` attribute and extension fields are named in the description |
+| `<enum>` | an enum of the project with the smallest unsigned type of its values; an entry without a value takes the next one, `2**N` values are read; an entry with the value of an earlier one is left out with a note |
+
+The interface `link` is the one of the published MAVLink 2 model (`wireforge init --protocol mavlink2`): the 24-bit
+message id, payloads without their trailing zero bytes (`trim_trailing_zeros`) and the checksum with the CRC_EXTRA
+byte of each message. The importer computes that byte from the definition, as the MAVLink generators do (the name of
+the message and the type, name and array length of its base fields), and writes the list to
+`app/include/mav2sum/crc_extra.h` and the Wireshark hook `wireshark/mav2sum.lua`; the checksum code itself is copied
+from the published model. Fields keep their integer types even when they name an enum, because a MAVLink receiver must
+accept values a newer dialect added. Signed frames are refused, as in the published model.
+
+`tests/python/test_mavlink_xml.py` imports every dialect pymavlink ships and compares the CRC_EXTRA byte and the field
+order of every message with pymavlink, and encodes every message of `common.xml` to the bytes pymavlink packs.
+`tests/models/mavlink_import` (ten messages of `common.xml`) runs through all generated-code gates.
+
+The file is read without a document type: a dialect with `<!DOCTYPE` or `<!ENTITY` is refused. The importer is a
+command-line and Python function only; the server and the MCP server do not offer it.
