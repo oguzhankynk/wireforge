@@ -1320,7 +1320,7 @@ wireforge<span class="w"> </span>validate<span class="w"> </span>demo<span class
    The template is a working project with comments; change the names, fields and limits to match your protocol.
    The web UI has the same start under "New project"; its "Generate" tab shows the generated code and downloads it
    with the test project.</li>
-<li><strong>Describe messages.</strong> Write a <code>project.yaml</code> (docs/SCHEMA_SPEC.md, <code>examples/</code>), or import an ICD table, a C header or a CAN database (<code>wireforge import-dbc</code>, docs/IMPORT.md):
+<li><strong>Describe messages.</strong> Write a <code>project.yaml</code> (docs/SCHEMA_SPEC.md, <code>examples/</code>), or import an ICD table, a C header, a CAN database (<code>wireforge import-dbc</code>) or a MAVLink XML dialect (<code>wireforge import-mavlink</code>, docs/IMPORT.md):
    <div class="highlight"><pre><span></span><code>wireforge<span class="w"> </span>import-icd<span class="w"> </span>examples/icd/telemetry_icd.csv<span class="w"> </span>demo<span class="w"> </span>--name<span class="w"> </span>telemetry<span class="w"> </span>--namespace<span class="w"> </span>demo::imu<span class="w"> </span>--endian<span class="w"> </span>little
 </code></pre></div></li>
 <li><strong>Add an interface</strong> (header, framing, the messages it carries):

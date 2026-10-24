@@ -1338,7 +1338,9 @@ Python reference use. Add the line for VFR_HUD above the marker line:
 <span class="w">    </span><span class="cm">/* add new messages above this line */</span>
 </code></pre></div>
 The value comes from the MAVLink definitions; pymavlink prints it with
-<code>python -c "from pymavlink.dialects.v20 import common; print(common.MAVLink_vfr_hud_message.crc_extra)"</code>.</p>
+<code>python -c "from pymavlink.dialects.v20 import common; print(common.MAVLink_vfr_hud_message.crc_extra)"</code>.
+For many messages at once, <code>wireforge import-mavlink common.xml</code> imports a whole dialect, with these bytes computed
+(see the import guide).</p>
 <!-- tutorial: hidden
 python - <<'PY'
 from pathlib import Path

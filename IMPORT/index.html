@@ -792,6 +792,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#mavlink-dialects-xml" class="md-nav__link">
+    <span class="md-ellipsis">
+      MAVLink dialects (XML)
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1186,6 +1195,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#mavlink-dialects-xml" class="md-nav__link">
+    <span class="md-ellipsis">
+      MAVLink dialects (XML)
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1340,6 +1358,62 @@ multiplexed signals (<code>M</code>, <code>mN</code>), extended multiplexing (<c
 both byte orders in one message, overlapping signals and signals outside the data length, a factor of 0, and floating
 point signals that do not fill whole bytes. Statements that do not change a frame (<code>VERSION</code>, <code>BU_</code>, the other <code>BA_</code>
 attributes, environment variables, signal groups) are counted in the notes.</p>
+<h2 id="mavlink-dialects-xml">MAVLink dialects (XML)</h2>
+<p><code>wireforge import-mavlink &lt;dialect.xml&gt; &lt;directory&gt; --name &lt;project&gt; [--namespace NS] [--version V]
+[--message NAME ...]</code> writes a complete MAVLink 2 project from a MAVLink XML message definition file, such as
+<code>common.xml</code>, <code>ardupilotmega.xml</code> or your own dialect (Python: <code>wireforge.service.import_mavlink</code>). The files the
+dialect includes (<code>&lt;include&gt;</code>) are read from its directory, each once. <code>--message</code> (repeatable, MAVLink names such as
+<code>HEARTBEAT</code>) takes only those messages and the enums they use.</p>
+<table>
+<thead>
+<tr>
+<th>XML</th>
+<th>WireForge</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;message&gt;</code></td>
+<td>message <code>HEARTBEAT</code> → <code>Heartbeat</code> with the message <code>id</code>; fields <code>time_boot_ms</code> → <code>timeBootMs</code> (a C++ keyword gets the suffix <code>Value</code>, with a note)</td>
+</tr>
+<tr>
+<td>field order</td>
+<td>the order MAVLink sends: the base fields by the size of their type, largest first (equal sizes keep their order), then the <code>&lt;extensions/&gt;</code> fields as written</td>
+</tr>
+<tr>
+<td><code>uint8_t</code> .. <code>int64_t</code>, <code>float</code>, <code>double</code></td>
+<td><code>u8</code> .. <code>i64</code>, <code>f32</code>, <code>f64</code></td>
+</tr>
+<tr>
+<td><code>char[N]</code>, <code>T[N]</code></td>
+<td><code>char</code> with <code>occurs: {max: N}</code> (zero padded, as MAVLink strings), a fixed array</td>
+</tr>
+<tr>
+<td><code>uint8_t_mavlink_version</code></td>
+<td><code>u8</code> with <code>const: 3</code></td>
+</tr>
+<tr>
+<td><code>units</code>, description</td>
+<td><code>units</code>, <code>description</code>; an <code>enum</code> attribute and extension fields are named in the description</td>
+</tr>
+<tr>
+<td><code>&lt;enum&gt;</code></td>
+<td>an enum of the project with the smallest unsigned type of its values; an entry without a value takes the next one, <code>2**N</code> values are read; an entry with the value of an earlier one is left out with a note</td>
+</tr>
+</tbody>
+</table>
+<p>The interface <code>link</code> is the one of the published MAVLink 2 model (<code>wireforge init --protocol mavlink2</code>): the 24-bit
+message id, payloads without their trailing zero bytes (<code>trim_trailing_zeros</code>) and the checksum with the CRC_EXTRA
+byte of each message. The importer computes that byte from the definition, as the MAVLink generators do (the name of
+the message and the type, name and array length of its base fields), and writes the list to
+<code>app/include/mav2sum/crc_extra.h</code> and the Wireshark hook <code>wireshark/mav2sum.lua</code>; the checksum code itself is copied
+from the published model. Fields keep their integer types even when they name an enum, because a MAVLink receiver must
+accept values a newer dialect added. Signed frames are refused, as in the published model.</p>
+<p><code>tests/python/test_mavlink_xml.py</code> imports every dialect pymavlink ships and compares the CRC_EXTRA byte and the field
+order of every message with pymavlink, and encodes every message of <code>common.xml</code> to the bytes pymavlink packs.
+<code>tests/models/mavlink_import</code> (ten messages of <code>common.xml</code>) runs through all generated-code gates.</p>
+<p>The file is read without a document type: a dialect with <code>&lt;!DOCTYPE</code> or <code>&lt;!ENTITY</code> is refused. The importer is a
+command-line and Python function only; the server and the MCP server do not offer it.</p>
 
 
 

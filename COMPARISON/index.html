@@ -1232,7 +1232,7 @@ below solve neighbouring problems; several of them are the better choice when yo
 <td>mavgen (MAVLink)</td>
 <td>MAVLink</td>
 <td>complete MAVLink libraries from the XML dialects</td>
-<td>you need all of MAVLink: every message of a dialect, signing, the standard microservices</td>
+<td>you need message signing, the standard microservices or languages other than C and C++</td>
 </tr>
 <tr>
 <td>cantools</td>
@@ -1263,12 +1263,11 @@ languages, which WireForge is not: it generates C++17 and C99 only.</p>
 languages. It focuses on parsing; WireForge generates both directions, the framing of a byte stream, the dispatch of
 messages to handlers, and the tests that check the generated code against an independent reference codec. Kaitai is
 the better tool for reverse engineering file formats and for languages other than C and C++.</p>
-<p><strong>mavgen and the official MAVLink libraries.</strong> For a vehicle or a ground station that speaks MAVLink with the rest of
-the ecosystem, use them: they cover every message of a dialect, message signing and the MAVLink microservices.
-WireForge's MAVLink models (<code>wireforge init --protocol mavlink2</code>) cover a part of the common message set, refuse
-signed frames, and are checked byte for byte against pymavlink. They are useful when MAVLink is one of several
-protocols of a system that WireForge already describes, when you want generated tests, coverage and traceability for
-the messages you use, or as a worked example of a real protocol (the tutorial).</p>
+<p><strong>mavgen and the official MAVLink libraries.</strong> They are the reference: message signing, the MAVLink microservices
+and many languages. WireForge reads the same XML dialects (<code>wireforge import-mavlink common.xml</code>, every message,
+checked byte for byte against pymavlink) and generates allocation-free C++17 or C99 with its own tests, coverage gates,
+a Wireshark dissector and traceability; it refuses signed frames. It fits when MAVLink is one of several protocols of a
+system that WireForge already describes, or when the generated code must come with evidence.</p>
 <p><strong>cantools</strong> imports CAN databases and encodes and decodes in Python. WireForge imports the same DBC files
 (<code>wireforge import-dbc</code>) and generates C or C++ for the target, with the same tests as any other model.</p>
 <p><strong>Hand-written code</strong> is how most of these links are implemented today. It works until a field moves, a target has
