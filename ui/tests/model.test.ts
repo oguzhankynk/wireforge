@@ -115,6 +115,7 @@ describe("interfaces and profiles", () => {
       messages: ["NavSolution", { name: "Command", id: 48 }],
       buffers: { rx_bytes: 256, tx_bytes: "MAX" },
       allow_trailing_bytes: true,
+      trim_trailing_zeros: true,
     };
     const form = fromInterface(value);
     expect(form.messages[1]).toEqual({ name: "Command", id: "0x30" });

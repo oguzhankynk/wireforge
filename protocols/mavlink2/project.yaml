@@ -1,0 +1,161 @@
+# MAVLink 2 (the telemetry protocol of drones and robots, the version current autopilots speak): the frame and six
+# messages of the common message set, HEARTBEAT, GPS_RAW_INT, ATTITUDE, GLOBAL_POSITION_INT, COMMAND_LONG and
+# COMMAND_ACK, written from the public MAVLink message definitions and the serialization rules (the base fields are
+# sent largest type first, the extension fields after them in their own order, little endian).
+#
+# A sender leaves out the zero bytes at the end of a payload (`trim_trailing_zeros`), so a frame is often shorter than
+# its message; the receiver reads the missing bytes as zeros. That is also how extension fields stay compatible: an
+# older sender simply does not send them.
+#
+# The checksum is CRC-16/MCRF4XX over the frame without the start byte, then one more byte, CRC_EXTRA, that depends on
+# the message (a hash of its definition). `mav2sum::Crc` keeps the three-byte message id when it passes by and adds
+# the byte last.
+schema_version: 1
+project: mavlink2
+version: "1.0.0"
+description: MAVLink 2 frame and six messages (HEARTBEAT, GPS_RAW_INT, ATTITUDE, GLOBAL_POSITION_INT, COMMAND_LONG, COMMAND_ACK).
+namespace: drone::mavlink2
+defaults: { endian: little, bit_order: lsb_first, range_check: { encode: true, decode: true } }
+
+requirements:
+  MAV2-001:
+    text: A frame starts with 0xFD, then the payload length, the incompatibility and compatibility flags, the sequence number, the system id, the component id, a three-byte message id, the payload and a two-byte checksum.
+    source: "MAVLink 2 serialization, packet format"
+  MAV2-002:
+    text: The checksum is CRC-16/MCRF4XX over the frame without the start byte followed by the CRC_EXTRA byte of the message, low byte first.
+    source: "MAVLink 2 serialization, checksum"
+  MAV2-003:
+    text: The base fields of a payload are sent largest type first, the extension fields after them in their declared order, in little endian byte order.
+    source: "MAVLink 2 serialization, field reordering and extensions"
+  MAV2-004:
+    text: The zero bytes at the end of a payload are not sent (the first byte always is), and a receiver reads the bytes it did not get as zeros.
+    source: "MAVLink 2 serialization, empty-byte payload truncation"
+  MAV2-005:
+    text: Signed frames (incompatibility flag 0x01, a 13-byte signature after the checksum) are not supported and are refused.
+    source: "MAVLink 2 message signing"
+
+
+user_includes:
+  include_dirs: [app/include]
+checksums:
+  mavlinkCrc:
+    algo: custom
+    reqs: [MAV2-002]
+    impl: mav2sum::Crc
+    include: mav2sum/crc.hpp
+    c_impl: mav2sum_crc
+    c_include: mav2sum/crc.h
+    size_bytes: 2
+
+messages:
+  Heartbeat:
+    id: 0
+    description: The presence of a system and its state (HEARTBEAT, 1 Hz).
+    reqs: [MAV2-003]
+    fields:
+      - { name: customMode, type: u32 }
+      - { name: type, type: u8 }
+      - { name: autopilot, type: u8 }
+      - { name: baseMode, type: u8 }
+      - { name: systemStatus, type: u8 }
+      - { name: mavlinkVersion, type: u8, const: 3 }
+  GpsRawInt:
+    id: 24
+    description: The raw GPS fix, not the filtered position (GPS_RAW_INT); the last six fields are extensions.
+    reqs: [MAV2-003, MAV2-004]
+    fields:
+      - { name: timeUsec, type: u64, units: us }
+      - { name: lat, type: i32, units: deg, scale: 1.0e-7 }
+      - { name: lon, type: i32, units: deg, scale: 1.0e-7 }
+      - { name: alt, type: i32, units: mm, description: Altitude above mean sea level. }
+      - { name: eph, type: u16, description: Horizontal dilution of precision times 100 (65535 if unknown). }
+      - { name: epv, type: u16, description: Vertical dilution of precision times 100 (65535 if unknown). }
+      - { name: vel, type: u16, units: cm/s }
+      - { name: cog, type: u16, units: cdeg, description: Course over ground (65535 if unknown). }
+      - { name: fixType, type: u8, description: "GPS_FIX_TYPE: 0 no GPS, 1 no fix, 2 2D, 3 3D, ..." }
+      - { name: satellitesVisible, type: u8, description: Satellites visible (255 if unknown). }
+      - { name: altEllipsoid, type: i32, units: mm, description: Altitude above the WGS84 ellipsoid (extension). }
+      - { name: hAcc, type: u32, units: mm, description: Horizontal accuracy (extension). }
+      - { name: vAcc, type: u32, units: mm, description: Vertical accuracy (extension). }
+      - { name: velAcc, type: u32, units: mm/s, description: Speed accuracy (extension). }
+      - { name: hdgAcc, type: u32, units: degE5, description: Heading accuracy (extension). }
+      - { name: yaw, type: u16, units: cdeg, description: "Yaw from the GPS, 0 if unknown (extension)." }
+  Attitude:
+    id: 30
+    description: The attitude in the aeronautical frame (ATTITUDE).
+    reqs: [MAV2-003]
+    fields:
+      - { name: timeBootMs, type: u32, units: ms }
+      - { name: roll, type: f32, units: rad }
+      - { name: pitch, type: f32, units: rad }
+      - { name: yaw, type: f32, units: rad }
+      - { name: rollspeed, type: f32, units: rad/s }
+      - { name: pitchspeed, type: f32, units: rad/s }
+      - { name: yawspeed, type: f32, units: rad/s }
+  GlobalPositionInt:
+    id: 33
+    description: The filtered global position (GLOBAL_POSITION_INT).
+    reqs: [MAV2-003]
+    fields:
+      - { name: timeBootMs, type: u32, units: ms }
+      - { name: lat, type: i32, units: deg, scale: 1.0e-7 }
+      - { name: lon, type: i32, units: deg, scale: 1.0e-7 }
+      - { name: alt, type: i32, units: mm }
+      - { name: relativeAlt, type: i32, units: mm }
+      - { name: vx, type: i16, units: cm/s }
+      - { name: vy, type: i16, units: cm/s }
+      - { name: vz, type: i16, units: cm/s }
+      - { name: hdg, type: u16, units: cdeg, description: "Heading, 65535 if unknown." }
+  CommandLong:
+    id: 76
+    description: A command with up to seven parameters (COMMAND_LONG).
+    reqs: [MAV2-003]
+    fields:
+      - { name: param1, type: f32 }
+      - { name: param2, type: f32 }
+      - { name: param3, type: f32 }
+      - { name: param4, type: f32 }
+      - { name: param5, type: f32 }
+      - { name: param6, type: f32 }
+      - { name: param7, type: f32 }
+      - { name: command, type: u16 }
+      - { name: targetSystem, type: u8 }
+      - { name: targetComponent, type: u8 }
+      - { name: confirmation, type: u8 }
+  CommandAck:
+    id: 77
+    description: The answer to a command (COMMAND_ACK); the last four fields are extensions.
+    reqs: [MAV2-003, MAV2-004]
+    fields:
+      - { name: command, type: u16 }
+      - { name: result, type: u8, description: "MAV_RESULT: 0 accepted, 1 temporarily rejected, 2 denied, ..." }
+      - { name: progress, type: u8, description: Progress in percent while in progress (extension). }
+      - { name: resultParam2, type: i32, description: Additional result information (extension). }
+      - { name: targetSystem, type: u8, description: The system that sent the command (extension). }
+      - { name: targetComponent, type: u8, description: The component that sent the command (extension). }
+
+interfaces:
+  link:
+    version: "1.0.0"
+    reqs: [MAV2-001, MAV2-002, MAV2-004]
+    direction: both
+    header:
+      fields:
+        - { name: start, type: u8, const: 0xFD, role: sync }
+        - { name: length, type: u8, role: payload_length }
+        - { name: incompatFlags, type: u8, const: 0, description: Signed frames (0x01) are refused., reqs: [MAV2-005] }
+        - { name: compatFlags, type: u8 }
+        - { name: sequence, type: u8, role: sequence }
+        - { name: systemId, type: u8, default: 1 }
+        # The component id and the 24-bit message id share one little-endian 32-bit group: the component id is the
+        # low byte, the message id the three bytes after it.
+        - { name: componentId, type: u32, bits: 8, default: 1 }
+        - { name: messageId, type: u32, bits: 24, role: message_id }
+    trailer:
+      fields:
+        - { name: checksum, type: u16, checksum: { use: mavlinkCrc, covers: { scope: header_and_payload } } }
+    # The largest MAVLink 2 frame without a signature: 10 header bytes, 255 payload bytes, the checksum. Frames of
+    # messages this model does not know are delimited whole and reported as unknown ids.
+    framing: { kind: sync_length, max_frame_size: 267, resync: true }
+    trim_trailing_zeros: true
+    messages: [Heartbeat, GpsRawInt, Attitude, GlobalPositionInt, CommandLong, CommandAck]

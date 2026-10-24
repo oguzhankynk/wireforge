@@ -22,7 +22,7 @@ describe("generate", () => {
     await user.click(screen.getByRole("tab", { name: "Generate" }));
     const panel = await screen.findByRole("region", { name: "Generate" });
     await within(panel).findByRole("option", { name: "gen_demo/model.hpp" });
-    await user.selectOptions(within(panel).getByLabelText("File"), "gen_demo/model.hpp");
+    expect(within(panel).getByLabelText<HTMLSelectElement>("File").value).toBe("gen_demo/model.hpp");
     expect(within(panel).getByLabelText("Generated file").textContent).toContain("struct ");
 
     // jsdom has no object URLs.
@@ -41,6 +41,17 @@ describe("generate", () => {
     expect(click.mock.contexts[0]).toMatchObject({ download: "gen-demo-generated.zip" });
     expect(archive?.type).toBe("application/zip");
     expect(archive?.size).toBeGreaterThan(1000);
+
+    // The same in C99.
+    await user.selectOptions(within(panel).getByLabelText("Language"), "c");
+    await within(panel).findByRole("option", { name: "gen_demo/model.c" });
+    expect(within(panel).queryByRole("option", { name: "gen_demo/model.hpp" })).toBeNull();
+    expect(within(panel).getByLabelText<HTMLSelectElement>("File").value).toBe("gen_demo/model.h");
+    await user.click(within(panel).getByRole("button", { name: "Download code and tests" }));
+    await waitFor(() => {
+      expect(click).toHaveBeenCalledTimes(2);
+    });
+    expect(click.mock.contexts[1]).toMatchObject({ download: "gen-demo-c-generated.zip" });
   });
 
   it("reports why a project has no archive", async () => {

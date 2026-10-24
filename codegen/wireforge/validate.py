@@ -1107,6 +1107,7 @@ class Validator:
         self._framing(interface)
         self._interface_messages(interface)
         self._frame_sizes(interface)
+        self._trimmed_payloads(interface)
 
     def _header_roles(self, interface: Interface) -> None:
         header = interface.header or ()
@@ -1216,6 +1217,33 @@ class Validator:
                         f"{variant.label()}"
                     )
                     self.report(entry.source, "SR-16", text)
+
+    def _trimmed_payloads(self, interface: Interface) -> None:
+        """Check SR-25: the receiver restores trimmed zeros up to a size that must be fixed."""
+        if not interface.trim_trailing_zeros:
+            return
+        at = _At(interface.source)
+        if interface.framing.kind == "fixed":
+            text = (
+                f"interface {interface.name}: trim_trailing_zeros needs frames whose size "
+                "follows the payload, not fixed framing"
+            )
+            self.report(at, "SR-25", text, "/trim_trailing_zeros")
+        for entry in interface.messages:
+            message = self.project.messages.get(entry.name)
+            if message is None:
+                continue
+            for variant in self.variants:
+                # The smallest size is None when the message has a dynamic array.
+                low = self._fields_bits(message.fields, variant, maximum=False)
+                high = self._fields_bits(message.fields, variant, maximum=True)
+                if low is None or low != high:
+                    text = (
+                        f"interface {interface.name} trims trailing zeros, so message "
+                        f"{entry.name} needs a fixed size{variant.label()}"
+                    )
+                    self.report(entry.source, "SR-25", text)
+                    break
 
     # --- user includes ----------------------------------------------------------------------------
 

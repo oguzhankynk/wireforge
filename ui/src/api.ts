@@ -12,6 +12,9 @@ export type EncodeRequest = components["schemas"]["EncodeRequest"];
 /** Body of a decode request. */
 export type DecodeRequest = components["schemas"]["DecodeRequest"];
 
+/** Language of the generated code. */
+export type Language = "cpp" | "c";
+
 /** Body of a project creation. */
 export type ProjectCreate = components["schemas"]["ProjectCreate"];
 
@@ -164,15 +167,15 @@ export class Api {
   }
 
   /** Generated C++ files of a project. */
-  async preview(id: string): Promise<ServiceResult> {
-    return (await this.request(`/api/projects/${id}/preview`)) as ServiceResult;
+  async preview(id: string, language: Language = "cpp"): Promise<ServiceResult> {
+    return (await this.request(`/api/projects/${id}/preview?language=${language}`)) as ServiceResult;
   }
 
   /** The zip of the generated code, its test project, the runtime and the model. */
-  async archive(id: string): Promise<Blob> {
+  async archive(id: string, language: Language = "cpp"): Promise<Blob> {
     const headers = new Headers();
     if (this.token !== undefined) headers.set("Authorization", `Bearer ${this.token}`);
-    const response = await fetch(`${this.base}/api/projects/${id}/generate`, { headers });
+    const response = await fetch(`${this.base}/api/projects/${id}/generate?language=${language}`, { headers });
     if (!response.ok) {
       const body = (await response.json()) as { text?: unknown; detail?: unknown };
       const message = typeof body.text === "string" ? body.text : body.detail;

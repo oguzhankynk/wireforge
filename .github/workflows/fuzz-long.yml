@@ -1,0 +1,34 @@
+name: fuzz-long
+# Long fuzzing of every target, once a week and by hand, shared by four jobs; pull requests run the
+# same targets for 60 s each (ci.yml). Four shards keep a job well inside its timeout; add shards when
+# the targets grow.
+on:
+  schedule:
+    - cron: "17 2 * * 0"
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: Seconds per target
+        default: "900"
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y clang ninja-build
+      - run: pip install -e .
+      - run: quality/run_fuzz.sh
+        env:
+          WIREFORGE_FUZZ_SECONDS: "${{ inputs.seconds || '900' }}"
+          WIREFORGE_FUZZ_SHARD: "${{ matrix.shard }}/4"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: "fuzz-artifacts-${{ matrix.shard }}", path: build/fuzz/artifacts }

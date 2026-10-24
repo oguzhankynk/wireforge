@@ -496,7 +496,18 @@ local function dissect_frame(state, layout, tvb, tree)
   else
     message = layout.messages[1]
   end
-  if message ~= nil then
+  if message ~= nil and layout.trim and payload_size < message.size then
+    -- The trailing zero bytes were not sent: dissect the payload extended with zeros.
+    local bytes = tvb(header_size, payload_size):bytes()
+    bytes:set_size(message.size)
+    local padded = bytes:tvb("Zero-extended payload")
+    local ctx = context(message.size, message.little, message.check)
+    ctx.tvb = padded
+    local item = root:add(state.fields[message.abbr], tvb(header_size, payload_size))
+    item:append_text(" (" .. (message.size - payload_size) .. " trailing zero byte(s) not sent)")
+    decode_fields(ctx, message.fields, item, 0)
+    root:append_text(", " .. message.name)
+  elseif message ~= nil then
     local ctx = context(payload_end, message.little, message.check)
     local item = root:add(state.fields[message.abbr], tvb(header_size, payload_size))
     local finish = decode_fields(ctx, message.fields, item, header_size)

@@ -5,6 +5,7 @@ import { EnumEditor } from "./components/EnumEditor";
 import { GeneratePanel } from "./components/GeneratePanel";
 import { CppPreview, structSource } from "./components/CppPreview";
 import { InterfaceEditor } from "./components/InterfaceEditor";
+import { Logo } from "./components/Logo";
 import { NewProject } from "./components/NewProject";
 import { NextSteps } from "./components/NextSteps";
 import { IssuesPanel } from "./components/IssuesPanel";
@@ -13,6 +14,7 @@ import { Playground } from "./components/Playground";
 import { ProfileEditor } from "./components/ProfileEditor";
 import { ProjectSettings } from "./components/ProjectSettings";
 import { StructEditor } from "./components/StructEditor";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { VersionPanel } from "./components/VersionPanel";
 import { BUILTIN_TYPES } from "./model";
 
@@ -191,7 +193,10 @@ export function App({ api }: { api: Api }) {
   return (
     <main>
       <header>
-        <h1>WireForge</h1>
+        <h1>
+          <Logo />
+          WireForge
+        </h1>
         <label>
           Project
           <select
@@ -217,6 +222,7 @@ export function App({ api }: { api: Api }) {
           Project settings
         </button>
         {error !== "" && <p role="alert">{error}</p>}
+        <ThemeToggle />
       </header>
       <nav aria-label="Entries">
         {SECTION_TITLES.map(([section, title, singular]) => (
@@ -225,7 +231,11 @@ export function App({ api }: { api: Api }) {
             <ul>
               {(sections[section] ?? []).map((name) => (
                 <li key={name}>
-                  <button type="button" onClick={() => { setSelection({ section, name }); }}>
+                  <button
+                    type="button"
+                    aria-current={selection?.section === section && selection.name === name ? "true" : undefined}
+                    onClick={() => { setSelection({ section, name }); }}
+                  >
                     {name}
                   </button>
                 </li>

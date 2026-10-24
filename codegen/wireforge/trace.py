@@ -56,6 +56,7 @@ LOCATIONS = {
     "FRAME_LENGTH": r"^class Receiver\b",
     "FRAME_RESYNC": r"^class Receiver\b",
     "FRAME_MAX": r"^class Receiver\b",
+    "FRAME_TRIM": r"Status write_frame\(",
     "DISPATCH": r"^class Handler\b",
     "DISPATCH_UNKNOWN": r"^class Handler\b",
     "RAW": r"^class Handler\b",

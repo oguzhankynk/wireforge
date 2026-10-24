@@ -17,6 +17,8 @@ echo "== wireshark ==";     quality/run_wireshark.sh
 echo "== portability ==";   quality/run_portability.sh
 echo "== evidence ==";      quality/run_evidence.sh
 echo "== quickstart ==";    quality/run_quickstart.sh
+echo "== tutorial ==";      build/quickstart/venv/bin/pip install --quiet "$(ls build/quickstart/dist/wireforge-*.whl)[server,mcp]" \
+                              && PATH="$PWD/build/quickstart/venv/bin:$PATH" python quality/run_tutorial.py
 echo "== gcc analyzer ==";  cmake --preset gcc-analyzer && cmake --build --preset gcc-analyzer
 echo "== clang-tidy ==";    python3 quality/run_clang_tidy.py build/dev
 echo "== cppcheck ==";      quality/run_cppcheck.sh build/dev

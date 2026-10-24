@@ -79,6 +79,7 @@ REQUIRED = (
     "framing:resync",
     "framing:length_counts",
     "interface:allow_trailing_bytes",
+    "interface:trim_trailing_zeros",
     "interface:endian",
     "interface:bit_order",
     "interface:buffers",
@@ -128,6 +129,7 @@ SCHEMA_PROPERTIES: dict[str, dict[str, str | None]] = {
     },
     "interfaceDef": {
         "allow_trailing_bytes": "interface:allow_trailing_bytes",
+        "trim_trailing_zeros": "interface:trim_trailing_zeros",
         "bit_order": "interface:bit_order",
         "buffers": "interface:buffers",
         "description": None,
@@ -243,6 +245,7 @@ def _interface_features(project: Project, interface: Interface) -> set[str]:
         "framing:resync": interface.framing.resync,
         "framing:length_counts": interface.framing.length_counts != "payload",
         "interface:allow_trailing_bytes": interface.allow_trailing_bytes,
+        "interface:trim_trailing_zeros": interface.trim_trailing_zeros,
         "interface:endian": interface.endian is not None,
         "interface:bit_order": interface.bit_order is not None,
         "interface:buffers": bool(interface.buffers),

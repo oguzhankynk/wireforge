@@ -11,12 +11,39 @@ license = "BUSL-1.1 AND MIT"
 license-files = ["LICENSE", "runtime/LICENSE"]
 authors = [{ name = "Oguzhan KAYNAK" }]
 readme = "README.md"
+keywords = [
+  "binary protocol", "code generator", "serialization", "embedded", "mavlink", "mavlink2", "drone",
+  "modbus", "can", "j1939", "icd", "wireshark", "c++17", "c99", "mcp",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: C",
+  "Programming Language :: C++",
+  "Topic :: Software Development :: Code Generators",
+  "Topic :: Software Development :: Embedded Systems",
+  "Topic :: System :: Networking",
+]
 dependencies = [
   "ruamel.yaml>=0.18",
   "jsonschema>=4.21",
   "referencing>=0.30",
   "typing_extensions>=4.4",
 ]
+
+[project.urls]
+Homepage = "https://github.com/oguzhankynk/wireforge"
+Tutorial = "https://github.com/oguzhankynk/wireforge/blob/master/docs/tutorial/README.md"
+Documentation = "https://github.com/oguzhankynk/wireforge/blob/master/docs/GUIDE.md"
+Video = "https://youtu.be/o5CbrNqxPiI"
+Issues = "https://github.com/oguzhankynk/wireforge/issues"
+Changelog = "https://github.com/oguzhankynk/wireforge/releases"
 
 [project.scripts]
 wireforge = "wireforge.cli:_entry"
@@ -69,6 +96,7 @@ ignore = ["D203", "D213", "COM812", "ISC001", "D104", "D100", "CPY001", "S603"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/python/**" = ["S101", "PLR2004", "D103", "INP001"]
+"examples/tutorial/**" = ["INP001", "T201"]
 
 [tool.mypy]
 strict = true

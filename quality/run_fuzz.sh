@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 # Builds the libFuzzer targets (runtime: checksum, frame decoder; every example: deserialize
 # round trips and frame streams) with Clang and runs each for WIREFORGE_FUZZ_SECONDS seconds,
-# WIREFORGE_FUZZ_JOBS targets at a time (default: the number of CPUs).
+# WIREFORGE_FUZZ_JOBS targets at a time (default: the number of CPUs). WIREFORGE_FUZZ_SHARD=k/n runs only
+# every n-th target starting with the k-th (1 <= k <= n), so n jobs share the targets.
 # Seeds: tests/regressions/fuzz/<target>/ plus the golden payloads and frames of the examples.
 # A crash fails the run; its input is left in build/fuzz/artifacts/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 seconds="${WIREFORGE_FUZZ_SECONDS:-20}"
 jobs="${WIREFORGE_FUZZ_JOBS:-$(nproc)}"
+shard="${WIREFORGE_FUZZ_SHARD:-1/1}"
+if [[ ! "${shard}" =~ ^([1-9][0-9]*)/([1-9][0-9]*)$ ]] || (( BASH_REMATCH[1] > BASH_REMATCH[2] )); then
+  echo "WIREFORGE_FUZZ_SHARD must be k/n with 1 <= k <= n, not ${shard}" >&2
+  exit 2
+fi
+shard_index="${BASH_REMATCH[1]}"
+shard_count="${BASH_REMATCH[2]}"
 work="build/fuzz"
 mkdir -p "${work}/artifacts"
 
@@ -71,8 +79,10 @@ print(" ".join(executables(load_project(Path(sys.argv[1])).project, "fuzz")))' "
     queue_target "${project}/build/fuzz/${target}" "${seeds}"
   done
 done
+awk -v k="${shard_index}" -v n="${shard_count}" '(NR - k) % n == 0' "${queue}" > "${queue}.shard"
+mv "${queue}.shard" "${queue}"
 count="$(wc -l < "${queue}")"
-echo "-- running ${count} targets for ${seconds} s each, ${jobs} at a time"
+echo "-- running ${count} targets (shard ${shard}) for ${seconds} s each, ${jobs} at a time"
 export -f run_target
 export work seconds
 if ! xargs -P "${jobs}" -L 1 bash -c 'run_target "$0" "$1"' < "${queue}"; then

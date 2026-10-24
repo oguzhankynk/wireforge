@@ -83,6 +83,10 @@ INTERFACE_TESTS = {
         "Call encode_frame with buffers that cannot hold the frame.",
         "BufferTooSmall and size 0",
     ),
+    "TrimsTrailingZeros": (
+        "Encode the default value of every message as a frame.",
+        "Ok and the frame size of the payload without its trailing zero bytes",
+    ),
     "DeliversRawBytesWithoutDecoding": (
         "Send the pattern frames to a handler that only takes raw bytes.",
         "raw frame and payload spans match, nothing decoded",

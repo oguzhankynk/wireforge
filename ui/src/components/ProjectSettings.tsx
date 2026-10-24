@@ -110,7 +110,7 @@ export function ProjectSettings(props: {
           Add project define
         </button>
       </fieldset>
-      <button type="button" disabled={!nameValid} onClick={() => void save()}>
+      <button type="button" className="primary" disabled={!nameValid} onClick={() => void save()}>
         Save project settings
       </button>
       {!nameValid && <p>The project name must be an identifier.</p>}

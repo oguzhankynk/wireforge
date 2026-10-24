@@ -485,12 +485,16 @@ def delete_value(context: Write, project: str, pointer: str) -> ResultResponse:
 
 
 @router.get("/projects/{project}/generate")
-def generate_zip(store: Store, project: str, *, tests: bool = True) -> Response:
-    """Download the generated code as a self-contained zip (with the test project)."""
-    result, data = service.generate_archive(store.project_dir(project), tests=tests)
+def generate_zip(
+    store: Store, project: str, *, tests: bool = True, language: Literal["cpp", "c"] = "cpp"
+) -> Response:
+    """Download the generated C++ or C code as a self-contained zip (with the test project)."""
+    location = store.project_dir(project)
+    result, data = service.generate_archive(location, tests=tests, language=language)
     if not result.ok:
         return JSONResponse(result.to_dict(), status_code=422)
-    name = f"{result.data['project']}-generated.zip"
+    suffix = "-c" if language == "c" else ""
+    name = f"{result.data['project']}{suffix}-generated.zip"
     headers = {"Content-Disposition": f'attachment; filename="{name}"'}
     return Response(data, media_type="application/zip", headers=headers)
 
@@ -506,9 +510,9 @@ def lifecycle_zip(store: Store, project: str, *, strict: bool = False) -> Respon
 
 
 @router.get("/projects/{project}/preview")
-def preview(store: Store, project: str) -> ResultResponse:
-    """Return the generated C++ files without writing them."""
-    return _result(service.preview(store.project_dir(project)))
+def preview(store: Store, project: str, language: Literal["cpp", "c"] = "cpp") -> ResultResponse:
+    """Return the generated C++ or C files without writing them."""
+    return _result(service.preview(store.project_dir(project), language))
 
 
 @router.get("/projects/{project}/wireshark")
