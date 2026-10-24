@@ -1,0 +1,1433 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Schema-driven wire-format toolkit for C++17 and C99">
+      
+      
+      
+        <link rel="canonical" href="https://oguzhankynk.github.io/wireforge/DECISIONS/">
+      
+      
+        <link rel="prev" href="../ARCHITECTURE/">
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.39">
+    
+    
+      
+        <title>Decisions - WireForge</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.8c3ca2c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#design-decisions" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="WireForge" class="md-header__button md-logo" aria-label="WireForge" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            WireForge
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Decisions
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Dark theme"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Dark theme" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Light theme"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Light theme" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/oguzhankynk/wireforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="WireForge" class="md-nav__button md-logo" aria-label="WireForge" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    WireForge
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/oguzhankynk/wireforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GUIDE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Tutorial
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorial
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/01_install_first_project/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    1. Install and the first project
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/02_web_ui/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2. The web UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/03_your_own_protocol/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    3. Your own protocol
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/04_use_the_code/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    4. Use the code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/05_tests/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    5. Tests
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/06_versions_and_ci/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    6. Versions and CI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/07_wireshark/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    7. Wireshark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/08_ai_agents_mcp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    8. AI agents (MCP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/09_team_server/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    9. Team server
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/10_documents_and_evidence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    10. Documents and evidence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COMPARISON/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    How it compares
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SCHEMA_SPEC/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Definition format
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CLI/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command line
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CODEGEN/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Generated code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RUNTIME/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Runtime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LAYOUT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Layout analysis
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPORT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Importers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UI/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Web UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SERVER/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Server
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MCP/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MCP
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../WIRESHARK/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Wireshark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Assurance
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Assurance
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LIFECYCLE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Lifecycle documents
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DO178C/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DO-178C
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SAFETY/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Safety
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CODING_RULES/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Coding rules
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Integrations
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Decisions
+  </span>
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="design-decisions">Design decisions</h1>
+<p>The reasons behind the main design choices. Other documents refer to them by number.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Topic</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D1</td>
+<td>Optional fields</td>
+<td>Unified with dynamic arrays as an <strong>occurrence model</strong>: every field has <code>occurs {min,max}</code>; optional = max 1, array = max N. Count comes from: a variable (any integer/bool field), an expression, or a constant. Count 0 = field absent on the wire. C++ repr: <code>StaticVector&lt;T,MAX&gt;</code>-like (count + storage), no heap.</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>Bits</td>
+<td>Bit-fields supported (<code>bits: n</code>, bool1, enums, nested groups).</td>
+</tr>
+<tr>
+<td>D3</td>
+<td>Endian</td>
+<td><strong>Message level only</strong> (interface may define default, message may override). No per-field endian.</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>Checksums</td>
+<td>Optional. CRC32 built in; parametric CRC engine; user-defined checksum via a documented C++ contract + schema reference.</td>
+</tr>
+<tr>
+<td>D5</td>
+<td>Thread safety</td>
+<td>Runtime is thread-safe by design (docs/ARCHITECTURE.md, Thread safety). Generated codec code is pure/reentrant.</td>
+</tr>
+<tr>
+<td>D6</td>
+<td>Portability</td>
+<td>C++17 only, platform/compiler/endianness independent, no host-layout assumptions.</td>
+</tr>
+<tr>
+<td>D7</td>
+<td>Versioning</td>
+<td>Two levels: <code>schema_version</code> (file format, with migrations) and <code>interface.version</code> (ICD semantic version, coexisting versions, compat checker).</td>
+</tr>
+<tr>
+<td>D8</td>
+<td>Test generation</td>
+<td>Generator also emits a ready CMake project with GoogleTest tests and a coverage target.</td>
+</tr>
+<tr>
+<td>D9</td>
+<td>Static analysis</td>
+<td>Zero warnings / errors / notes policy for runtime AND generated code (see quality/QUALITY_POLICY.md).</td>
+</tr>
+<tr>
+<td>D10</td>
+<td>Bit order</td>
+<td>Selectable <strong>per message</strong>: <code>bit_order: msb_first</code> (default) or <code>lsb_first</code>. Applies to all bit-fields in that message; layout analyzer shows the effective bit map.</td>
+</tr>
+<tr>
+<td>D11</td>
+<td>Floating point</td>
+<td>IEEE-754 only: <code>f32</code> (binary32) and <code>f64</code> (binary64), written/read via fixed-width integer bit patterns (memcpy), message-level endian. No scale/offset or fixed-point attributes in v1.</td>
+</tr>
+<tr>
+<td>D12</td>
+<td>Static analysis rule set</td>
+<td>Baseline set only (compiler warnings + clang-tidy + cppcheck + analyzers + sanitizers). MISRA/AUTOSAR out of scope for v1.</td>
+</tr>
+<tr>
+<td>D13</td>
+<td>Default lock policy</td>
+<td><code>StdMutexLock</code> (std::mutex) is the default; <code>NullLock</code> and user-defined locks remain opt-in.</td>
+</tr>
+<tr>
+<td>D14</td>
+<td>Server/tooling language</td>
+<td>Python for core, CLI, codegen, server (FastAPI), MCP (official Python SDK); TypeScript only for the UI. UI types are generated from the JSON Schema + OpenAPI so no logic is duplicated.</td>
+</tr>
+<tr>
+<td>D15</td>
+<td>Authoring modes</td>
+<td><strong>Files are the single source of truth.</strong> Everything is editable by GUI or by text/script: YAML files, <code>wireforge</code> CLI, Python API. GUI writes through the same canonical formatter, preserving comments and key order, so both modes coexist in git.</td>
+</tr>
+<tr>
+<td>D16</td>
+<td>Checksum contract</td>
+<td>Static member functions only: <code>kSize</code> (1..8), <code>State</code>, <code>init()</code>, <code>update(State&amp;, Span&lt;const uint8_t&gt;)</code>, <code>finalize(const State&amp;) -&gt; uint64_t</code>, all <code>noexcept</code>; checked by <code>is_checksum_v</code>. The value is written with the message endianness.</td>
+</tr>
+<tr>
+<td>D17</td>
+<td>Lock default without <code>&lt;mutex&gt;</code></td>
+<td><code>WIREFORGE_DEFAULT_LOCK</code> selects the default policy; otherwise <code>StdMutexLock</code>, or <code>NullLock</code> when <code>WIREFORGE_NO_STD_MUTEX</code> is set (bare-metal single-core default; RTOS ports set the macro).</td>
+</tr>
+<tr>
+<td>D18</td>
+<td>Span conversions</td>
+<td>Every <code>Span</code> constructor is <code>explicit</code>, including <code>Span&lt;T&gt;</code> -&gt; <code>Span&lt;const T&gt;</code>, so no analyzer suppression is needed (cppcheck <code>noExplicitConstructor</code>).</td>
+</tr>
+<tr>
+<td>D19</td>
+<td>Bit-group container</td>
+<td>A bit group is packed into ONE container integer (8..64 bits, multiple of 8): <code>msb_first</code> gives the first field the most significant bits, <code>lsb_first</code> the least significant; the container is then written with the message endianness. Groups wider than 64 bits are not supported by the runtime.</td>
+</tr>
+<tr>
+<td>D20</td>
+<td>Expression back ends</td>
+<td>One AST, three back ends: the Python evaluator <code>wireforge.expr.evaluate</code> (reference semantics, used directly by the tools and the reference codec, so no Python source is emitted), <code>to_cpp</code> (int64 C++ expression) and <code>to_preprocessor</code> (<code>#if</code>). Python is stricter than C++17 where C++ would be implementation-defined (shifting negative values): such models are rejected. Equality is proven by compiling truth tables with g++.</td>
+</tr>
+<tr>
+<td>D21</td>
+<td>Validation variants</td>
+<td>Expressions are evaluated per profile when the project has profiles (profile defines override root defines), otherwise once with the root defines. Errors inside a profile are SR-16, otherwise SR-5.</td>
+</tr>
+<tr>
+<td>D22</td>
+<td>Names in expressions</td>
+<td>Field names are allowed only in <code>occurs.count</code> (SR-7); <code>min</code>/<code>max</code>, capacities and sizes are static. In <code>if:</code> plain names must be root <code>defines</code> (always emitted as macros); profile-only macros are tested with <code>defined(NAME)</code>; user constants (C++ symbols, not macros) are not allowed in <code>if:</code>.</td>
+</tr>
+<tr>
+<td>D23</td>
+<td>Generated C++ name space</td>
+<td>Defines, enums, types, messages and interfaces share one generated C++ scope, so their names must be unique across these sections (SR-2); names that are C++ keywords or reserved identifiers (<code>__x</code>, <code>_X</code>) are rejected. Messages cannot be field types (shared layouts go to <code>types</code>).</td>
+</tr>
+<tr>
+<td>D24</td>
+<td>Frame decoder</td>
+<td>Sync and length header fields are whole bytes in the frame byte order; the frame checksum is a trailer field. A rejected frame is reported once; <code>resync: true</code> skips one byte and rescans, <code>resync: false</code> drops all buffered bytes. Wrong sync bytes are skipped silently (counted). A frame larger than the ring capacity is <code>InvalidLength</code>. Framing <code>none</code> bypasses the decoder.</td>
+</tr>
+<tr>
+<td>D25</td>
+<td>Transport interface</td>
+<td>The runtime defines a generic non-blocking transport (<code>send</code>/<code>receive</code> over spans, checked by <code>is_transport_v</code>, optional <code>ITransport</code> base) instead of depending on a particular driver API; existing drivers are connected through a small adapter class.</td>
+</tr>
+<tr>
+<td>D26</td>
+<td>Compat classification</td>
+<td>Wire-level comparison per profile with three classes (breaking / compatible / doc) mapped to major / minor / patch, also for 0.x versions. Any range or enum value change is breaking (either peer may reject the other's values). Appended trailing fields are compatible only when the old interface allows trailing bytes.</td>
+</tr>
+<tr>
+<td>D27</td>
+<td>Codec details</td>
+<td>Plain-name counts are written from the element count; expression counts must match. Fixed char arrays are zero padded and stripped on decode. Fixed framing never pads. Count overflow is reported as <code>CountExceedsMax</code> before the count field's own range. Custom checksums use plugins in Python (<code>PLUGINS</code> dict in a file next to the example). See SPEC section 16.</td>
+</tr>
+<tr>
+<td>D28</td>
+<td>Generated C++ shape</td>
+<td>Types and messages are plain aggregates with default member initializers; <code>validate()</code>, <code>min_wire_size()</code>/<code>max_wire_size()</code> and the codec are free functions found through ADL (<code>wireforge::type_tag&lt;T&gt;</code> for size queries). Storage: fixed arrays <code>std::array</code>, counted/fill arrays <code>StaticVector</code>, char arrays <code>FixedString</code>. <code>const</code>, <code>reserved</code>, checksum fields and count fields referenced only as plain <code>occurs.count</code> names are wire-only (no member; the array size is the count). Defines become overridable constants, never macros. One generated tree serves every profile (<code>#if</code> blocks, define constants).</td>
+</tr>
+<tr>
+<td>D29</td>
+<td>Generated codec</td>
+<td>Free <code>serialize</code>/<code>deserialize</code> per message with a runtime <code>wireforge::Encoding</code> argument (one code path for every interface); <code>Encoder</code>/<code>Decoder</code> with a sticky first error keep generated functions branch-free. NaN is outside every <code>min</code>/<code>max</code> range (reference codec and C++ agree).</td>
+</tr>
+<tr>
+<td>D30</td>
+<td>Generated interfaces</td>
+<td>One header per interface in an inline version namespace (<code>v&lt;major&gt;_&lt;minor&gt;</code>). Handlers are virtual <code>on&lt;Message&gt;Received(const M&amp;) noexcept</code> (no RTTI needed); <code>Receiver</code> decodes on the stack (reentrant) and <code>Endpoint</code> bundles decoder, dispatcher and receiver. Header fields must be byte-aligned integers and the trailer may hold one checksum plus constants; both directions are always generated.</td>
+</tr>
+<tr>
+<td>D31</td>
+<td>Generated test project</td>
+<td><code>generate --tests</code> writes a standalone CMake/GoogleTest project next to the generated code. Expectations are computed by the reference codec at generation time (no hand-written oracle in C++): golden vectors, boundary values, emptied arrays and single-byte decode mutations (first per distinct status and field). One executable per profile. Coverage is line coverage of the generated headers via gcovr (default threshold 90 %, repository gate 95 %); runtime headers are covered by the runtime tests. Unknown message ids are covered by the runtime dispatcher tests, not per interface.</td>
+</tr>
+<tr>
+<td>D32</td>
+<td>Layout analyzer</td>
+<td>One analyzer for every profile; offsets are ranges after variable-size fields, element fields are shown for the first element, bit positions count from the container's least significant bit. The RAM budget counts the buffers the generated <code>Link</code> owns (receive ring, receive frame, transmit frame); <code>buffers.tx_bytes</code> sets <code>kTxBufferBytes</code> (checked to hold a frame) but the link's transmit buffer is one frame. Generated tests assert the analyzer's sizes against the generated constants.</td>
+</tr>
+<tr>
+<td>D33</td>
+<td>Differential and fuzz testing</td>
+<td>The generated project contains a line-based harness (one process per profile, all inputs in one batch) instead of linking Python and C++; the reference codec computes every expectation. Rejected frames are compared only for "not dispatched cleanly" because a byte-stream decoder may consume a bad frame in other pieces than the one-frame reference. Findings: an unframed read longer than the frame buffer was split by <code>Link::poll()</code> and its first part dispatched; it is now <code>InvalidLength</code> and dropped. The reference codec keeps NaN bit patterns (<code>WireNaN</code>) so signaling NaNs round-trip bit-exactly like the C++ code. Fuzzing uses libFuzzer (Clang) with ASan/UBSan.</td>
+</tr>
+<tr>
+<td>D34</td>
+<td>Portability matrix</td>
+<td>Cross builds use Debian/Ubuntu cross compilers (s390x big-endian, i686 32-bit) with qemu user emulation through CTest's emulator, so the same test suites (runtime, generated GoogleTest, self-tests) run on every target; locally the toolchains can be extracted without root (<code>quality/fetch_cross_toolchains.sh</code>). A generated framework-free <code>selftest.cpp</code> (golden vectors, decode cases) is built with <code>-fno-exceptions -fno-rtti</code> like embedded code. Platform-width conversions use <code>narrow_to&lt;T&gt;()</code> (a template, so 32-bit targets get no useless-cast warning). Clang <code>-Weverything</code> gates production code with four documented exclusions.</td>
+</tr>
+<tr>
+<td>D35</td>
+<td>CLI, service layer and canonical format</td>
+<td>One service layer (<code>wireforge.service</code>) returns <code>Result</code> objects for the CLI, Python API, server and MCP. Edits address elements by JSON pointer, edit the defining file with ruamel round-trip and write the canonical layout; the canonical key order follows the schema but matches the hand-written examples (e.g. field <code>units</code> after the range), so formatting the examples is a no-op. Exit codes: 0 ok, 1 failed check, 2 usage, 3 cannot run.</td>
+</tr>
+<tr>
+<td>D36</td>
+<td>Server storage</td>
+<td>No server-side cache or database: requests read the project files, so hand edits and git operations are visible at once. Optimistic locking with ETags (per file for file writes, per project for entry/value edits; 428 without If-Match, 412 when stale) and one write lock per project. External changes are announced by a long-poll endpoint instead of a file-system watcher (portable, no extra dependency). Auth is a shared bearer token or OIDC (D48). FastAPI/uvicorn are an optional extra (<code>wireforge[server]</code>).</td>
+</tr>
+<tr>
+<td>D37</td>
+<td>Server tools</td>
+<td><code>generate</code> returns a self-contained zip (generated code, test project, runtime, model copy) built in a temporary directory so every CMake path is relative inside the zip. Checksum plugins are found by convention in <code>plugins/*.py</code> (defining <code>PLUGINS</code>); the server therefore executes project code and serves trusted workspaces only. Compatibility compares two projects of the workspace (e.g. a released copy and the working copy).</td>
+</tr>
+<tr>
+<td>D38</td>
+<td>UI stack</td>
+<td>React 18 + Vite + TypeScript strict; types generated from the JSON Schema and the OpenAPI document (checked in, verified by <code>check:types</code>), so the UI carries no hand-written model or API shapes. The server's result routes declare a <code>ResultResponse</code> model for that purpose. UI tests run against a real server process instead of mocks. Edits are saved explicitly (Save button) per entry, not on every keystroke.</td>
+</tr>
+<tr>
+<td>D39</td>
+<td>MCP server</td>
+<td>Official Python SDK 2.x (<code>MCPServer</code>, stdio). The tools wrap the service layer like the CLI and the HTTP server, work on a workspace like the server, return the service <code>Result</code> as structured output and report bad arguments as tool errors. Besides the listed tools there are <code>create_project</code>, <code>upsert_entry</code> (all other sections) and <code>run_tests</code>, so an agent can go from an ICD to passing tests without leaving MCP.</td>
+</tr>
+<tr>
+<td>D40</td>
+<td>Importers</td>
+<td>A documented one-row-per-field ICD table (CSV, or the first Excel sheet via optional openpyxl) and a C-header subset (fixed-width types, bit-fields, arrays, enums, integer defines) import into a new single-file project written in the canonical layout and validated at once; anything outside the subset is an error with file and line instead of a guess. Interfaces, framing and checksums are not part of the import.</td>
+</tr>
+<tr>
+<td>D41</td>
+<td>Safety evidence</td>
+<td>The no-heap check inspects object files built like embedded code (no exceptions, no RTTI, no <code>std::mutex</code>, -O0 and -O2) with an allow list instead of a deny list. Findings fixed on the way: <code>std::array::at</code> (exception path) replaced by <code>wireforge::array_at</code>, virtual destructors of <code>Handler</code>/<code>ITransport</code> (deleting destructor referenced <code>operator delete</code>) made protected and non-virtual. Trace data comes from the model's source locations; generated code carries <code>Defined in file:line</code> comments. The coding-rule mapping is informative, not a conformance claim.</td>
+</tr>
+<tr>
+<td>D42</td>
+<td>Packaging</td>
+<td>One wheel (<code>pip install wireforge[server,mcp,import]</code>) carries the JSON Schemas, runtime headers, CMake package and the built UI below <code>wireforge/_data</code> (copied by <code>setup.py</code> at build time; a checkout uses the repository files). The CMake package is hand-written and relocatable, so the same files work from <code>cmake --install</code> prefixes and from the wheel (<code>wireforge cmake-dir</code>); <code>wireforge_generate()</code> runs the generator at configure time and reconfigures when model files change. The Docker image adds the C++ toolchain and serves the UI.</td>
+</tr>
+<tr>
+<td>D43</td>
+<td>License</td>
+<td><code>runtime/</code> is MIT licensed. Everything else (CLI, codegen, server, UI, MCP server) is Business Source License 1.1, free for non-production use and converting to MIT on 2036-10-17; production use requires a commercial license. Generated code is output of the tool from the user's model; WireForge claims no rights to it, and it only depends on the MIT-licensed runtime, so it carries no restriction.</td>
+</tr>
+</tbody>
+</table>
+<p>| D44 | Wireshark dissector | One self-contained Lua plugin per project: a generated data table (every profile's layout, fields expanded per message so bit masks follow each message's bit order) plus a fixed interpreter that mirrors the reference codec, instead of generating Lua code per field. One protocol per interface; profiles are a protocol preference, so the ProtoFields are the union of all profiles. Fields of up to 4 bytes use Wireshark's own decoding (masks, sign extension, valuestrings); wider bit groups and 64-bit bounds use <code>UInt64</code>/<code>Int64</code>, so Lua 5.2 (doubles) and 5.4 behave the same. Only the 3.6 Lua API is used; bit operations come from <code>bit32</code> or, on Lua 5.3+, native operators. The dissector reports every problem it finds, with the codec status as the expert text prefix. Plugins run in separate Lua environments, so custom checksums are hooks on <code>_G.wireforge_checksums</code>. Tests run real tshark 3.6, 4.2 and 4.6 against the reference codec, using packages fetched without root. |
+| D45 | Raw delivery | Whether a message is decoded is the consumer's choice, not part of the wire format, so it is not in the model and needs no setting. Every generated <code>Handler</code> has a virtual <code>on&lt;Message&gt;Raw(const wireforge::RawMessage&amp;)</code> per message whose default decodes and calls <code>on&lt;Message&gt;Received</code>; the <code>on&lt;Message&gt;Received</code> stays pure virtual, so a forgotten message is still a compile error. <code>MessageHandler</code> and <code>FallbackHandler</code> receive the payload and the whole frame. The raw path does no size check; its spans are valid only during the call. |
+| D46 | Branch-free generated code | Generated code holds no branch of its own: a condition that the generator needs is written as a call to a runtime helper (<code>status_if()</code>, <code>size_if_ok()</code>, <code>first_error()</code>), and the runtime helpers are unit tested for both outcomes. The generated test project gates 100 % branch and function coverage of the generated headers next to the line gate. Checks that cannot fail after validation (for example that a frame fits <code>max_frame_size</code>, which SR-16 guarantees, or that <code>attach</code> fails, which SR-9 excludes) are kept as status expressions instead of being removed, so a future change that breaks the guarantee still reports an error. |
+| D47 | User types | A field type may be a user-owned, opaque C++ type: declared by <code>size_bytes</code> only, serialized by the user's own <code>encode</code>/<code>decode</code> free functions (ADL, same contract as generated structs, D28/D29); WireForge generates only <code>min_wire_size</code>/<code>max_wire_size</code> (both equal to <code>size_bytes</code>, since the size never varies). The reference codec and test generator never interpret the type's internal semantics: its Python-side value is raw <code>bytes</code>, generated tests skip per-field value assertions on it, and the Wireshark dissector shows it as raw hex (<code>FT_BYTES</code>). Occurs, nested structs and arrays all work (treated like a struct field for codegen purposes); bits, checksums, <code>occurs.count</code>, and <code>min</code>/<code>max</code>/<code>default</code>/<code>const</code> are rejected (already caught by existing rules, no new ones needed). |</p>
+<p>| D48 | Server OIDC | <code>wireforge serve --oidc-issuer URL --oidc-audience A</code> verifies <code>Authorization: Bearer &lt;JWT&gt;</code> (signature from the issuer's JWKS found by discovery, <code>iss</code>, <code>aud</code>, <code>exp</code>/<code>nbf</code> with 60 s skew, asymmetric algorithms only) and is exclusive with <code>--token</code> (usage error, exit 2). The <code>sub</code>/<code>email</code> claims are kept on the request only, so the no-database rule of D36 holds. The JWKS is cached in memory and refetched lazily after <code>--oidc-jwks-cache-seconds</code>, without a background thread. Verification uses <code>joserfc</code> (<code>authlib.jose</code> is deprecated) in the optional extra <code>oidc</code>. Still no roles, per-project permissions or audit log: every authenticated user has the access of a token holder. |
+| D49 | Requirements and LLR | The user owns the high-level requirements (the <code>requirements</code> catalog); model elements point at them with <code>reqs</code>. Low-level requirements are derived from the model, never stored, and keyed by names (<code>Owner[.field].KIND</code>) so reordering fields keeps them and a rename changes them; the displayed id comes from one function. Fields of a nested type belong to the type, so a requirement is stated once. Generated tests, not naming conventions, carry the link: each records its LLR ids with <code>RecordProperty</code> and the trace report reads them from the test sources. The layout analyzer's static size assertions became <code>WireSize</code> tests so <code>SIZE</code> and <code>FRAME_MAX</code> have a real test; every interface gets <code>FRAME_ENCODE</code>, <code>FRAME_MAX</code>, <code>DISPATCH</code> and <code>RAW</code>, so no generated test lacks a requirement. The generator is not qualified: generated code is verified like hand-written code and WireForge produces the evidence. Defaults do not change: <code>validate</code> only checks references (SR-21), a project without a catalog generates the same code (only the format banner moves to 1.1), and the <code>Requirements:</code> Doxygen lines exist only with a catalog. Requirement ids are the user's data, so the rule that comments never cite decision numbers does not apply to them. <code>DISPATCH_UNKNOWN</code> is verified by the runtime tests (D31). <code>RANGE</code>, <code>ENUM</code> and <code>BITS</code> are derived only for the directions where <code>range_check</code> is on. |
+| D50 | Lifecycle documents | The documents come from one pure renderer (<code>wireforge.lifecycle</code>) over the model, the derived low-level requirements, the trace and the layout analysis, and the CLI, server and MCP only wrap it. The output is deterministic (no date, user name or absolute path) so it can be committed and diffed. The default run never fails because requirements are missing: <code>--strict</code> turns four review findings into an exit code, so existing projects keep working. Derived low-level requirements are reported, not rejected, because the standard allows them. The DO-178C table quotes no text, only objective numbers and our own wording, and rows we could not settle without the standard are marked <code>check</code> for the owner of the licensed copy. No output says certified or compliant; the generator stays unqualified and the files are evidence for the applicant's process. |
+| D51 | Coding-rule coverage | The baseline of D12 stays the only gating rule set. MISRA C++:2023 and AUTOSAR C++14 appear as a topic-level coverage map (docs/CODING_RULES.md) that quotes no rule text; rows we could not settle are marked for the owner of the licensed copy. cppcheck's open-source MISRA addon implements MISRA C:2012, so it runs only as an advisory proxy (<code>quality/run_misra.sh</code>, non-required CI job) and is never presented as MISRA C++ coverage. Conformance needs a licensed checker and a deviation process, which WireForge does not provide. |
+| D52 | HLR vectors as independent oracle | The reference codec and the generated C++ share the model reader, so a misreading of the model would turn both wrong and leave every generated test green. Vectors written by the user from the ICD give a second source: the generated test compares with the vector's own values, and the codec only confirms the vector when the project is validated (SR-22), which finds a wrong vector or a wrong model early without moving the oracle. A vector must name requirements; a requirement verified by test needs one (strict rule DS-4), so verification is claimed only where an independent expectation exists. Vectors stay apart from the golden files, which are a regression baseline produced by the codec. The format minor moved to 2 because an older tool must reject a file with <code>vectors</code> by version and not by an unknown-key error. |
+| D53 | Results and runtime coverage | The test results, the coverage and the toolchain of a run are files the generated CMake project writes (<code>results/</code>), and the lifecycle documents read them with a strict reader: a missing or damaged file is an error, so a report cannot be silently empty. The user's build measures the runtime too (opt-in, statements of the code that reaches the binary), which updates D31: the runtime headers were covered only by the repository's own tests before. The generated-header gate (100 % branch and function) is unchanged. A gap is closed by a test or justified in <code>deviations.yaml</code>, matched by file and function and optionally by lines so that a moved line asks for a new review; one record format serves coverage now and rule findings later. Stack values come from <code>-fstack-usage</code> of the <code>-O0</code> coverage build and are labeled indicative. Without results strict mode checks the model only and says so. |
+| D54 | Runtime dossier | The runtime is hand-written, so its requirements are written and reviewed by people and not derived: they live in <code>runtime/requirements.yaml</code> (MIT with the library), are checked against the headers, and every unit test records the ones it verifies. The first draft came from the headers and the tests, which makes it circular; the file says so and the pull request that changes it records the reviewer. Generated low-level requirements point to the runtime requirements that realize their kind, and a requirement that only the runtime tests verify needs one, so "the runtime verifies it" is no longer a claim without evidence. Concurrency claims are <code>analysis</code> and the evidence is for single-threaded use with the null lock. The dossier is ours: CI produces it per release and projects refer to it. Runtime statement coverage is measured and the gaps are listed; they are closed with tests or justified in <code>runtime/deviations.yaml</code>. The license of the library (D43) covers the requirements file. |
+| D55 | Process integration | WireForge fits into the customer's DO-178C process by files and stable ids, not by a connection to their tool. The high-level requirements stay in the customer's tool; WireForge keeps a read-only snapshot of one baseline, with the tool, the baseline and a content hash, and refuses to overwrite a snapshot edited by hand. Low-level requirements are numbered in an append-only lock file, so a number is never changed or reused, also across renames. ReqIF is read and written without a dependency, with deterministic identifiers and the time of the last commit; the written files have not been validated against the schema of the standard or imported by a commercial tool yet, which the integration pages say. The tag convention and the CSV columns are interfaces: changing them is breaking. Permalinks are made only for model files and only from a committed working copy, because generated files may not be in git. The generator stays unqualified and the documents make no claim of certification. |
+| D56 | Change impact | <code>docs --since REV</code> compares the working copy with a git revision that is read with <code>git archive</code> into a temporary directory, so the working tree is never touched. It reports what the change did to the requirements, the low-level requirements, the generated files and declarations, the tests and the wire compatibility, and ends with the tests to run and review again. The list errs on the side of more tests: a limit can change a test that does not verify its own requirement. |
+| D57 | Rule checker results | WireForge does not check coding rules; it reads what the customer's licensed checker reported (SARIF 2.1.0 or cppcheck XML version 2) and puts it into <code>code_standard.md</code>. Only findings in generated code and the runtime count, the rest is counted. A finding is justified by a <code>kind: rule</code> deviation matched by tool, rule, file and function, and an unjustified finding is DS-9 under <code>--strict</code>. Without results the document says so and makes no conformance claim. The readers have not been tried against a licensed checker yet. |
+| D58 | Runtime coverage gate | The runtime line coverage gate counts every template instance that reaches a binary, as gcovr reports it, and is raised by running more code, never by excluding any. Targets that were only compiled run in the normal test run: the differential harness of every example and profile, and the fuzz target of every generated project with deterministic inputs (random bytes, every length, every read length of a link, the golden inputs cut at every length and changed at every byte). The gate follows the measurement, rounded down, and is measured with the compilers of the CI image. |
+| D59 | Architecture matrix | The runtime and the generated code are tested on the four combinations of 32/64 bit and little/big endian, with one x86 and one ARM target among the little-endian ones: s390x (64-bit BE), powerpc (32-bit BE), i686 and armhf (32-bit LE), aarch64 (64-bit LE) and the host. Each target is a CI job of its own that runs every suite under qemu user emulation; one required check, <code>portability</code>, depends on all of them. Emulation is not hardware, which the documents say. The runtime uses only atomics of pointer size, so a 32-bit target without 64-bit atomics links without libatomic; the tests follow the same rule. ARM big endian is not tested because the distributions have no toolchain for it. |
+| D60 | Operating-system matrix | The runtime and the generated code contain nothing that belongs to an operating system: an allow list of standard headers and no test for an OS macro, checked by a script. They are proved on Linux, Windows (three toolchains), macOS, Android and FreeRTOS. Android is built and linked for three ABIs but not run, because a Bionic binary needs the Android loader and a statically linked one aborts under user emulation; no emulator image is started in CI. FreeRTOS runs on QEMU with its own small test harness, because GoogleTest needs an operating system: it runs the generated self-tests and the runtime with the kernel's mutex as the lock. The kernel's lock is not part of the library; a lock policy is a user type, and the harness shows one. The single required check of the matrix is <code>os-matrix</code>. |
+| D61 | Coverage of generated code over any model | A 100 % coverage gate measured on four examples says little about a user's model. The claim rests on three checks: a matrix of schema features that every built and measured model set has to cover (and that the schema's properties are mapped to), valid random models generated from a fixed seed through the whole chain with the same gates, and a rule that an enum field without a default needs a member 0. The random run found defects of the generator in its first run (a test for only the first message of an interface, the interface byte order in raw decode errors, messages outside any interface, conditional messages in profiles without them), so it stays in CI and runs wider each night. Unreachable code is not excluded: it is not generated. It is evidence over many models, not a proof, and the user's gate remains. |
+| D62 | Project templates | A new user starts from a working project instead of a blank file: <code>wireforge init</code> (also an MCP argument and a field of the project creation of the REST API and the web UI) copies one of three small templates, <code>telemetry</code>, <code>command</code> and <code>raw</code>, and replaces its name, namespace and version. The templates are ordinary projects kept as data files; CI builds and measures them like the examples, so a template never drifts from the generator. They show the common shapes and no advanced feature (profiles, conditions, user types, requirements), which stay in the YAML. <code>init</code> never overwrites: the directory must be empty. |
+| D63 | CI check | The check a CI system runs is one command, <code>wireforge ci</code>, and the GitHub action and the GitLab example only call it, so every system and a developer's machine give the same answer. It validates, compares the project with the project at a git revision (the base of a pull request) for wire compatibility and the version bump, optionally builds and runs the tests, and writes one Markdown summary; the exit code is red when any of them fails. The action installs the WireForge it is part of, so pinning the action pins the tool. A base that cannot be read is reported in the summary and does not fail the check. |
+| D64 | Distribution | The wheel and the source distribution are built with a fixed timestamp (the last commit) and must come out the same twice (the wheel byte for byte, the source distribution file for file), carry everything the tool needs at run time, and install and work in a clean environment. Python 3.10 to 3.13 are tested; ruff and mypy are pinned to one minor version. The version has one source. A release is a tag: the workflow builds, writes an SBOM and a dependency audit that must be clean, and publishes a GitHub release; PyPI upload is a separate job behind the <code>pypi</code> environment (the owner approves) and the variable <code>PUBLISH_TO_PYPI</code>, off until a trusted publisher is configured on PyPI. The package declares both licenses as an SPDX expression (<code>BUSL-1.1 AND MIT</code>). |
+| D65 | Published protocols as examples | A model that is only checked against itself can share a wrong reading with the reference codec and the generated code. Two published protocols (Modbus RTU and Modbus TCP) are written from their specifications; their vectors are bytes from the examples of the specifications, never produced by WireForge, and an independent implementation (pymodbus, pinned) must agree byte for byte. What the schema cannot say is recorded as a finding and not bent to fit. The first comparison found a defect: a receiver on a link without a frame decoder did not check the checksum, and no receiver checked a header constant that is not the sync word; the generated receiver now does, with a test for the frame of every message. |
+| D66 | Coverage points | The tests of a generated project are checked against the model while they are written: the model decides which points they must exercise, each test records what it covers, and a gap stops the generation as a defect of the generator. The points are the ones where a generator went wrong before (a test for the first message only, a check that is emitted for every message but tested for one). The required set comes from the cases of the model and from predicates the code generator shares with the test writer, not from the loops that write the tests, so a skipped message shows. It does not model individual compiler branches; the random models and the coverage gate stay the evidence for those. |
+| D67 | Physical values and CAN databases | A field can carry <code>scale</code> and <code>offset</code> (physical = raw * scale + offset): the wire, the ranges, the defaults and the constants stay raw, the generated code adds a getter and a rounding, range-checking setter per field, and the reference codec adds the physical values to its result. The CAN database importer is written in the tool (a DBC file is a small, line-oriented format; a dependency would only be needed for the independent comparison, which <code>cantools</code> does in the tests, byte for byte on the example and on edge cases of both byte orders). A message takes one byte order; multiplexing, frames longer than 8 bytes and overlapping signals are refused with their line, because WireForge lays fields out one after the other and a layout that depends on a field value or on a second byte order would need a different model, and a wrong guess is worse than a refusal. <code>--skip-unsupported</code> lists what was left out. The CAN identifier is carried by the header of the interface (bit 31 is the extended-frame flag, as in DBC and SocketCAN), so a DBC network is an ordinary interface with the usual dispatch, framing and tests. |
+| D68 | Published protocol library | The models of published protocols live in <code>protocols/</code> (Modbus RTU and TCP moved there from <code>examples/</code>; <code>examples/</code> keeps the tutorials), ship in the wheel and start a project with <code>wireforge init --protocol</code> (also the MCP and REST creation calls and the web UI list; the template mechanism of D62 serves both). A model enters the library only with an independent implementation of the same protocol to compare against byte for byte (D65), vectors that are the examples of the documents where there are any, a README that names the source, what is covered and what is not, and the same gates as every model (100 % coverage, feature matrix, matrices, fuzz). The models are written from the public documents without copying their text, and name the owner of the protocol as not affiliated. A protocol the schema cannot say is not bent into it: a small schema decision comes first or the protocol stays out and the README says so (UBX needed none: the id is little endian <code>class | id &lt;&lt; 8</code>, and a checksum that skips the sync characters is a custom checksum). |
+| D69 | C runtime | The generator will write C99 as well as C++17, and C code needs a runtime of its own: <code>runtime/include/wireforge/c/</code>, header-only and <code>static inline</code>, with the semantics of the C++ runtime (the status values and their order, the first error kept by the encoder and the decoder, the byte and bit rules, the checks, the CRC engine) so that the same model gives the same bytes and the same statuses in both languages. It is plain C99 and is tested as plain C (a program without a framework) with a stricter warning set than the C++ code gets, because C converts silently where C++ would need a cast. A checksum is a function over the covered bytes, not a type with a state: the encoder and the decoder have those bytes in memory, and the Python reference implementations of the custom checksums are one-shot functions as well. |
+| D70 | C99 code of the model | <code>--language c</code> writes <code>model.h</code> and <code>model.c</code> with the rules of the C++ code and the runtime of D69. The types are plain structs: an array of variable size has a count member, an enum is an integer type with a macro per member, every name starts with the namespace of the project. Checks are chained with <code>wf_first_error</code> so that the generated functions have no branch of their own for them, which keeps the 100 % branch gate reachable. The tests are C++ (GoogleTest) that call the C functions, and every expectation still comes from the reference codec; the test project builds the C code with the warning set of C code as errors. Functions are generated only for the types and enums that a message or an interface uses, because a function nothing calls cannot be tested and the gate is 100 %. A custom checksum is a C function over the covered bytes, named in the model (<code>c_impl</code>, <code>c_include</code>), as the Python plugins already are. User types and the interface layer are not generated in C yet. |
+| D71 | C99 interfaces | The interface layer of generated C is a handler struct of callbacks, one dispatch function and a link that owns its buffers, over a runtime of a ring, a frame decoder and a link (D69) that keep the behaviour of the C++ ones (the same framing rules, the same statuses, the same resynchronisation) and drop what C99 cannot express: locks and atomics. A link belongs to one thread at a time and the application guards it where it shares a ring with an interrupt. A null callback means the default (decode and forward, or ignore), so a handler can be as small as the application needs, and the generated tests cover both. Interface code is tested like the model: the cases come from the reference codec, <code>short_frame</code>, <code>unknown_id</code> and <code>ignored</code> are coverage points, and the 100 % gate covers the interface sources as well. |
+| D72 | GitHub Marketplace listing | The <code>WireForge check</code> action is listed from the main repository: no separate repository and no PyPI pin, because the action installs the WireForge of the ref written after <code>uses:</code> and stars and traffic stay with the project. Documentation names a full release tag (<code>@v0.1.0</code>), and no moving major tag is kept before 1.0. The licenses already in the repository serve as the end-user terms (<code>LICENSE</code>, <code>runtime/LICENSE</code>), the action collects no data, support is the issue tracker, and the listing is free. Running <code>wireforge ci</code> (validation, comparison with earlier revisions, generated tests) is non-production use even in commercial product repositories; this is written into the Additional Use Grant rather than only into the documentation. |
+| D73 | Wiki as the entry layer | The repository wiki is a short entry layer for new users: what the tool does, install, the published protocols, importers, integrations and a FAQ with the license summary. It links to <code>docs/</code> instead of copying it, so there is one source of truth for the reference, and its links name a release tag so that it stays consistent with a published version. It is edited by hand by collaborators only, with no synchronisation from <code>docs/</code>. The licensing summary is stated as a summary that points to <code>LICENSE</code>, with one contact address for commercial licensing. |
+| D74 | Payloads without trailing zeros | An interface can send every payload without its trailing zero bytes (<code>trim_trailing_zeros</code>), the rule that MAVLink 2 depends on. It is a property of the frame, not of the message: <code>serialize()</code> still writes the whole payload, the frame writer shortens it with a runtime helper and the default raw handler extends a shorter payload with zeros before decoding, so the generated code gains no branch and the 100 % branch gate holds. The receiver restores zeros up to the size of the message, so every message of such an interface has a fixed size (SR-25), and switching the setting is a breaking change. A payload longer than the message stays <code>TrailingBytes</code> unless <code>allow_trailing_bytes</code> is set; the MAVLink 2 model leaves it off, because with it nothing could make its messages fail to decode and the error path of the generated handler would be unreachable. The tests the generator writes take truncated payloads out of the decode-error cases of such an interface and check the trimmed frame size of every message (<code>FRAME_TRIM</code>). |
+| D75 | Whole-byte header bit-fields | A header field may be a bit-field when it is unsigned, not a constant, a whole number of bytes wide and the header bit order follows its byte order (<code>little</code> with <code>lsb_first</code>, <code>big</code> with <code>msb_first</code>). Under those orders every such field of a bit group has bytes of its own, so generated code writes and reads it as a field of that width (<code>write_width</code>, <code>wf_enc_unsigned</code>) instead of packing bits, and the frame decoder finds a message id of any width from 1 to 8 bytes. This gives the 24-bit message id of MAVLink 2 without a new integer type. Other header bit-fields stay outside the supported subset of the interface generator. |
+| D76 | One tutorial that runs in CI | The tutorial (<code>docs/tutorial/</code>) follows one example from start to end, the MAVLink 2 link of a small drone, because a protocol readers know and an independent implementation to talk to (pymavlink) make every step checkable: the reader adds a message, generates code, builds a vehicle and sees a ground station written without WireForge understand it. The commands of the chapters run in the <code>quickstart</code> job with the wheel a user installs (<code>quality/run_tutorial.py</code>): a fenced block after <code>&lt;!-- tutorial: run --&gt;</code> runs as shown, a <code>&lt;!-- tutorial: hidden --&gt;</code> comment holds the terminal equivalent of a step done in an editor or the web UI, and blocks that need a GUI, Wireshark or an agent are not run. The example application lives next to the tutorial (<code>examples/tutorial/drone_app/</code>) and builds against the reader's own model. Screenshots are taken from the real web UI over a fresh workspace, with numbered marks the text refers to. |</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.sections", "navigation.top", "content.code.copy", "search.highlight"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.525ec568.min.js"></script>
+      
+    
+  </body>
+</html>

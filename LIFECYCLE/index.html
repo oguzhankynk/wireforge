@@ -1,0 +1,1553 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Schema-driven wire-format toolkit for C++17 and C99">
+      
+      
+      
+        <link rel="canonical" href="https://oguzhankynk.github.io/wireforge/LIFECYCLE/">
+      
+      
+        <link rel="prev" href="../WIRESHARK/">
+      
+      
+        <link rel="next" href="../DO178C/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.39">
+    
+    
+      
+        <title>Lifecycle documents - WireForge</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.8c3ca2c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#requirements-design-and-test-documents" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="WireForge" class="md-header__button md-logo" aria-label="WireForge" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            WireForge
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Lifecycle documents
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Dark theme"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Dark theme" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Light theme"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Light theme" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/oguzhankynk/wireforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="WireForge" class="md-nav__button md-logo" aria-label="WireForge" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    WireForge
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/oguzhankynk/wireforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GUIDE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Tutorial
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorial
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/01_install_first_project/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    1. Install and the first project
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/02_web_ui/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2. The web UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/03_your_own_protocol/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    3. Your own protocol
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/04_use_the_code/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    4. Use the code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/05_tests/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    5. Tests
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/06_versions_and_ci/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    6. Versions and CI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/07_wireshark/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    7. Wireshark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/08_ai_agents_mcp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    8. AI agents (MCP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/09_team_server/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    9. Team server
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/10_documents_and_evidence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    10. Documents and evidence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COMPARISON/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    How it compares
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SCHEMA_SPEC/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Definition format
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CLI/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command line
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CODEGEN/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Generated code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RUNTIME/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Runtime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LAYOUT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Layout analysis
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPORT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Importers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UI/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Web UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SERVER/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Server
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MCP/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MCP
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../WIRESHARK/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Wireshark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Assurance
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Assurance
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Lifecycle documents
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Lifecycle documents
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-written" class="md-nav__link">
+    <span class="md-ellipsis">
+      What is written
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#who-writes-what" class="md-nav__link">
+    <span class="md-ellipsis">
+      Who writes what
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#-strict" class="md-nav__link">
+    <span class="md-ellipsis">
+      --strict
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stable-ids-import-and-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stable ids, import and export
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-results-and-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test results and coverage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      The runtime
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#two-kinds-of-expectation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Two kinds of expectation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      What this is not
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      Change impact
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coding-standard-and-rule-checkers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Coding standard and rule checkers
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DO178C/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DO-178C
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SAFETY/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Safety
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CODING_RULES/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Coding rules
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Integrations
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DECISIONS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Decisions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-written" class="md-nav__link">
+    <span class="md-ellipsis">
+      What is written
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#who-writes-what" class="md-nav__link">
+    <span class="md-ellipsis">
+      Who writes what
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#-strict" class="md-nav__link">
+    <span class="md-ellipsis">
+      --strict
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stable-ids-import-and-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stable ids, import and export
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-results-and-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test results and coverage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      The runtime
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#two-kinds-of-expectation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Two kinds of expectation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      What this is not
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      Change impact
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coding-standard-and-rule-checkers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Coding standard and rule checkers
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="requirements-design-and-test-documents">Requirements, design and test documents</h1>
+<p><code>wireforge docs &lt;project&gt; -o &lt;dir&gt;</code> writes the documents a software lifecycle needs from the model: requirements,
+design, test specification, traceability and the checklists around them. The same text comes from
+<code>GET /api/projects/{id}/docs</code> (a zip) and the MCP tool <code>lifecycle_docs</code>. The output depends only on the model: no
+date, user name or absolute path is written, so the same model gives the same bytes and the files diff cleanly.</p>
+<h2 id="what-is-written">What is written</h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>index.md</code></td>
+<td>baseline (model hash, tool version), list of documents, counts, result of the strict rules, limits</td>
+</tr>
+<tr>
+<td><code>requirements.md</code>, <code>.csv</code></td>
+<td>high-level requirements, low-level requirements derived from the model, derived requirements</td>
+</tr>
+<tr>
+<td><code>design.md</code></td>
+<td>architecture overview, generated files, interfaces (header, trailer, messages, buffers per profile), messages and types, status codes and the requirements behind them, resources</td>
+</tr>
+<tr>
+<td><code>interfaces_coupling.md</code></td>
+<td>data coupling table per interface, control coupling, assumptions</td>
+</tr>
+<tr>
+<td><code>test_spec.md</code>, <code>.csv</code></td>
+<td>every generated test: executable, profile, kind, oracle, requirements verified, procedure, expected result</td>
+</tr>
+<tr>
+<td><code>test_report.md</code></td>
+<td>test counts; results are not part of this run ("Test results: not provided.")</td>
+</tr>
+<tr>
+<td><code>traceability.md</code>, <code>.csv</code></td>
+<td>requirement to model element to LLR to code to test, and tests back to requirements, with the gaps</td>
+</tr>
+<tr>
+<td><code>environment.md</code></td>
+<td>model files with sha256, WireForge, Python and library versions</td>
+</tr>
+<tr>
+<td><code>code_standard.md</code></td>
+<td>rules the generated code follows and the evidence for each</td>
+</tr>
+<tr>
+<td><code>review_checklists.md</code></td>
+<td>checklists for requirements, design, code and tests; items WireForge can decide are answered (<code>[auto: PASS]</code>), the rest are open boxes for the reviewer</td>
+</tr>
+<tr>
+<td><code>do178c_dal_c.md</code></td>
+<td>which document is evidence for which DO-178C objective at DAL C; objectives the applicant owns are marked</td>
+</tr>
+</tbody>
+</table>
+<p>The directory is created when missing. Only files with these names are written; nothing else in it is touched.</p>
+<h2 id="who-writes-what">Who writes what</h2>
+<p>The high-level requirements are yours: write them in the <code>requirements</code> section and point model elements at them with
+<code>reqs</code> (docs/SCHEMA_SPEC.md section 17). WireForge derives the low-level requirements, links them to the generated
+tests and writes everything down. A low-level requirement without a high-level one is <em>derived</em>; derived requirements
+are listed so they can go to the system safety assessment. They are not an error.</p>
+<h2 id="-strict"><code>--strict</code></h2>
+<p>Without <code>--strict</code> the command only fails when the project is invalid. With it, the exit code is 1 when a reviewer would
+reject the model; each finding is printed and listed in <code>index.md</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DS-1</td>
+<td>the project defines no requirements</td>
+</tr>
+<tr>
+<td>DS-2</td>
+<td>a message or interface without any high-level requirement behind it</td>
+</tr>
+<tr>
+<td>DS-3</td>
+<td>a low-level requirement without a generated test (requirements the runtime tests verify are exempt)</td>
+</tr>
+<tr>
+<td>DS-4</td>
+<td>a requirement verified by <code>test</code> that no model element uses, or that has no requirement vector</td>
+</tr>
+</tbody>
+</table>
+<p>With no requirements only DS-1 is reported. The documents are written in any case.</p>
+<h2 id="stable-ids-import-and-export">Stable ids, import and export</h2>
+<p><code>wireforge reqs-lock</code> writes <code>llr_ids.lock</code>, which gives every low-level requirement a number (<code>SWLLR-00017</code>, or the
+<code>format</code> you choose) that never changes, is never given again and follows an element through a rename
+(<code>reqs-rename-key</code>). With the lock file the numbers show in the code comments, the test properties and every document;
+without it the ids are <code>LLR-&lt;key&gt;</code>. Strict rule DS-8 reports a requirement that has no number yet.</p>
+<p><code>wireforge reqs-import</code> takes a baseline of the high-level requirements of your tool (ReqIF or CSV) as a read-only
+snapshot, <code>requirements/hlr_snapshot.yaml</code>, with the tool, the baseline name and the hash of the file; a snapshot edited
+by hand is refused. <code>docs --export reqif</code> writes <code>llr.reqifz</code>, the low-level requirements for your tool, and
+<code>--source-url 'https://.../{commit}/{path}#L{line}'</code> turns model locations into permalinks (the working copy must be
+committed). <code>index.md</code> names the baseline: commit, snapshot, number lock, tool and runtime versions. The page
+docs/DO178C.md shows the whole path; docs/integration lists what to set up per tool.</p>
+<h2 id="test-results-and-coverage">Test results and coverage</h2>
+<p><code>wireforge docs &lt;project&gt; -o &lt;dir&gt; --results &lt;build&gt;</code> adds what a test run produced (docs/CODEGEN.md, "Results of a
+test run"): <code>test_report.md</code> gets the results per executable and per requirement, the failures, the coverage of the
+generated code and of the runtime, and the uncovered lines with or without a justification from <code>deviations.yaml</code>;
+<code>resources.md</code> gets the stack use; <code>environment.md</code> the toolchain; <code>traceability.csv</code> a <code>result</code> column. The run comes
+from <code>wireforge test &lt;project&gt; -o &lt;dir&gt; --coverage-runtime</code>, which prints the build directory. A missing or damaged
+result file is an error, never an empty report. The server does not build, so its <code>/docs</code> route has no results.</p>
+<p>Strict mode adds three rules when results are given: DS-5 a failed or skipped test, DS-6 generated code below 100 %
+statement coverage or runtime coverage that was not measured, DS-7 an uncovered line without a justification. Without
+<code>--results</code>, <code>--strict</code> checks the model only and <code>index.md</code> says "Results: not provided". The generated tests alone do
+not execute every statement of the runtime, so DS-7 lists what remains; close it with tests or justify it.</p>
+<h2 id="the-runtime">The runtime</h2>
+<p>The generated code relies on the runtime library, which is hand-written. Its requirements are in
+<code>runtime/requirements.yaml</code>; the project documents show, for each low-level requirement, the runtime requirements that
+realize its kind (<code>Runtime</code> column of <code>requirements.md</code>) and the runtime version. A requirement that only the runtime
+tests verify (an unknown message id) counts as tested only when a runtime requirement realizes it, otherwise strict
+rule DS-3 reports it. The dossier of the runtime itself is ours: <code>wireforge docs --runtime</code> produces it in CI for every
+release (docs/RUNTIME.md, "Requirements"), and a project refers to it instead of producing it again.</p>
+<h2 id="two-kinds-of-expectation">Two kinds of expectation</h2>
+<p>Most generated tests take their expected result from the reference codec of WireForge (oracle <code>reference-codec</code>). A
+mistake in how the model is read would then be in both the codec and the generated code, and the tests would stay
+green. Requirement vectors (docs/SCHEMA_SPEC.md section 18) are written by you from the ICD; their tests carry the
+oracle <code>hlr-vector</code> in <code>test_spec.md</code>. A requirement verified by <code>test</code> needs at least one vector (rule DS-4); one
+verified by <code>analysis</code> or <code>review</code> does not, and is listed instead.</p>
+<h2 id="what-this-is-not">What this is not</h2>
+<p>These documents are evidence for your own process. WireForge does not claim that any output is certified or compliant,
+and the code generator is not qualified: the generated code is verified like hand-written code, and the documents show
+that verification (requirement, test, result). The correctness of the high-level requirements, tests on the target and
+the process around them (planning, configuration management, quality assurance, certification liaison) remain yours.
+The objective table in <code>do178c_dal_c.md</code> uses our own wording and the objective numbers; confirm the rows marked
+<code>check</code> against your licensed copy of DO-178C.</p>
+<p><code>quality/run_evidence.sh</code> writes the documents of every example to <code>build/evidence/docs_&lt;project&gt;/</code>.</p>
+<h2 id="change-impact">Change impact</h2>
+<p><code>wireforge docs &lt;project&gt; -o &lt;dir&gt; --since &lt;git-revision&gt;</code> also writes <code>impact.md</code> and <code>impact.csv</code>: what a change did
+since that revision. It lists the high-level requirements that were added, removed or reworded (and a changed baseline of
+the requirement snapshot), the low-level requirements that were added, removed, reworded or got other parents, the
+generated files and the declarations in them that changed, the generated tests that were added, removed or changed, and
+the wire compatibility result of the interfaces. The last section is the list of tests to run and review again: every
+test that verifies a changed requirement and every test that changed. A test that uses a value derived from a limit
+changes when the limit changes, so a limit can reach more tests than its own requirement. The old baseline is read from
+git (<code>git archive</code>) into a temporary directory; the working copy is the new one.</p>
+<h2 id="coding-standard-and-rule-checkers">Coding standard and rule checkers</h2>
+<p>WireForge does not check coding rules. <code>docs/CODING_RULES.md</code> maps the categories of MISRA C++ and AUTOSAR C++14 to the
+checks that run on generated code and the runtime. A conformance claim needs the results of a licensed checker:
+<code>wireforge docs &lt;project&gt; -o &lt;dir&gt; --rule-findings report.sarif</code> (repeatable) reads SARIF 2.1.0 or cppcheck XML version 2
+and adds the section "Rule findings" to <code>code_standard.md</code>. Only findings in generated headers and in the runtime
+headers count; the number of findings elsewhere is stated. Per tool and rule, the section lists the findings that have no
+deviation and the deviations nobody used.</p>
+<p>A finding is justified in <code>deviations.yaml</code> with <code>kind: rule</code>: the tool name (case does not matter), the rule as the tool
+writes it, a file glob, optionally a function glob, the category (<code>justified</code>, <code>false-positive</code> or <code>not-applicable</code>), the
+rationale and the reviewer. <code>--strict</code> reports DS-9 for every group of findings without a deviation. Without
+<code>--rule-findings</code> the section says that no results were provided and DS-9 is not evaluated. The MCP tool <code>lifecycle_docs</code>
+takes <code>rule_findings</code>, a list of files inside the workspace. How to export a report from common tools is in
+<code>docs/integration/rule_checkers.md</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.sections", "navigation.top", "content.code.copy", "search.highlight"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.525ec568.min.js"></script>
+      
+    
+  </body>
+</html>

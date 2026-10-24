@@ -1,0 +1,2039 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Schema-driven wire-format toolkit for C++17 and C99">
+      
+      
+      
+        <link rel="canonical" href="https://oguzhankynk.github.io/wireforge/SCHEMA_SPEC/">
+      
+      
+        <link rel="prev" href="../COMPARISON/">
+      
+      
+        <link rel="next" href="../CLI/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.39">
+    
+    
+      
+        <title>Definition format - WireForge</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.8c3ca2c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#wireforge-schema-specification-schema_version-1" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="WireForge" class="md-header__button md-logo" aria-label="WireForge" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            WireForge
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Definition format
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Dark theme"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Dark theme" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Light theme"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Light theme" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/oguzhankynk/wireforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="WireForge" class="md-nav__button md-logo" aria-label="WireForge" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    WireForge
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/oguzhankynk/wireforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GUIDE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Tutorial
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorial
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/01_install_first_project/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    1. Install and the first project
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/02_web_ui/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2. The web UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/03_your_own_protocol/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    3. Your own protocol
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/04_use_the_code/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    4. Use the code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/05_tests/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    5. Tests
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/06_versions_and_ci/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    6. Versions and CI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/07_wireshark/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    7. Wireshark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/08_ai_agents_mcp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    8. AI agents (MCP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/09_team_server/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    9. Team server
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/10_documents_and_evidence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    10. Documents and evidence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COMPARISON/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    How it compares
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Definition format
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Definition format
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-files-and-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Files and layout
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-defaults-and-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Defaults and resolution
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-built-in-types-and-wire-widths" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Built-in types and wire widths
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-bit-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Bit-fields
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-field-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Field attributes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-occurrence-model-optional-fields-and-arrays" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Occurrence model: optional fields and arrays
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-expression-language" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Expression language
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-defines-profiles-and-conditional-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      8. Defines, profiles and conditional layout
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-checksums" class="md-nav__link">
+    <span class="md-ellipsis">
+      9. Checksums
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      10. Interfaces
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-versioning-and-file-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      11. Versioning and file identity
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-error-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      12. Error model
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-semantic-rules-beyond-json-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      13. Semantic rules (beyond JSON Schema)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-user-includes-the-gateway-to-application-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      14. User includes: the gateway to application code
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14b-user-types-opaque-field-types-backed-by-application-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      14b. User types: opaque field types backed by application code
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-export-and-import" class="md-nav__link">
+    <span class="md-ellipsis">
+      15. Export and import
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-encoding-rules-shared-by-the-reference-codec-and-generated-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      16. Encoding rules shared by the reference codec and generated code
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-requirements-and-traceability" class="md-nav__link">
+    <span class="md-ellipsis">
+      17. Requirements and traceability
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18b-what-real-protocols-showed" class="md-nav__link">
+    <span class="md-ellipsis">
+      18b. What real protocols showed
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-requirement-test-vectors" class="md-nav__link">
+    <span class="md-ellipsis">
+      18. Requirement test vectors
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CLI/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Command line
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CODEGEN/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Generated code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../RUNTIME/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Runtime
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LAYOUT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Layout analysis
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPORT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Importers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UI/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Web UI
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SERVER/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Server
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MCP/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MCP
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../WIRESHARK/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Wireshark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Assurance
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Assurance
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LIFECYCLE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Lifecycle documents
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DO178C/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DO-178C
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SAFETY/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Safety
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CODING_RULES/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Coding rules
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Integrations
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DECISIONS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Decisions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-files-and-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Files and layout
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-defaults-and-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Defaults and resolution
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-built-in-types-and-wire-widths" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Built-in types and wire widths
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-bit-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Bit-fields
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-field-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Field attributes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-occurrence-model-optional-fields-and-arrays" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Occurrence model: optional fields and arrays
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-expression-language" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Expression language
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-defines-profiles-and-conditional-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      8. Defines, profiles and conditional layout
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-checksums" class="md-nav__link">
+    <span class="md-ellipsis">
+      9. Checksums
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      10. Interfaces
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-versioning-and-file-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      11. Versioning and file identity
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-error-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      12. Error model
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-semantic-rules-beyond-json-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      13. Semantic rules (beyond JSON Schema)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-user-includes-the-gateway-to-application-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      14. User includes: the gateway to application code
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14b-user-types-opaque-field-types-backed-by-application-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      14b. User types: opaque field types backed by application code
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-export-and-import" class="md-nav__link">
+    <span class="md-ellipsis">
+      15. Export and import
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-encoding-rules-shared-by-the-reference-codec-and-generated-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      16. Encoding rules shared by the reference codec and generated code
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-requirements-and-traceability" class="md-nav__link">
+    <span class="md-ellipsis">
+      17. Requirements and traceability
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18b-what-real-protocols-showed" class="md-nav__link">
+    <span class="md-ellipsis">
+      18b. What real protocols showed
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-requirement-test-vectors" class="md-nav__link">
+    <span class="md-ellipsis">
+      18. Requirement test vectors
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="wireforge-schema-specification-schema_version-1">WireForge schema specification, <code>schema_version: 1</code></h1>
+<p>Machine-readable form: <code>schema/project.schema.json</code> (root file) and <code>schema/fragment.schema.json</code>
+(included files). This document is normative for behaviour that JSON Schema cannot express; the
+semantic rules in section 13 are enforced by <code>wireforge validate</code>. Working examples: <code>examples/</code>.</p>
+<h2 id="1-files-and-layout">1. Files and layout</h2>
+<ul>
+<li>A project is a directory with a root file <code>project.yaml</code> plus optional fragment files.</li>
+<li>Root keys: <code>schema_version</code>, <code>schema_minor</code>, <code>generator</code>, <code>project</code>, <code>version</code>, <code>description</code>, <code>namespace</code>,
+  <code>include</code>, <code>defaults</code>, <code>user_includes</code>, <code>bundle</code> (export only), and the definition sections below.
+  <code>project</code>/<code>version</code> identify the user's own project and ICD set; <code>schema_version</code>/<code>schema_minor</code>/<code>generator</code>
+  identify the file format (section 11).</li>
+<li><code>include</code> lists globs relative to the root file. Fragments contain <strong>only</strong> definition sections
+  (<code>defines, profiles, checksums, enums, types, messages, interfaces</code>). Sections are merged;
+  a name defined twice is an error (SR-1).</li>
+<li>YAML 1.2 is used (<code>on</code>/<code>off</code>/<code>yes</code>/<code>no</code> stay strings; <code>0x..</code> integers allowed).</li>
+<li>Names (<code>identifier</code>): <code>[A-Za-z_][A-Za-z0-9_]*</code>, must not be C++ keywords (SR-2).</li>
+</ul>
+<h2 id="2-defaults-and-resolution">2. Defaults and resolution</h2>
+<p>Effective value for <code>endian</code>, <code>bit_order</code>, <code>range_check</code> of a message <strong>as used on an interface</strong>:
+message value, else interface value, else <code>defaults</code>, else built-in (<code>big</code>, <code>msb_first</code>,
+<code>encode: true, decode: true</code>). Endianness and bit order are <strong>message-level only</strong>; there is no
+per-field override. A message used on two interfaces with different effective endianness gets one codec
+instantiation per endianness.</p>
+<h2 id="3-built-in-types-and-wire-widths">3. Built-in types and wire widths</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Wire width</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bool</code></td>
+<td>8 bits (1..8 with <code>bits</code>)</td>
+<td>0 = false, nonzero decodes to true only when value is 1; other values are <code>OutOfRange</code></td>
+</tr>
+<tr>
+<td><code>u8 u16 u32 u64</code></td>
+<td>8/16/32/64</td>
+<td>unsigned</td>
+</tr>
+<tr>
+<td><code>i8 i16 i32 i64</code></td>
+<td>8/16/32/64</td>
+<td>two's complement</td>
+</tr>
+<tr>
+<td><code>f32</code>, <code>f64</code></td>
+<td>32/64</td>
+<td>IEEE-754 binary32/binary64 only, bit pattern via memcpy; no scale/offset</td>
+</tr>
+<tr>
+<td><code>char</code></td>
+<td>8</td>
+<td>unsigned byte holding ASCII/Latin-1; arrays of <code>char</code> map to fixed strings</td>
+</tr>
+<tr>
+<td>enum name</td>
+<td>width of its underlying integer type</td>
+<td>decoded value must be one of the listed values (else <code>OutOfRange</code> when range check is on)</td>
+</tr>
+<tr>
+<td>struct name</td>
+<td>sum of its fields</td>
+<td>serialized inline, <strong>no padding, no alignment, no hidden bytes</strong></td>
+</tr>
+<tr>
+<td>user type name</td>
+<td>declared <code>size_bytes</code></td>
+<td>opaque; wire format is entirely the user's own <code>encode</code>/<code>decode</code> free functions (section 14b)</td>
+</tr>
+</tbody>
+</table>
+<p>Multi-byte values are written byte by byte using the effective message endianness; no host layout is assumed.</p>
+<h2 id="4-bit-fields">4. Bit-fields</h2>
+<ul>
+<li><code>bits: n</code> (1..64) narrows a field to n bits. Consecutive bit-fields form a <strong>bit group</strong>; a struct whose
+  fields all have <code>bits</code> is an inline bit group when used as a field.</li>
+<li>Packing follows the message <code>bit_order</code>: <code>msb_first</code> fills each byte from bit 7 downwards, <code>lsb_first</code> from
+  bit 0 upwards. Fields larger than 8 bits continue across bytes in the same direction; byte order of a multi-byte
+  group follows the message endianness.</li>
+<li>A bit group must total a multiple of 8 bits (SR-10). Use <code>reserved: true</code> fields to pad explicitly.</li>
+<li>Signed bit-fields are two's complement of the declared width and sign-extended on decode.</li>
+<li><code>occurs</code> on a bit-field is not allowed in v1 (SR-11). <code>min</code>/<code>max</code> apply to the logical (decoded) value.</li>
+</ul>
+<h2 id="5-field-attributes">5. Field attributes</h2>
+<p><code>name</code>, <code>type</code>, <code>description</code>, <code>units</code> (documentation only), <code>scale</code>, <code>offset</code>, <code>bits</code>, <code>min</code>, <code>max</code>, <code>default</code>, <code>const</code>,
+<code>reserved</code>, <code>occurs</code>, <code>checksum</code>, <code>role</code> (header/trailer only), <code>if</code>, <code>since</code>, <code>deprecated</code>.
+- <code>default</code>: initial value of <code>init()</code>; fields without default are zero-initialized. Arrays accept a list.
+  Enum defaults use the value name. A default must lie in <code>[min, max]</code> (SR-6).
+- <code>min</code>/<code>max</code>: numbers or expressions; checked on encode and/or decode per <code>range_check</code>.
+  With <code>range_check.decode: false</code>, decoding succeeds and the caller can run <code>validate()</code>.
+- <code>scale</code>, <code>offset</code>: the physical value of a field is <code>raw * scale + offset</code> (defaults 1 and 0; <code>scale</code> is never 0). The
+  wire, <code>min</code>, <code>max</code>, <code>default</code> and <code>const</code> stay raw values. The generated code adds <code>physical_&lt;Struct&gt;_&lt;field&gt;()</code> and
+  <code>set_physical_&lt;Struct&gt;_&lt;field&gt;()</code>; the reference codec decodes the physical value as well. Allowed on plain integer
+  and floating-point fields only (SR-24).
+- <code>const</code>: written as the declared value, decode fails with <code>ConstMismatch</code> on difference.
+- <code>reserved</code>: written as <code>default</code> (or 0), ignored on decode unless also <code>const</code>.</p>
+<h2 id="6-occurrence-model-optional-fields-and-arrays">6. Occurrence model: optional fields and arrays</h2>
+<p><code>occurs: {min, max, count | fill}</code> unifies optional fields and arrays.
+- <code>max</code> (required): capacity, integer or expression; drives static storage.
+- <code>count</code>: expression giving the number present on the wire (a previous field, bool allowed as 0/1).
+  Count 0 means the field is absent. The count field must precede the field (SR-7).
+- No <code>count</code>/<code>fill</code>: fixed array of exactly <code>max</code> elements (e.g. 3 on platformA, 5 on platformB).
+- <code>fill: true</code>: elements fill the remaining payload; allowed on the last field of a message only and requires a
+  constant element size (SR-8). <code>count</code> and <code>fill</code> are mutually exclusive.
+- Optional field = <code>occurs: {max: 1, count: hasX}</code>. <code>min</code> defaults to 0; count outside <code>[min, max]</code> is <code>CountExceedsMax</code>.
+- C++ storage is count + static array (<code>StaticVector</code>-like). Nothing is allocated dynamically.</p>
+<h2 id="7-expression-language">7. Expression language</h2>
+<p>Used in <code>min</code>, <code>max</code>, <code>occurs.*</code>, <code>buffers.*</code>, <code>frame_size</code>, <code>max_frame_size</code>, checksum-independent sizes.
+- Literals: decimal, <code>0x</code> hex, <code>0b</code> binary, <code>true</code>/<code>false</code>.
+- Names: defines, earlier fields of the same message (by name), enum members as <code>Enum.member</code>.
+- Operators (C precedence): <code>?:  ||  &amp;&amp;  |  ^  &amp;  == !=  &lt; &lt;= &gt; &gt;=  &lt;&lt; &gt;&gt;  + -  * / %  unary - ~ !</code>.
+- Functions: <code>defined(NAME)</code>, <code>min(a,b)</code>, <code>max(a,b)</code>, <code>ceil_div(a,b)</code>, <code>sizeof(Type)</code> (bytes; fixed-size types only).
+- Arithmetic is 64-bit signed; booleans convert to 0/1; division by zero in a constant expression is an error.
+- Exact semantics (<code>wireforge.expr</code>, D20): any intermediate result outside the int64 range is an error; <code>/</code> truncates toward
+  zero and <code>%</code> takes the sign of the dividend (C rules); shift counts must be 0..63 and the shifted value non-negative;
+  <code>&amp;&amp;</code>, <code>||</code> and <code>?:</code> short-circuit; literals with a leading zero (<code>012</code>) are rejected (no octal); <code>ceil_div</code> rounds toward
+  positive infinity. Generated C++ widens every operand to <code>std::int64_t</code> and calls <code>wireforge::expr::{min,max,ceil_div}</code>
+  (<code>runtime/include/wireforge/expr_support.hpp</code>); <code>if:</code> conditions are emitted verbatim as <code>#if</code> expressions.
+- <code>if:</code> conditions use the <strong>preprocessor subset</strong>: integers, defines, <code>defined()</code>, comparisons, <code>&amp;&amp; || !</code>, parentheses.
+  They must not reference fields.</p>
+<h2 id="8-defines-profiles-and-conditional-layout">8. Defines, profiles and conditional layout</h2>
+<ul>
+<li><code>defines</code>: named integer constants with default values. Generated headers emit
+  <code>defines::kNAME</code> constants that take the value of the macro <code>NAME</code> when the build defines it
+  (<code>-DNAME=value</code>) and the model default otherwise; in <code>#if</code> conditions a define is written
+  <code>(defined(NAME) ? NAME : default)</code>. The generator itself defines no macros.</li>
+<li><code>profiles</code>: named sets of defines (e.g. <code>platformA</code>). Profiles do not change the generated source;
+  they tell tools which variants to analyze and test.</li>
+<li><code>if:</code> on a field, struct, message or interface-message entry emits a real <code>#if</code> in C++. The wire layout may
+  differ per profile; each profile is analyzed separately.</li>
+</ul>
+<h2 id="9-checksums">9. Checksums</h2>
+<p><code>checksums</code> declares reusable algorithms:
+- <code>{algo: crc32}</code>: CRC-32/ISO-HDLC (poly 0x04C11DB7 reflected, init/xorout 0xFFFFFFFF, check 0xCBF43926).
+- <code>{algo: crc, width, poly, init, refin, refout, xorout, check?}</code>: parametric CRC (Rocksoft model).
+- <code>{algo: custom, impl, include, size_bytes}</code>: user type <code>impl</code> from header <code>include</code> satisfying the runtime checksum
+  contract (<code>wireforge/checksum.hpp</code>, D16): <code>static constexpr std::size_t kSize</code> (= <code>size_bytes</code>, 1..8), a copyable
+  <code>State</code>, <code>static State init() noexcept</code>, <code>static void update(State&amp;, wireforge::Span&lt;const std::uint8_t&gt;) noexcept</code>,
+  <code>static std::uint64_t finalize(const State&amp;) noexcept</code>; checked with <code>static_assert(wireforge::is_checksum_v&lt;impl&gt;)</code>.
+  For generated C99 code a custom checksum also names <code>c_impl</code>, a C function
+  <code>uint64_t f(const uint8_t *data, size_t length)</code> over the covered bytes, and <code>c_include</code>, the header that declares it
+  (relative to an include directory). A user constant (<code>user_includes.constants</code>) used in an expression of generated C
+  has a <code>c</code> spelling, a macro or an enumerator; without it the C code uses <code>value</code> when the constant has no
+  <code>profile_values</code>. A header entry of <code>user_includes.headers</code> can name a <code>c_path</code>, the header the generated C code
+  includes in place of <code>path</code> (it defines the macros the <code>c</code> spellings stand for).
+A field uses it with <code>checksum: {use, covers}</code>. <code>covers</code> is <code>{from, to}</code> (inclusive field range in the same struct)
+or <code>{scope: preceding | payload | header_and_payload}</code>; the latter two are for header/trailer fields.
+The field is computed on encode and verified on decode (<code>ChecksumMismatch</code>). Its width must equal the algorithm
+width (SR-12). Checksums are optional everywhere.</p>
+<h2 id="10-interfaces">10. Interfaces</h2>
+<p>An interface is one communication endpoint with a remote party (<code>our_to_nodeA</code>, <code>nodeB_to_our</code>, ...).
+- <code>version</code> (semver, required): ICD version; may be carried on the wire by a <code>role: protocol_version</code> header field.
+- <code>direction</code>: <code>tx</code>, <code>rx</code>, <code>both</code>. <code>endian</code>, <code>bit_order</code>, <code>range_check</code>: defaults for its messages.
+- <code>header</code>: <code>none</code> or <code>{fields}</code>. Header field roles: <code>sync</code> (const marker), <code>message_id</code>, <code>payload_length</code>,
+  <code>protocol_version</code>, <code>sequence</code>. A header with <code>message_id</code> enables header-based dispatch.
+- <code>header: none</code> means raw dispatch: the interface carries exactly one message type, or none (raw bytes) (SR-14).
+- <code>trailer</code>: optional fields after the payload (typically a checksum).
+- <code>framing</code>: <code>none</code> (each transport read is one frame), <code>fixed</code> (<code>frame_size</code>), <code>sync_length</code> (header has <code>sync</code> and
+  <code>payload_length</code>), <code>length_prefixed</code> (header has <code>payload_length</code>). Non-<code>none</code> kinds need <code>max_frame_size</code>
+  (drives static buffer sizes). <code>length_counts</code> says what the length field covers (default <code>payload</code>).
+  <code>resync: true</code> rescans after garbage or bad frames.
+- <code>messages</code>: names or <code>{name, id?, if?, since?}</code>; <code>id</code> overrides the message id on this interface.
+- <code>buffers.rx_bytes/tx_bytes</code>: optional circular/linear buffer sizes; default derived from <code>max_frame_size</code>.
+- <code>allow_trailing_bytes</code>: default false; leftover payload bytes give <code>TrailingBytes</code>.
+- <code>trim_trailing_zeros</code>: default false; every payload is sent without its trailing zero bytes (the first byte always
+  stays) and the receiver reads the bytes it did not get as zeros (MAVLink 2). Needs messages of fixed size (SR-25);
+  changing it is a breaking change.</p>
+<h2 id="11-versioning-and-file-identity">11. Versioning and file identity</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Meaning</th>
+<th>Written by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>schema_version</code> (int)</td>
+<td>file-format <strong>major</strong>; any incompatible change bumps it</td>
+<td>tool, required in every file</td>
+</tr>
+<tr>
+<td><code>schema_minor</code> (int, default 0)</td>
+<td>additive format changes inside a major (minor 1: <code>requirements</code>, <code>reqs</code>; minor 2: <code>vectors</code>)</td>
+<td>tool</td>
+</tr>
+<tr>
+<td><code>generator {name, version}</code></td>
+<td>WireForge release that wrote the file (informational)</td>
+<td>tool on save/export</td>
+</tr>
+<tr>
+<td><code>version</code> (semver, root)</td>
+<td>the user's project / ICD set</td>
+<td>user</td>
+</tr>
+<tr>
+<td><code>interface.version</code> (semver)</td>
+<td>one interface's ICD version, may travel on the wire</td>
+<td>user</td>
+</tr>
+</tbody>
+</table>
+<p>Compatibility policy (<code>wireforge.versioning</code>, rule SR-19):
+- format major newer than the tool supports: <strong>error</strong>, only this problem is reported (content cannot be trusted);
+- format major older: <strong>error</strong> in normal loading; the file goes through <code>wireforge import</code>, which applies the registered
+  migration chain (<code>register_migration(from_major, step)</code>, one step per major, run in order, result stamped with the
+  current format). A missing step is an error ("no migration path");
+- same major, newer minor: <strong>error</strong> (the file uses features this tool does not know);
+- <code>generator</code> newer than the tool: <strong>warning</strong> only.</p>
+<p>Before the first official release the format is unstable (0.x tool versions may change it without migrations). From the
+release on, format 1 is frozen and every later major ships migrations from all earlier majors, so old interface files stay
+importable. Generated C++ carries the format version, tool version and model hash in its banner.</p>
+<p>Interface compatibility (<code>python -m wireforge.compat OLD NEW [--interface NAME]</code>, D26) compares each interface per
+profile and classifies every difference:
+- <strong>breaking</strong> (requires a major bump): any wire layout change of a header, trailer or message field (type, bits,
+  occurs, const, reserved, checksum, role), inserted/removed/reordered fields, changed <code>min</code>/<code>max</code> or enum values,
+  message id, effective endian or bit order, framing kind/sizes/<code>length_counts</code>, direction, removed messages;
+  fields appended to a message unless the old interface has <code>allow_trailing_bytes: true</code>;
+- <strong>compatible</strong> (minor): renamed fields, changed defaults, added messages, <code>resync</code> or <code>allow_trailing_bytes</code> changes,
+  appended fields that old receivers ignore;
+- <strong>doc</strong> (patch): descriptions and units.
+The report fails when the new <code>interface.version</code> is not at least the required step above the old one.</p>
+<h2 id="12-error-model">12. Error model</h2>
+<p>Codec calls return <code>Status</code> values (docs/contracts/runtime-error-codes.md). Validation messages produced by tools
+carry file, line and JSON pointer.</p>
+<h2 id="13-semantic-rules-beyond-json-schema">13. Semantic rules (beyond JSON Schema)</h2>
+<ul>
+<li>SR-1 No duplicate names within a section across root and fragments.</li>
+<li>SR-2 Names are not C++ keywords and do not collide after C++ mangling.</li>
+<li>SR-3 Every <code>type</code> resolves to a builtin, enum, struct or user type; struct graphs are acyclic.</li>
+<li>SR-4 Every checksum <code>use</code>, interface message, enum default and <code>covers</code> name resolves.</li>
+<li>SR-5 Expressions parse; names resolve; <code>if</code> conditions reference no fields.</li>
+<li>SR-6 <code>default</code>, <code>const</code> lie in <code>[min, max]</code> and fit the type/bit width; <code>min &lt;= max</code>.</li>
+<li>SR-7 Fields referenced by <code>occurs.count</code> precede the occurring field and are integer/bool.</li>
+<li>SR-8 <code>fill</code> only on the last message field with constant element size; <code>max</code> is positive.</li>
+<li>SR-9 Message ids are unique per interface (after overrides); ids fit the header id field.</li>
+<li>SR-10 Every bit group totals a multiple of 8 bits; <code>bits</code> does not exceed the type width.</li>
+<li>SR-11 <code>occurs</code> is not combined with <code>bits</code>.</li>
+<li>SR-12 Checksum field width equals algorithm width; <code>covers</code> ranges are ordered and in the same struct.</li>
+<li>SR-13 <code>role</code> is used only in header/trailer; <code>payload_length</code> and <code>message_id</code> appear at most once per header.</li>
+<li>SR-14 Raw interfaces (<code>header: none</code>) have at most one message; <code>sync_length</code> requires <code>sync</code> + <code>payload_length</code>
+  header fields, <code>length_prefixed</code> requires <code>payload_length</code>.</li>
+<li>SR-15 Enum values are unique per enum and fit the underlying type.</li>
+<li>SR-16 Each profile evaluates every expression and <code>if</code> without error, producing consistent layouts.</li>
+<li>SR-17 The layout adds no bytes beyond declared fields (no implicit padding is ever generated).</li>
+<li>SR-18 User constants: names unique and not colliding with defines or field names; <code>profile_values</code> name existing profiles;
+  without <code>value</code> either every profile has a value or the constant is <em>opaque</em>: opaque constants may appear only in value
+  ranges (<code>min</code>/<code>max</code>), never in anything that changes layout or buffer sizes (<code>occurs</code>, framing, buffers).</li>
+<li>SR-19 Version stamps: every file passes the compatibility policy of section 11; fragments carry <code>schema_version</code>.</li>
+<li>SR-20 User header paths and include directories are relative, without <code>..</code> segments (portable builds); this
+  also covers a user type's <code>include</code>.</li>
+<li>SR-22 Requirement test vectors (section 18) are consistent: the message, interface and profile exist, the message is on
+  the interface, <code>expect.fields</code> names fields that exist on the wire value, an encoding vector gives every field, and the
+  reference codec agrees with the vector in every profile it applies to.</li>
+<li>SR-23 A field of an enum type without <code>default</code> (and without <code>const</code>) needs an enum member with the value 0, because
+  <code>init()</code> and the reference codec start every field at zero; a dynamic array starts empty and is exempt.</li>
+<li>SR-24 <code>scale</code> and <code>offset</code> are allowed only on a plain integer or floating-point field: not on enums, <code>bool</code>,
+  <code>char</code>, structs, arrays, reserved or constant fields, roles and checksums.</li>
+<li>SR-25 An interface with <code>trim_trailing_zeros</code> does not use <code>fixed</code> framing, and every message it carries has a fixed
+  wire size in every profile (no dynamic arrays or optional fields), because the receiver restores the trimmed zeros up
+  to that size.</li>
+<li>SR-21 Every id in a <code>reqs</code> list names an entry of the <code>requirements</code> catalog (section 17). An unused catalog entry is
+  not an error.</li>
+</ul>
+<p>Implementation notes (<code>wireforge.validate</code>, D21-D23): every issue carries <code>[SR-n]</code>, file, line and JSON pointer.
+SR-10 also limits a bit group to 64 bits (D19) and checks pure bit-field types where they are used; SR-12 verifies the
+<code>check</code> value of parametric CRCs and limits custom checksums to 8 bytes; SR-16 also requires every message to fit
+<code>frame_size</code>/<code>max_frame_size</code> together with header and trailer (dynamic arrays at capacity) and sizes/buffers to be
+positive; SR-17 rejects <code>if:</code> on a field inside a bit group. The negative corpus is <code>tests/python/semantic_cases.yaml</code>.
+Run <code>python -m wireforge.validate &lt;project&gt;</code>.</p>
+<h2 id="14-user-includes-the-gateway-to-application-code">14. User includes: the gateway to application code</h2>
+<p><code>user_includes</code> (root file only) lets definitions use constants and headers that belong to the application.
+<div class="highlight"><pre><span></span><code><span class="nt">user_includes</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">include_dirs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">app/include</span><span class="p p-Indicator">]</span><span class="w">                 </span><span class="c1"># added to include paths of generated build files</span>
+<span class="w">  </span><span class="nt">headers</span><span class="p">:</span><span class="w">                                    </span><span class="c1"># emitted as #include in the generated user prelude, in order</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> path</span><span class="p">:</span><span class="w"> </span><span class="nv">app/limits.hpp</span><span class="p p-Indicator">,</span><span class="nt"> style</span><span class="p">:</span><span class="w"> </span><span class="nv">quote</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w">  </span><span class="c1"># quote | angle ; optional `if:` preprocessor condition</span>
+<span class="w">  </span><span class="nt">constants</span><span class="p">:</span><span class="w">                                  </span><span class="c1"># integer constants usable in any expression, by plain name</span>
+<span class="w">    </span><span class="nt">APP_MAX_FRAME</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">cpp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app::kMaxFrameBytes</span><span class="w">                </span><span class="c1"># how generated C++ spells it (constexpr, enumerator or macro)</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">128</span><span class="w">                              </span><span class="c1"># what the tools use (analysis, docs, tests, reference codec)</span>
+<span class="w">      </span><span class="nt">profile_values</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> platformB</span><span class="p">:</span><span class="w"> </span><span class="nv">192</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w">      </span><span class="c1"># per-profile override</span>
+<span class="w">  </span><span class="nt">prelude</span><span class="p">:</span><span class="w">                                    </span><span class="c1"># verbatim C++ lines after the headers (e.g. extern declarations)</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">"extern</span><span class="nv"> </span><span class="s">const</span><span class="nv"> </span><span class="s">std::uint32_t</span><span class="nv"> </span><span class="s">kLinkSpeed;"</span>
+</code></pre></div>
+- <strong>Tool value vs real value.</strong> The generator never parses C++. <code>value</code> is what analysis uses; the generated
+  <code>user_prelude.hpp</code> contains <code>static_assert(static_cast&lt;std::int64_t&gt;(&lt;cpp&gt;) == &lt;value&gt;)</code>, so drift between model and
+  application fails at compile time (per profile in the generated per-profile test builds).
+- <strong>Static memory needs compile-time constants.</strong> <code>cpp</code> must name a constexpr variable, enumerator or macro. A link-time
+  <code>extern const</code> may only be declared through <code>prelude</code> for runtime checks, never as a capacity (SR-18).
+- <strong>Opaque constants</strong> (no <code>value</code>) are allowed in <code>min</code>/<code>max</code>: the check is emitted against the symbol, tools skip evaluation.
+- <code>cpp</code> accepts only qualified identifiers (no expressions); header paths forbid quotes, angle brackets and newlines.
+  <code>prelude</code> lines are emitted verbatim, are not analysed, and are the user's responsibility under the zero-warning policy.
+- Every generated header includes the single generated <code>user_prelude.hpp</code> first.</p>
+<h2 id="14b-user-types-opaque-field-types-backed-by-application-code">14b. User types: opaque field types backed by application code</h2>
+<p><code>user_types</code> (root or fragment) lets a field's type be a user-owned C++ type whose wire form WireForge never
+inspects — only its fixed size.
+<div class="highlight"><pre><span></span><code><span class="nt">user_types</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">Fixed16</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">cpp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app::Fixed16</span><span class="w">                           </span><span class="c1"># fully qualified C++ type name</span>
+<span class="w">    </span><span class="nt">size_bytes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">                               </span><span class="c1"># fixed, positive; same in every profile (not an expression)</span>
+<span class="w">    </span><span class="nt">include</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app/fixed16.hpp</span><span class="w">                    </span><span class="c1"># optional; added to the generated user prelude</span>
+<span class="w">    </span><span class="nt">style</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">quote</span><span class="w">                                </span><span class="c1"># quote | angle, default quote</span>
+<span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">"Q8.8</span><span class="nv"> </span><span class="s">fixed-point</span><span class="nv"> </span><span class="s">sample"</span><span class="w">      </span><span class="c1"># optional</span>
+</code></pre></div>
+- <strong>ADL contract, same as a generated struct.</strong> The user writes the type itself plus
+  <code>void encode(const T&amp;, wireforge::Encoder&amp;) noexcept</code> and <code>void decode(T&amp;, wireforge::Decoder&amp;) noexcept</code>,
+  found by ADL. WireForge generates only <code>min_wire_size</code>/<code>max_wire_size</code> (both equal to <code>size_bytes</code>, since the
+  size never varies); it never generates <code>encode</code>/<code>decode</code> for a user type. <code>T</code> must be default-constructible.
+- <strong>Treated like a struct field everywhere else.</strong> <code>occurs</code>, arrays and nesting inside other <code>types</code> all work.
+  <strong>Opaque</strong>: <code>bits</code>, an <code>occurs.count</code> target, a <code>checksum</code> field, and <code>min</code>/<code>max</code>/<code>default</code>/<code>const</code> are all
+  rejected — already caught by the rules that reject every non-integer, non-bool field type (SR-6, SR-7,
+  SR-10, checksum field typing), no new rules needed.
+- <strong>Python reference codec.</strong> A user-type field's value is raw <code>bytes</code> of exactly <code>size_bytes</code>; the default
+  value is <code>size_bytes</code> zero bytes. The reference codec never interprets the type's semantics.
+- <strong>Generated tests.</strong> Per-field value assertions are not generated for a user-type field (its C++ value
+  cannot be expressed as a literal); only decode <code>Status</code> and wire-byte equality are checked.
+- <strong>Wireshark dissector.</strong> Shown as raw hex (<code>FT_BYTES</code>); the dissector cannot run the user's C++, so the
+  value is never decoded or checked.</p>
+<h2 id="15-export-and-import">15. Export and import</h2>
+<ul>
+<li><code>wireforge export &lt;project&gt; -o bundle.yaml</code> merges all fragments into <strong>one ordinary single-file project</strong> (no <code>include</code>),
+  stamped with the current format, plus <code>bundle: {content_hash, source_files}</code>. The sha256 covers definition content only
+  (not stamps, not key order). Export refuses projects with structural or semantic errors.</li>
+<li><code>wireforge import &lt;bundle&gt; &lt;dir&gt;</code> verifies the hash (mismatch is an error; <code>--no-verify</code> overrides), applies migrations for
+  older formats, validates structure and unpacks into the standard layout (<code>project.yaml</code>, <code>profiles/</code>, <code>types/</code>,
+  <code>messages/</code>, one file per interface), every file stamped. <code>--single-file</code> keeps one file. A non-empty destination is refused.</li>
+<li>A bundle is itself a valid project and can be loaded directly. Comments are not preserved by export (canonical form).</li>
+<li>Standard layout written by import: <code>project.yaml</code> (project keys, <code>defines</code>, <code>checksums</code>, <code>user_includes</code>, <code>include</code>),
+  <code>types/types.yaml</code> (<code>enums</code>, <code>types</code>), <code>profiles/profiles.yaml</code>, <code>messages/messages.yaml</code>, <code>interfaces/&lt;name&gt;.yaml</code>.
+  The hash is verified before migrations run (it covers the content the exporter wrote). API: <code>wireforge.bundle</code>.</li>
+</ul>
+<h2 id="16-encoding-rules-shared-by-the-reference-codec-and-generated-code">16. Encoding rules shared by the reference codec and generated code</h2>
+<p><code>wireforge.codec.ReferenceCodec</code> (one instance per profile) is the executable form of these rules; generated C++ must
+produce the same bytes and statuses (golden vectors in <code>tests/golden/</code>, regenerated with
+<code>python -m wireforge.golden &lt;project&gt; &lt;file&gt; [--plugins file.py]</code>).
+- Fields are written in declaration order; fields whose <code>if:</code> is false in the profile do not exist.
+- <code>const</code> fields are written with their declared value; decoding another value is <code>ConstMismatch</code>. <code>reserved</code> fields are
+  written as <code>default</code> (or zero) and accepted with any value on decode.
+- Occurrences: when <code>count</code> is a plain field name the encoder writes the element count into that field (the caller's
+  value is ignored); other count expressions must equal the element count. Counts outside <code>[min, max]</code> are
+  <code>CountExceedsMax</code>, checked before the range of the count field. Fixed arrays need exactly <code>max</code> elements; fixed <code>char</code>
+  arrays are zero padded (decode strips trailing zeros). <code>fill</code> consumes the rest of the payload, which must be a
+  multiple of the element size (<code>InvalidLength</code>).
+- Values that do not fit the type or bit width are always <code>OutOfRange</code>; <code>min</code>/<code>max</code> and enum membership are checked when
+  <code>range_check</code> is on for that direction (opaque constants are checked only by generated code). A <code>bool</code> wire value
+  other than 0 or 1 is <code>OutOfRange</code>. NaN is outside every <code>min</code>/<code>max</code> range.
+- Bit groups follow section 4 (one container per group, written with the message endian).
+- Checksums: <code>preceding</code> covers the struct bytes before the checksum field, <code>{from, to}</code> the bytes of that field range,
+  <code>payload</code>/<code>header_and_payload</code> the frame parts; a mismatch is <code>ChecksumMismatch</code>. Custom algorithms need a plugin
+  (Python) or the <code>impl</code> type (C++).
+- Frames: header, payload, trailer. <code>message_id</code> and <code>payload_length</code> header fields are filled by the encoder; a length
+  that does not match the frame is <code>InvalidLength</code>; <code>fixed</code> framing needs exactly <code>frame_size</code> bytes (no padding is ever
+  added) and every frame must fit <code>max_frame_size</code>. Decoding verifies the trailer checksum before looking up the id.
+- Leftover payload bytes are <code>TrailingBytes</code> unless the interface sets <code>allow_trailing_bytes</code>.
+- <code>trim_trailing_zeros</code>: the encoder leaves out the zero bytes at the end of the payload (the first byte always stays),
+  so the length field and the checksum cover the bytes that are sent; the decoder extends a shorter payload with zeros
+  to the size of the message before decoding it. A payload of the full size or longer is decoded as it is.</p>
+<h2 id="17-requirements-and-traceability">17. Requirements and traceability</h2>
+<p>The model can carry the user's high-level requirements (HLR) and tie model elements to them. WireForge derives the
+low-level requirements (LLR) from the model itself and links both to the generated tests.</p>
+<p><div class="highlight"><pre><span></span><code><span class="nt">requirements</span><span class="p">:</span><span class="w">                      </span><span class="c1"># root or fragment; ids are unique across files (SR-1)</span>
+<span class="w">  </span><span class="nt">HLR-SNS-004</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">The sensor link shall reject readings outside the sensor's calibrated range.</span>
+<span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ICD-SNS-001 §4.2</span><span class="w">       </span><span class="c1"># optional, free text</span>
+<span class="w">    </span><span class="nt">verification</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test</span><span class="w">             </span><span class="c1"># optional: test (default) | analysis | review</span>
+</code></pre></div>
+- An id starts with a letter, continues with letters, digits and <code>_ . : -</code>, and has at most 64 characters.
+- <code>reqs: [ID, ...]</code> (at least one id, no repeats) is accepted on a field, <code>types</code> entry, message, enum, checksum, user
+  type, interface, its <code>framing</code> and an interface message given in object form. An unknown id is SR-21; a requirement
+  that no element uses is allowed. Projects without <code>requirements</code> or <code>reqs</code> behave exactly as before.
+- The <code>requirements</code> section and the <code>reqs</code> lists are part of the model hash, so editing a requirement text changes
+  the hash in the banner of the generated code.
+- A file that uses these keys needs format 1.1; an older WireForge rejects it (SR-19).</p>
+<p><strong>Low-level requirements</strong> are never stored. <code>wireforge.llr.derive()</code> writes down what the model implies; each has a key
+built from names only (<code>SensorReading.temperature.RANGE</code>) and the displayed id <code>LLR-&lt;key&gt;</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Derived for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>VALUES</code>, <code>ALGORITHM</code></td>
+<td>every enum, every checksum</td>
+</tr>
+<tr>
+<td><code>LAYOUT</code>, <code>SIZE</code>, <code>TRUNCATED</code>, <code>TRAILING</code></td>
+<td>every type (<code>LAYOUT</code>) and message (all four)</td>
+</tr>
+<tr>
+<td><code>DEFAULT</code>, <code>RANGE</code>, <code>ENUM</code>, <code>BITS</code>, <code>COUNT</code>, <code>CHARS</code>, <code>CONST</code>, <code>CHECKSUM</code></td>
+<td>a field with that attribute (<code>&lt;Owner&gt;.&lt;field&gt;.&lt;KIND&gt;</code>, <code>&lt;Interface&gt;.header.&lt;field&gt;.&lt;KIND&gt;</code> for frame fields); <code>RANGE</code>, <code>ENUM</code> and <code>BITS</code> only where range checking is on</td>
+</tr>
+<tr>
+<td><code>FRAME_ENCODE</code>, <code>FRAME_MAX</code>, <code>DISPATCH</code>, <code>RAW</code></td>
+<td>every interface</td>
+</tr>
+<tr>
+<td><code>FRAME_SYNC</code>, <code>FRAME_LENGTH</code>, <code>FRAME_RESYNC</code>, <code>DISPATCH_UNKNOWN</code></td>
+<td>an interface with a sync field, a length (field or framing), framing other than <code>none</code>, a <code>message_id</code> field</td>
+</tr>
+<tr>
+<td><code>FRAME_TRIM</code></td>
+<td>an interface with <code>trim_trailing_zeros</code></td>
+</tr>
+</tbody>
+</table>
+<p>The fields of a nested type belong to the type (<code>Vec3.x.RANGE</code>), not to each message that uses it. An LLR inherits the
+HLRs of the elements it comes from (its field, its struct, the enum or checksum it uses, the interface and its
+framing); one without any is <em>derived</em>. <code>DISPATCH_UNKNOWN</code> is verified by the runtime tests, not by the tests generated
+for a project.</p>
+<p>Every generated test records the LLRs it verifies as its first statement
+(<code>::testing::Test::RecordProperty("requirements", "LLR-...,LLR-...")</code>), so gtest writes them into its XML result and
+<code>wireforge trace</code> reads them from the test sources. The static size assertions of the layout analyzer are tests too
+(<code>TEST(&lt;Message&gt;, WireSize)</code>, <code>TEST(Interface_&lt;I&gt;, WireSize)</code>), so <code>SIZE</code> and <code>FRAME_MAX</code> have a test.</p>
+<h2 id="18b-what-real-protocols-showed">18b. What real protocols showed</h2>
+<p>Published protocols were written from their specifications (<code>protocols/</code>, docs/GUIDE.md), with vectors taken from
+the examples of the specifications and compared with independent implementations (<code>pymodbus</code>, <code>pyubx2</code>;
+<code>tests/python/test_independent.py</code>, <code>tests/python/test_ubx.py</code>). They found:
+- A receiver must check the constants of the header and, on a link without a frame decoder (<code>framing: none</code>), the
+  checksum itself. It does now: the generated receiver refuses a frame with a wrong constant (<code>ConstMismatch</code>) or CRC
+  (<code>ChecksumMismatch</code>) before the handler sees it.
+- A serial frame ends at a silence, not at a length. <code>framing: none</code> is how a driver that delivers one frame per read
+  is described.
+- A checksum that must not cover the sync characters of the frame (UBX) is a custom checksum that skips the first two
+  bytes it is given: <code>scope: header_and_payload</code> starts at the first header field.
+- A length field that counts bytes after fields that follow it (the unit and function code of Modbus TCP) leaves no
+  header-based dispatch by function code; such an interface carries one message.
+- A count in bytes (Modbus byte count) is written as an expression (<code>count: "byteCount / 2"</code>); the byte count stays a
+  field that a vector names.
+Protocols whose checksum needs more than the data (for example a seed byte per message) are described with a custom
+checksum; that was not attempted.</p>
+<h2 id="18-requirement-test-vectors">18. Requirement test vectors</h2>
+<p>A vector is a test you write from the ICD: bytes, and what they must decode to (or what a value must encode to). It
+verifies high-level requirements directly, with an expected result that comes from you and not from the model.</p>
+<p><div class="highlight"><pre><span></span><code><span class="nt">vectors</span><span class="p">:</span><span class="w">                          </span><span class="c1"># root or fragment</span>
+<span class="w">  </span><span class="nt">reading_nominal</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Nominal reading from ICD-SNS-001 example 3.</span><span class="w">   </span><span class="c1"># optional</span>
+<span class="w">    </span><span class="nt">interface</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sensor_to_us</span><span class="w">       </span><span class="c1"># given: the bytes are a frame; absent: they are a payload</span>
+<span class="w">    </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SensorReading</span>
+<span class="w">    </span><span class="nt">profile</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ground</span><span class="w">               </span><span class="c1"># optional; absent: every profile (or the single configuration)</span>
+<span class="w">    </span><span class="nt">direction</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">decode</span><span class="w">             </span><span class="c1"># decode (default) | encode | both</span>
+<span class="w">    </span><span class="nt">bytes</span><span class="p">:</span><span class="w"> </span><span class="s">"A5</span><span class="nv"> </span><span class="s">5A</span><span class="nv"> </span><span class="s">01</span><span class="nv"> </span><span class="s">01</span><span class="nv"> </span><span class="s">00</span><span class="nv"> </span><span class="s">17</span><span class="nv"> </span><span class="s">..."</span><span class="w">  </span><span class="c1"># hex; spaces and underscores are ignored</span>
+<span class="w">    </span><span class="nt">expect</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">fields</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> sensorId</span><span class="p">:</span><span class="w"> </span><span class="nv">3</span><span class="p p-Indicator">,</span><span class="nt"> state</span><span class="p">:</span><span class="w"> </span><span class="nv">ready</span><span class="p p-Indicator">,</span><span class="nt"> temperature</span><span class="p">:</span><span class="w"> </span><span class="nv">21.5</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w">   </span><span class="c1"># or: { status: OutOfRange }</span>
+<span class="w">    </span><span class="nt">reqs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">HLR-SNS-004</span><span class="p p-Indicator">]</span><span class="w">           </span><span class="c1"># required, at least one</span>
+</code></pre></div>
+- <code>expect</code> holds either <code>fields</code> or <code>status</code>; a status is a runtime status other than <code>Ok</code>. With <code>fields</code> the vector
+  must decode without error; fields may be a subset. Values have the shape of the decoded message: enum member names,
+  nested mappings, lists, strings for <code>char</code> arrays. Wire-only fields (constants, checksums, reserved, plain count
+  fields) cannot be named. <code>f32</code> values are rounded to 32 bits before they are compared; the comparison is exact.
+- <code>direction: encode</code> or <code>both</code> needs <code>fields</code> and a complete value (every field that is always present); the bytes
+  must be exactly what the value encodes to.
+- A project is valid only when the reference codec agrees with every vector (SR-22), so a wrong vector or a wrong
+  model is found before code is generated. The agreement does not move the oracle: the generated C++ test
+  (<code>hlr_vector_test.cpp</code>) compares with the values written in the vector. Vectors that need a custom checksum are
+  skipped with a warning when no plugin is given.
+- Vectors are separate from the golden vectors in <code>tests/golden/</code>, which the reference codec produces as a regression
+  baseline.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.sections", "navigation.top", "content.code.copy", "search.highlight"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.525ec568.min.js"></script>
+      
+    
+  </body>
+</html>
