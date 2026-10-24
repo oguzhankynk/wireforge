@@ -1,6 +1,7 @@
 """C++ header of one interface: ids, encodings, frame layout, frame encoder, handler and receiver.
 
-Supported subset: header fields are byte-aligned integers (no bits, occurs or `if:`); the trailer
+Supported subset: header fields are byte-aligned integers (no occurs or `if:`; a bit-field only of
+whole bytes in a header whose bit order follows its byte order, see `narrow_field_ok`); the trailer
 holds at most one checksum plus constants; the header holds no checksum.
 """
 
@@ -11,7 +12,15 @@ from typing import TYPE_CHECKING
 
 from wireforge.cpp import Names, Writer, guard
 from wireforge.cpp_codec import encoding_literal
-from wireforge.model import BUILTIN_BITS, INTEGER_TYPES, ChecksumUse, Field, Interface, Project
+from wireforge.model import (
+    BUILTIN_BITS,
+    INTEGER_TYPES,
+    UNSIGNED_TYPES,
+    ChecksumUse,
+    Field,
+    Interface,
+    Project,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -82,6 +91,30 @@ def is_checked_constant(item: Field, *, framed: bool) -> bool:
     )
 
 
+NARROW_ROLES = (None, "message_id", "sequence")
+# Byte order and bit order under which every whole-byte field of a bit group has bytes of its own.
+ALIGNED_ORDERS = (("little", "lsb_first"), ("big", "msb_first"))
+
+
+def narrow_field_ok(project: Project, interface: Interface, item: Field) -> bool:
+    """Whether a header bit-field is a plain unsigned field of whole bytes.
+
+    With a little-endian `lsb_first` (or big-endian `msb_first`) header, each field of a bit group
+    whose width is a multiple of 8 occupies bytes of its own, read in the header byte order: a
+    24-bit message id after an 8-bit field is three bytes of its own (MAVLink 2).
+    """
+    endian = interface.endian or project.defaults.get("endian") or "big"
+    order = interface.bit_order or project.defaults.get("bit_order") or "msb_first"
+    return (
+        item.bits is not None
+        and item.bits % BYTE_BITS == 0
+        and (endian, order) in ALIGNED_ORDERS
+        and item.type in UNSIGNED_TYPES
+        and item.const is None
+        and item.role in NARROW_ROLES
+    )
+
+
 def checks_trailer(interface: Interface) -> bool:
     """Whether the receiver checks the checksum itself: only a link without a frame decoder does."""
     return interface.framing.kind == "none" and any(item.checksum for item in interface.trailer)
@@ -136,13 +169,19 @@ class InterfaceHeader:
         for item in fields:
             base = self.names.base(item.type)
             scalar = base in INTEGER_TYPES or base == "bool"
-            if item.bits is not None or item.occurs is not None or item.condition or not scalar:
+            narrow = item.bits is not None and narrow_field_ok(self.project, self.interface, item)
+            if (
+                (item.bits is not None and not narrow)
+                or item.occurs is not None
+                or item.condition
+                or not scalar
+            ):
                 message = (
                     f"interface {self.interface.name}: {part} field {item.name} must be a "
-                    "byte-aligned integer without bits, occurs or if:"
+                    "byte-aligned integer without occurs or if: (bits only in whole bytes)"
                 )
                 raise InterfaceError(message)
-            width = BUILTIN_BITS[base] // BYTE_BITS
+            width = (item.bits or BUILTIN_BITS[base]) // BYTE_BITS
             placed.append(_Placed(item, offset, width))
             offset += width
         return placed
@@ -183,15 +222,45 @@ class InterfaceHeader:
 
     # --- file -----------------------------------------------------------------------------------
 
+    def _trim_lines(self) -> list[str]:
+        """Drop the trailing zero bytes of the payload (trim_trailing_zeros)."""
+        if not self.interface.trim_trailing_zeros:
+            return []
+        return [
+            "payload_size = wireforge::trimmed_size(",
+            "    wireforge::Span<const std::uint8_t>(buffer.subspan(kHeaderSize, payload_size)));",
+        ]
+
+    def _raw_trim_note(self) -> list[str]:
+        if not self.interface.trim_trailing_zeros:
+            return []
+        return [
+            "        // raw.payload lacks the trailing zero bytes that were not sent; they are",
+            "        // read as zeros.",
+        ]
+
+    def _raw_decode_lines(self, name: str) -> list[str]:
+        if not self.interface.trim_trailing_zeros:
+            return [
+                f"        const {STATUS} status =",
+                f"            deserialize(raw.payload, message, k{name}Encoding);",
+            ]
+        return [
+            f"        const wireforge::ZeroExtended<max_wire_size(wireforge::type_tag<{name}>)>",
+            "            payload(raw.payload);",
+            f"        const {STATUS} status =",
+            f"            deserialize(payload.span(), message, k{name}Encoding);",
+        ]
+
     def render(self) -> str:
         """Return the header text."""
         project, iface = self.project, self.interface
         name_guard = guard(project.name, iface.name, "HPP")
         namespace = f"{project.namespace or project.name}::{iface.name}"
         version = version_namespace(iface.version)
-        includes = [
-            f"#include <wireforge/{h}.hpp>" for h in ("dispatcher", "frame_decoder", "link")
-        ]
+        headers: tuple[str, ...] = ("dispatcher", "frame_decoder", "link")
+        headers += ("payload_trim",) if iface.trim_trailing_zeros else ()
+        includes = [f"#include <wireforge/{h}.hpp>" for h in headers]
         self._lines(
             [
                 "/**",
@@ -428,6 +497,9 @@ class InterfaceHeader:
 
     def _header_write(self, item: Field) -> str:
         wire = self.names.scalar(item.type)
+        if item.bits is not None:
+            value = "message_id" if item.role == "message_id" else f"header.{item.name}"
+            return f"head.write_width({value}, {item.bits // BYTE_BITS}U);"
         if item.role == "message_id":
             return "head.write(message_id);"
         if item.role == "payload_length":
@@ -513,6 +585,7 @@ class InterfaceHeader:
             "if (status != kOk) {",
             "    return status;",
             "}",
+            *self._trim_lines(),
             "const std::size_t total = kHeaderSize + payload_size + kTrailerSize;",
             *self._head_lines(size_check),
         ]
@@ -571,6 +644,8 @@ class InterfaceHeader:
             return f"decoder.expect<{self.names.scalar(item.type)}>({self._literal(item)});"
         if self._is_automatic(item):
             return f"decoder.skip({placed.width}U);"
+        if item.bits is not None:
+            return f"decoder.read_width(header.{item.name}, {placed.width}U);"
         return f"decoder.read(header.{item.name});"
 
     def _header_decode_body(self) -> list[str]:
@@ -650,9 +725,9 @@ class InterfaceHeader:
                     "     */",
                     f"    virtual {STATUS} on{name}Raw(",
                     "        const wireforge::RawMessage& raw) noexcept {",
+                    *self._raw_trim_note(),
                     f"        {name} message{{}};",
-                    f"        const {STATUS} status =",
-                    f"            deserialize(raw.payload, message, k{name}Encoding);",
+                    *self._raw_decode_lines(name),
                     "        if (status == wireforge::Status::Ok) {",
                     f"            on{name}Received(message);",
                     "        }",

@@ -62,6 +62,7 @@ KINDS: tuple[str, ...] = (
     "FRAME_LENGTH",
     "FRAME_RESYNC",
     "FRAME_MAX",
+    "FRAME_TRIM",
     "DISPATCH",
     "DISPATCH_UNKNOWN",
     "RAW",
@@ -446,6 +447,14 @@ class _Deriver:
                     "the trailer of its messages."
                 ),
             )
+        if item.trim_trailing_zeros:
+            yield (
+                "FRAME_TRIM",
+                (
+                    f"A frame of {name} shall carry its payload without the trailing zero bytes "
+                    "(the first byte stays); the receiver shall read the missing bytes as zeros."
+                ),
+            )
 
     def dispatch(self, item: Interface, pointer: str, reqs: tuple[str, ...]) -> None:
         name = f"`{item.name}`"
@@ -662,7 +671,8 @@ class Verifier:
             return f"{name}.{kind}"
 
         by_name = {
-            "DispatchesEveryMessage": (key("DISPATCH"), key("FRAME_LENGTH")),
+            "DispatchesEveryMessage": (key("DISPATCH"), key("FRAME_LENGTH"), key("FRAME_TRIM")),
+            "TrimsTrailingZeros": (key("FRAME_TRIM"),),
             "DeliversByteByByte": (key("FRAME_LENGTH"), key("FRAME_SYNC")),
             "SkipsBytesBeforeSync": (key("FRAME_SYNC"),),
             "EncodeFrameNeedsRoom": (key("FRAME_ENCODE"),),

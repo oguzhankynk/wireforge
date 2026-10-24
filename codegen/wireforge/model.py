@@ -188,6 +188,7 @@ class Interface:
     endian: str | None = None
     bit_order: str | None = None
     allow_trailing_bytes: bool = False
+    trim_trailing_zeros: bool = False
     description: str | None = None
     reqs: tuple[str, ...] = ()
 

@@ -77,6 +77,13 @@ class EncodeCase:
     validated: str
 
 
+def _sent(interface: Interface, payload: bytes) -> bytes:
+    """Return the payload as a frame of the interface carries it (trimmed trailing zeros)."""
+    if not interface.trim_trailing_zeros:
+        return payload
+    return payload[:1] + payload[1:].rstrip(b"\0")
+
+
 @dataclass(frozen=True)
 class DecodeCase:
     """Payload bytes and the status deserialize() must return.
@@ -393,7 +400,7 @@ class _ProfileOracle:
         first_message = interface.messages[frames[0][0]].name
         default = _outcome(lambda: self.codec.encode_frame(interface.name, first_message))
         size = len(default) if isinstance(default, bytes) else 0
-        payload = self.codec.encode_message(first_message, None, interface.name)
+        payload = _sent(interface, self.codec.encode_message(first_message, None, interface.name))
         overhead = size - len(payload) if size else 0
         defaults = tuple(self.default_sizes(interface, index) for index, _ in frames)
         raw_errors = tuple(
@@ -420,11 +427,14 @@ class _ProfileOracle:
             payload = self.codec.encode_message(message.name, pattern, interface.name)
         except CodecError:
             return None
+        # A receiver of trimmed payloads reads a short payload as zero padded, so a shortened
+        # payload is not an error there.
+        trimmed = interface.trim_trailing_zeros
         failing = next(
             (
                 case
                 for case in self.decodes(message.name, payload, interface.name)
-                if case.status != OK
+                if case.status != OK and not (trimmed and len(case.payload) < len(payload))
             ),
             None,
         )
@@ -435,7 +445,7 @@ class _ProfileOracle:
         name = interface.messages[index].name
         default = _outcome(lambda: self.codec.encode_frame(interface.name, name))
         size = len(default) if isinstance(default, bytes) else 0
-        payload = self.codec.encode_message(name, None, interface.name)
+        payload = _sent(interface, self.codec.encode_message(name, None, interface.name))
         return index, size, size - len(payload) if size else 0
 
     def frame(self, interface: Interface, message: Struct) -> Outcome:

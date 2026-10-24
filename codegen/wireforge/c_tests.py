@@ -1054,7 +1054,9 @@ def _raw_recorder(out: Writer, names: CNames, interface: Interface) -> None:
 
 
 def _header_size(names: CNames, interface: Interface) -> int:
-    return sum(BUILTIN_BITS[names.base(item.type)] // 8 for item in interface.header or ())
+    return sum(
+        (item.bits or BUILTIN_BITS[names.base(item.type)]) // 8 for item in interface.header or ()
+    )
 
 
 class _InterfaceTests:
@@ -1444,10 +1446,10 @@ class _InterfaceTests:
             if item.role == "message_id":
                 field = item
                 break
-            offset += BUILTIN_BITS[self.names.base(item.type)] // 8
+            offset += (item.bits or BUILTIN_BITS[self.names.base(item.type)]) // 8
         if field is None:
             return
-        width = BUILTIN_BITS[self.names.base(field.type)] // 8
+        width = (field.bits or BUILTIN_BITS[self.names.base(field.type)]) // 8
         endian = interface.endian or self.project.defaults.get("endian") or "big"
         known: set[int | None] = set()
         for entry in interface.messages:
@@ -1485,7 +1487,7 @@ class _InterfaceTests:
             if is_checked_constant(item, framed=framed):
                 position = offset
                 break
-            offset += BUILTIN_BITS[self.names.base(item.type)] // 8
+            offset += (item.bits or BUILTIN_BITS[self.names.base(item.type)]) // 8
         checksum = not framed and any(item.checksum for item in interface.trailer)
         if (position is None and not checksum) or not cases.frames:
             return

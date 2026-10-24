@@ -12,7 +12,7 @@ equivalent.
 | `wireforge validate <project>` | structural and semantic validation (file, line, JSON pointer per issue) |
 | `wireforge fmt <project> [--check]` | canonical layout of every project file (comments kept) |
 | `wireforge migrate <project> [--check]` | upgrade the file format and refresh the version stamps |
-| `wireforge generate <project> -o <dir> [--tests] [--plugins F] [--language cpp\|c]` | C++17 code (or C99 with `--language c`, docs/CODEGEN.md), with `--tests` the GoogleTest project |
+| `wireforge generate <project> -o <dir> [--tests] [--plugins F] [--language cpp\|c]` | C++17 code (or C99 with `--language c`, docs/CODEGEN.md), with `--tests` the GoogleTest project; custom checksums use `--plugins F` or else the project's `plugins/*.py` |
 | `wireforge wireshark <project> -o <file>.lua` | Wireshark Lua dissector plugin (docs/WIRESHARK.md) |
 | `wireforge analyze <project> [--profile P] [--format markdown\|csv\|json]` | layout report / ICD (docs/LAYOUT.md) |
 | `wireforge compat <old> <new> [--interface I]` | interface compatibility and version bump check |

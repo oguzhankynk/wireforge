@@ -35,6 +35,10 @@ The plugin is tested with Wireshark 3.6, 4.2 and 4.6, on Lua 5.2 and Lua 5.4.
   - `fixed`: frames of `frame_size` bytes;
   - `length_prefixed` and `sync_length`: frame size from the length field, as counted by `length_counts`.
 
+  With `trim_trailing_zeros` a payload shorter than its message is dissected after being extended with zeros: the
+  fields refer to a separate *Zero-extended payload* data source, and the message item says how many zero bytes were
+  not sent.
+
   Over TCP, a frame split across segments is reassembled. A packet may also hold several frames. With
   `resync: true`, bytes before the next sync pattern are shown as *Skipped bytes* (warning `[Resync]`).
 - **Text:** `char` arrays are Latin-1 and shown as UTF-8; NUL bytes inside dynamic strings are shown as `\0`.
@@ -69,7 +73,8 @@ _G.wireforge_checksums["vendor::SumChecksum"] = function(bytes)  -- bytes: Lua s
   return sum
 end
 ```
-Without a hook the field gets a *Note* `Checksum not verified`.
+Without a hook the field gets a *Note* `Checksum not verified`. The MAVLink 2 model brings its hook
+(`protocols/mavlink2/wireshark/mav2sum.lua`).
 
 ## Limits
 - There is no heuristic detection: bind a protocol by port, user DLT or Decode As.

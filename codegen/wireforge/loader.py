@@ -258,6 +258,7 @@ def _interface(name: str, where: _Where, source: Source) -> Interface:
         endian=raw.get("endian"),
         bit_order=raw.get("bit_order"),
         allow_trailing_bytes=bool(raw.get("allow_trailing_bytes", False)),
+        trim_trailing_zeros=bool(raw.get("trim_trailing_zeros", False)),
         description=raw.get("description"),
         reqs=_reqs(raw),
     )

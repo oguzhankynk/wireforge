@@ -28,6 +28,7 @@ BASIC = EXAMPLES / "01_basic_telemetry"
 AVIONICS = EXAMPLES / "02_multi_interface_avionics"
 EDGE = EXAMPLES / "03_edge_cases"
 CASES = Path(__file__).resolve().parent / "wireshark"
+MAVLINK2 = ROOT / "protocols" / "mavlink2"
 PLUGINS = golden.load_plugins(AVIONICS / "plugins" / "vendor_sum.py")
 # The avionics example's custom checksum, as a Lua hook (16-bit sum of all bytes).
 VENDOR_SUM_HOOK = """
@@ -263,7 +264,9 @@ def run_tshark(
     capture = tmp_path / f"{protocol}.pcap"
     write_pcap(capture, packets)
     hook = tmp_path / "hooks.lua"
-    hook.write_text(VENDOR_SUM_HOOK, encoding="utf-8")
+    # The checksum hooks of the avionics example and of the MAVLink 2 model.
+    hooks = VENDOR_SUM_HOOK + (MAVLINK2 / "wireshark" / "mav2sum.lua").read_text(encoding="utf-8")
+    hook.write_text(hooks, encoding="utf-8")
     config = tmp_path / "config"
     config.mkdir(exist_ok=True)
     env = {**os.environ, "WIRESHARK_CONFIG_DIR": str(config), "HOME": str(tmp_path)}
@@ -432,6 +435,40 @@ def test_tshark_matches_the_reference_codec(
         elif framing == "none" and case.status not in dissection.statuses:
             failures.append(f"{case.name}: {case.status} not in {dissection.statuses}")
     assert failures == []
+
+
+@needs_tshark
+def test_tshark_shows_trimmed_mavlink2_payloads(tmp_path: Path) -> None:
+    """Frames without their trailing zero bytes show every field; the Lua checksum hook works."""
+    project = _project(MAVLINK2)
+    plugin = tmp_path / "plugin.lua"
+    assert wireshark.generate(MAVLINK2, plugin).issues == []
+    protocol = wireshark.protocol_name(project, project.interfaces["link"])
+    codec = ReferenceCodec(
+        project, None, golden.load_plugins(MAVLINK2 / "plugins" / "mavlink2_crc.py")
+    )
+    values: list[tuple[str, dict[str, Any]]] = [
+        ("Attitude", {"timeBootMs": 1000, "roll": 0.5}),
+        ("CommandAck", {"command": 400, "result": 0}),
+        ("CommandAck", {"command": 400, "progress": 5, "targetSystem": 255}),
+        ("GpsRawInt", {"timeUsec": 123456789, "fixType": 3, "satellitesVisible": 12}),
+        ("Heartbeat", {"type": 2, "autopilot": 3}),
+    ]
+    frames = [codec.encode_frame("link", name, value, {"sequence": 1}) for name, value in values]
+    assert len(frames[0]) < 12 + 28, "the zeros at the end of Attitude are not sent"
+    broken = bytearray(frames[0])
+    broken[-1] ^= 0x01
+    packets = [udp_packet(frame) for frame in [*frames, bytes(broken)]]
+    shown = run_tshark(tmp_path, plugin, protocol, packets, _prefs(None))
+    for frame, dissection in zip(frames, shown, strict=False):
+        assert dissection.problems == []
+        expected = _decoded(codec, "link", frame, protocol).expected
+        assert expected is not None
+        for abbr, wanted in expected.items():
+            got = dissection.values.get(abbr, [])
+            assert len(got) == len(wanted), abbr
+            assert all(_same(project, want, have) for want, have in zip(wanted, got, strict=True))
+    assert "ChecksumMismatch" in shown[-1].statuses
 
 
 @needs_tshark

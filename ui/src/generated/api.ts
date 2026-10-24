@@ -290,7 +290,7 @@ export interface paths {
         };
         /**
          * Generate Zip
-         * @description Download the generated code as a self-contained zip (with the test project).
+         * @description Download the generated C++ or C code as a self-contained zip (with the test project).
          */
         get: operations["generate_zip_api_projects__project__generate_get"];
         put?: never;
@@ -330,7 +330,7 @@ export interface paths {
         };
         /**
          * Preview
-         * @description Return the generated C++ files without writing them.
+         * @description Return the generated C++ or C files without writing them.
          */
         get: operations["preview_api_projects__project__preview_get"];
         put?: never;
@@ -1426,6 +1426,7 @@ export interface operations {
         parameters: {
             query?: {
                 tests?: boolean;
+                language?: "cpp" | "c";
             };
             header?: {
                 authorization?: string | null;
@@ -1494,7 +1495,9 @@ export interface operations {
     };
     preview_api_projects__project__preview_get: {
         parameters: {
-            query?: never;
+            query?: {
+                language?: "cpp" | "c";
+            };
             header?: {
                 authorization?: string | null;
             };

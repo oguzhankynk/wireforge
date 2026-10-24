@@ -115,6 +115,18 @@ public:
     }
 
     /**
+     * @brief Writes the unsigned @p value in @p width bytes (1..8), for a field narrower than its
+     * type; Status::OutOfRange when it does not fit.
+     */
+    template <typename T> void write_width(T value, std::size_t width) noexcept {
+        static_assert(std::is_unsigned_v<T>, "unsigned values only");
+        if (status_ == Status::Ok) {
+            check(
+                writer_.write_unsigned(static_cast<std::uint64_t>(value), width, encoding_.endian));
+        }
+    }
+
+    /**
      * @brief Writes an element count as wire type W (bool counts must be 0 or 1).
      */
     template <typename W> void write_count(std::size_t count) noexcept {
@@ -245,6 +257,14 @@ public:
         W value{};
         read(value);
         return detail::convert<std::size_t>(value);
+    }
+
+    /// @brief Reads an unsigned value of @p width bytes (1..8) into the wider @p out.
+    template <typename T> void read_width(T& out, std::size_t width) noexcept {
+        static_assert(std::is_unsigned_v<T>, "unsigned values only");
+        std::uint64_t value = 0U;
+        check(reader_.read_unsigned(value, width, encoding_.endian));
+        out = static_cast<T>(value);
     }
 
     /// @brief Reads a value of wire type T and fails with ConstMismatch unless it is @p expected.

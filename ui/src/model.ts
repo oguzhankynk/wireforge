@@ -251,6 +251,7 @@ export interface InterfaceForm {
   rxBytes: string;
   txBytes: string;
   allowTrailingBytes: boolean;
+  trimTrailingZeros: boolean;
 }
 
 /** A new interface: tx, no header, no framing. */
@@ -272,6 +273,7 @@ export function emptyInterface(): InterfaceForm {
     rxBytes: "",
     txBytes: "",
     allowTrailingBytes: false,
+    trimTrailingZeros: false,
   };
 }
 
@@ -311,6 +313,7 @@ export function toInterface(form: InterfaceForm): InterfaceDef {
   if (form.txBytes.trim() !== "") buffers.tx_bytes = numberOrExpression(form.txBytes);
   if (Object.keys(buffers).length > 0) result.buffers = buffers;
   if (form.allowTrailingBytes) result.allow_trailing_bytes = true;
+  if (form.trimTrailingZeros) result.trim_trailing_zeros = true;
   return result;
 }
 
@@ -339,6 +342,7 @@ export function fromInterface(value: InterfaceDef): InterfaceForm {
     rxBytes: text(value.buffers?.rx_bytes),
     txBytes: text(value.buffers?.tx_bytes),
     allowTrailingBytes: value.allow_trailing_bytes === true,
+    trimTrailingZeros: value.trim_trailing_zeros === true,
   };
 }
 
@@ -382,6 +386,7 @@ export const INTERFACE_KEYS = [
   "messages",
   "buffers",
   "allow_trailing_bytes",
+  "trim_trailing_zeros",
 ] as const;
 
 /**

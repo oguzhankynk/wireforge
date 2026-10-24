@@ -19,8 +19,6 @@ How the model says what MAVLink does:
   when it passes by (it is the sixth byte of the frame) and adds the CRC_EXTRA byte of that message last. The table of
   the CRC_EXTRA bytes has the four messages of the model; a new message needs its byte in both files.
 
-Not covered: MAVLink 2 (its signature, its extension fields and the removal of trailing zero bytes of a payload change
-the frame in ways the model cannot say: the length of a frame is not the length of the message), the other messages,
-arrays and strings.
+Not covered: MAVLink 2, which has a model of its own (`protocols/mavlink2`), the other messages, arrays and strings.
 
 MAVLink is a project of the Dronecode Foundation; this project is not affiliated with or endorsed by it.

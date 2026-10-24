@@ -806,6 +806,13 @@ class ReferenceCodec:
             return payload + trailer
         return header + payload + trailer
 
+    def _message_size(self, message: str, interface: str) -> int:
+        """Wire size of a message of fixed size (SR-25), from its default value."""
+        settings = dataclasses.replace(
+            self.message_settings(message, interface), check_encode=False
+        )
+        return len(self.encode_message(message, None, interface, settings))
+
     def _check_frame_size(self, iface: Interface, size: int) -> None:
         framing = iface.framing
         if framing.kind == "fixed" and framing.frame_size is not None:
@@ -831,6 +838,9 @@ class ReferenceCodec:
         if message not in ids:
             _fail("InvalidState", message, f"not a message of interface {interface}")
         payload = self.encode_message(message, value, interface)
+        if iface.trim_trailing_zeros:
+            # The trailing zero bytes are not sent; the first byte always is.
+            payload = payload[:1] + payload[1:].rstrip(b"\0")
         settings = self.interface_settings(iface)
         header_fields = iface.header or ()
         values = dict(header or {})
@@ -894,4 +904,7 @@ class ReferenceCodec:
         trailer_bytes = bytes(data[len(data) - trailer_size :])
         trailer = self._decode_struct(_Reader(trailer_bytes), iface.trailer, "/trailer", ctx)
         name = self._frame_message(iface, header)
+        if iface.trim_trailing_zeros:
+            # The receiver reads the bytes that were not sent as zeros.
+            payload = payload.ljust(self._message_size(name, interface), b"\0")
         return DecodedFrame(name, self.decode_message(name, payload, interface), header, trailer)

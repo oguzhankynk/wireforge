@@ -69,7 +69,7 @@ export function NewProject(props: { api: Api; onCreated: (id: string) => void; o
         <input value={namespace} onChange={(event) => { setNamespace(event.target.value); }} />
       </label>
       {error !== "" && <p role="alert">{error}</p>}
-      <button type="button" disabled={!valid} onClick={() => { void create(); }}>
+      <button type="button" className="primary" disabled={!valid} onClick={() => { void create(); }}>
         Create project
       </button>
       <button type="button" onClick={onCancel}>

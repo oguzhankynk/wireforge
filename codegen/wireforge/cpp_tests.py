@@ -84,8 +84,8 @@ def _byte_lines(data: bytes) -> list[str]:
 
 
 def _scalar_bytes(names: Names, item: Field) -> int:
-    """Return the wire size of a byte-aligned integer header field."""
-    return BUILTIN_BITS[names.base(item.type)] // BYTE_BITS
+    """Return the wire size of a byte-aligned integer header field (a bit-field of whole bytes)."""
+    return (item.bits or BUILTIN_BITS[names.base(item.type)]) // BYTE_BITS
 
 
 def _byte_array(out: Writer, name: str, data: bytes, *, static: bool = True) -> None:
@@ -1051,6 +1051,8 @@ class _InterfaceTests:
         for index, size, _ in cases.defaults:
             if size > 0:
                 self.points.require("frame_room", profile, name, interface.messages[index].name)
+                if interface.trim_trailing_zeros:
+                    self.points.require("trim", profile, name, interface.messages[index].name)
         for index, _ in cases.raw_errors:
             message = interface.messages[index].name
             if message in messages:
@@ -1068,6 +1070,7 @@ class _InterfaceTests:
         self.corrupt(cases, suite)
         self.broken_frames(cases, suite, framed=framed)
         self.too_small(cases, suite)
+        self.trims(cases, suite)
         if cases.frames:
             self.raw(cases, suite)
             self.raw_and_decoded(cases, suite)
@@ -1314,6 +1317,30 @@ class _InterfaceTests:
         lines.line("EXPECT_EQ(recorder.count(), 0U);")
         name = "RejectsBrokenFrames"
         _test(self.out, suite, name, lines.lines, self.requirements(cases, name))
+
+    def trims(self, cases: InterfaceCases, suite: str) -> None:
+        """Check that the frame of every default message has the size of its trimmed payload."""
+        interface = cases.interface
+        sized = [item for item in cases.defaults if item[1] > 0]
+        if not interface.trim_trailing_zeros or not sized:
+            return
+        ns = f"model::{interface.name}"
+        lines = [
+            f"std::array<std::uint8_t, {ns}::kMaxFrameSize> buffer{{}};",
+            "std::size_t size = 0U;",
+        ]
+        for index, frame_size, _ in sized:
+            message = interface.messages[index].name
+            self.exercise("trim", cases, message)
+            span = f"{SPAN}(buffer.data(), buffer.size())"
+            call = f"{ns}::encode_frame(model::{message}{{}}, {span}, size)"
+            lines += [
+                f"ASSERT_EQ({call},",
+                f"          {STATUS}Ok);",
+                f"EXPECT_EQ(size, {frame_size}U);",
+            ]
+        name = "TrimsTrailingZeros"
+        _test(self.out, suite, name, lines, self.requirements(cases, name))
 
     def too_small(self, cases: InterfaceCases, suite: str) -> None:
         interface = cases.interface

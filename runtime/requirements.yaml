@@ -411,6 +411,25 @@ requirements:
     text: Raw bytes shall be copied unchanged, and a buffer too small or input too short shall be reported as BufferTooSmall or Truncated.
     realizes: [LAYOUT, TRUNCATED]
     verification: test
+  RTR-codec_support-009:
+    header: codec_support.hpp
+    code: [Encoder, Decoder]
+    text: An unsigned field narrower than its type shall be written and read in its own number of bytes, and a value that does not fit them shall be refused with OutOfRange.
+    realizes: [LAYOUT]
+    verification: test
+
+  RTR-payload_trim-001:
+    header: payload_trim.hpp
+    code: [trimmed_size]
+    text: The size to send of a trimmed payload shall leave out its trailing zero bytes but keep the first byte of a non-empty payload.
+    realizes: [FRAME_TRIM]
+    verification: test
+  RTR-payload_trim-002:
+    header: payload_trim.hpp
+    code: [ZeroExtended]
+    text: A payload shorter than the full size shall be decoded as if extended with zero bytes; a payload of the full size or longer shall be decoded unchanged.
+    realizes: [FRAME_TRIM]
+    verification: test
 
   RTR-validation-001:
     header: validation.hpp

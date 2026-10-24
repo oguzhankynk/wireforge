@@ -114,6 +114,7 @@ class InterfaceLayout:
     rx_buffer: int
     tx_buffer: int
     link_ram: int
+    trim_trailing_zeros: bool = False
 
 
 @dataclass(frozen=True)
@@ -398,6 +399,8 @@ class _Analyzer:
             if not self.holds(entry.condition) or not self.holds(message.condition):
                 continue
             low, high = self.struct_size(message.fields)
+            if interface.trim_trailing_zeros:
+                low = min(low, 1)  # trailing zeros are not sent; the first byte is
             info = message.message
             identifier = entry.id if entry.id is not None else (info.id if info else None)
             messages.append(
@@ -428,6 +431,7 @@ class _Analyzer:
             rx_buffer=rx,
             tx_buffer=tx,
             link_ram=rx + 2 * max_frame,
+            trim_trailing_zeros=interface.trim_trailing_zeros,
         )
 
     def profile(self, name: str | None) -> ProfileLayout:
@@ -587,6 +591,17 @@ def _interface_section(interface: InterfaceLayout) -> list[str]:
             f"transmit frame {interface.max_frame} = **{interface.link_ram} bytes**."
         ),
         "",
+        *(
+            [
+                (
+                    "Payloads are sent without their trailing zero bytes (`trim_trailing_zeros`), "
+                    "so a payload has from 1 byte up to the size of its message."
+                ),
+                "",
+            ]
+            if interface.trim_trailing_zeros
+            else []
+        ),
         "| Message | Id | Payload | Frame |",
         "|---|---|---|---|",
     ]

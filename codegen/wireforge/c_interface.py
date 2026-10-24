@@ -6,7 +6,8 @@ null callback means "decode and forward", or "ignore" when there is no callback 
 message either), the dispatcher is one function, the link owns its buffers and is set up with
 `<prefix>_<interface>_link_init()`.
 
-Supported subset: header fields are byte-aligned integers (no bits, occurs or `if:`); the trailer
+Supported subset: header fields are byte-aligned integers (no occurs or `if:`; a bit-field only of
+whole bytes in a header whose bit order follows its byte order, see `narrow_field_ok`); the trailer
 holds at most one checksum plus constants; the header holds no checksum.
 """
 
@@ -23,6 +24,7 @@ from wireforge.cpp_interface import (
     header_is_written,
     is_automatic,
     is_checked_constant,
+    narrow_field_ok,
     needs_frame_check,
 )
 from wireforge.model import BUILTIN_BITS, INTEGER_TYPES, Field, Interface, Project
@@ -103,13 +105,19 @@ class CInterface:
         for item in fields:
             base = self.names.base(item.type)
             scalar = base in INTEGER_TYPES or base == "bool"
-            if item.bits is not None or item.occurs is not None or item.condition or not scalar:
+            narrow = item.bits is not None and narrow_field_ok(self.project, self.interface, item)
+            if (
+                (item.bits is not None and not narrow)
+                or item.occurs is not None
+                or item.condition
+                or not scalar
+            ):
                 message = (
                     f"interface {self.interface.name}: {part} field {item.name} must be a "
-                    "byte-aligned integer without bits, occurs or if:"
+                    "byte-aligned integer without occurs or if: (bits only in whole bytes)"
                 )
                 raise InterfaceError(message)
-            width = BUILTIN_BITS[base] // BYTE_BITS
+            width = (item.bits or BUILTIN_BITS[base]) // BYTE_BITS
             placed.append(_Placed(item, offset, width))
             offset += width
         return placed
@@ -493,6 +501,9 @@ class CInterface:
 
     def _header_write(self, item: Field) -> str:
         ip = self.ip
+        if item.bits is not None:
+            value = "message_id" if item.role == "message_id" else f"header->{item.name}"
+            return f"wf_enc_unsigned(&head, (uint64_t)({value}), {item.bits // BYTE_BITS}U);"
         if item.role == "message_id":
             return self.codec.write_statement(item, "message_id", "&head")
         if item.role == "payload_length":
@@ -563,6 +574,11 @@ class CInterface:
             "if (status != WF_OK) {",
             "    return status;",
             "}",
+        ]
+        if self.interface.trim_trailing_zeros:
+            # The trailing zero bytes of the payload are not sent.
+            body += [f"payload_size = wf_trimmed_size(&buffer[{ip}_HEADER_SIZE], payload_size);"]
+        body += [
             f"const size_t total = {ip}_HEADER_SIZE + payload_size + {ip}_TRAILER_SIZE;",
         ]
         if plain:
@@ -646,6 +662,9 @@ class CInterface:
             return self.codec.expect_statement(item, self._literal(item), "&decoder")
         if is_automatic(item):
             return f"wf_dec_skip(&decoder, {placed.width}U);"
+        if item.bits is not None:
+            ctype = self.names.scalar(item.type)
+            return f"header->{item.name} = ({ctype})wf_dec_unsigned(&decoder, {placed.width}U);"
         return f"header->{item.name} = {self.codec.read_expression(item, '&decoder')};"
 
     def _source_header_decoder(self) -> None:
@@ -737,11 +756,28 @@ class CInterface:
             ]
         )
 
+    def _payload_lines(self, entry: _Entry) -> list[str]:
+        """Extend a trimmed payload with the zeros that were not sent (trim_trailing_zeros)."""
+        if not self.interface.trim_trailing_zeros:
+            return []
+        full = f"{self._type(entry)}_MAX_WIRE_SIZE"
+        return [
+            "    /* One byte more than the message, so that the array is never empty. */",
+            f"    uint8_t padded[{full} + 1U];",
+            "    size_t payload_size = 0U;",
+            (
+                "    const uint8_t *payload = wf_zero_extend(raw->payload, raw->payload_size, "
+                f"padded, {full}, &payload_size);"
+            ),
+        ]
+
     def _source_receivers(self) -> None:
         ip = self.ip
         check = needs_frame_check(self.interface)
         for entry in self.entries:
             name, type_name = entry.name, self._type(entry)
+            trimmed = self.interface.trim_trailing_zeros
+            payload = "payload, payload_size" if trimmed else "raw->payload, raw->payload_size"
             deserialize = self.names.function(name, "deserialize_with")
             init = self.names.function(name, "init")
             lines = [
@@ -752,8 +788,9 @@ class CInterface:
                 "{",
                 f"    {type_name} message;",
                 f"    {init}(&message);",
+                *self._payload_lines(entry),
                 (
-                    f"    const wf_status status = {deserialize}(raw->payload, raw->payload_size, "
+                    f"    const wf_status status = {deserialize}({payload}, "
                     f"&message, &{ip}_{name}_encoding);"
                 ),
                 f"    if (status == WF_OK && handler->on_{name}_received != NULL) {{",

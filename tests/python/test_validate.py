@@ -16,7 +16,7 @@ EXAMPLES = sorted(
 )
 BASE = YAML(typ="safe").load((HERE / "semantic_base.yaml").read_text(encoding="utf-8"))
 CASES = YAML(typ="safe").load((HERE / "semantic_cases.yaml").read_text(encoding="utf-8"))
-RULES = [f"SR-{number}" for number in range(1, 25)]
+RULES = [f"SR-{number}" for number in range(1, 26)]
 
 
 def _apply(document: dict[str, Any], operation: dict[str, Any]) -> None:
