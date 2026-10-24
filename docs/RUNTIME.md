@@ -16,6 +16,7 @@ Every fallible call returns `wireforge::Status`.
 | `byte_io.hpp` | `Endian`, `store_unsigned`/`load_unsigned`, `ByteWriter`, `ByteReader` (ints 1..8 bytes, f32/f64, bytes, bit groups, patching) |
 | `ring_buffer.hpp` | `SpscByteRing` (lock-free), `StaticSpscByteRing<N>`, `LockedByteRing<L>` |
 | `frame_layout.hpp` | `FieldLocation` shared by decoder and dispatcher |
+| `payload_trim.hpp` | `trimmed_size`, `ZeroExtended<N>`: payloads sent without their trailing zero bytes |
 | `frame_decoder.hpp` | `FrameFormat`, `FrameDecoder<Checksum>` (fixed, sync+length, length-prefixed; checksum verify; resync; counters) |
 | `delegate.hpp` | `Delegate<R(Args...)>`: non-owning free/member/callable reference, no heap |
 | `dispatcher.hpp` | `RawMessage` (payload and frame), `Dispatcher<N, L>` (header ids, fallback, frozen table), `RawDispatcher<L>` |
@@ -53,6 +54,11 @@ Every fallible call returns `wireforge::Status`.
   argument in generated code is resolved at compile time (all IO except floats is `constexpr`).
 - `Encoder::write_bytes(Span<const std::uint8_t>)` / `Decoder::read_bytes(Span<std::uint8_t>)` copy bytes onto/from
   the wire unchanged, no endian or bit-order transform: the only IO a user type's own `encode`/`decode` needs.
+- `Encoder::write_width(value, width)` / `Decoder::read_width(value, width)` write and read an unsigned value in a
+  number of bytes smaller than its type (a 24-bit header field); a value that does not fit is `OutOfRange`.
+- `payload_trim.hpp`: `trimmed_size(payload)` is the size of a payload without its trailing zero bytes (the first byte
+  stays) and `ZeroExtended<N>` gives a shorter payload back as `N` bytes padded with zeros, for interfaces with
+  `trim_trailing_zeros`. The C runtime has `wf_trimmed_size()` and `wf_zero_extend()` (`wireforge/c/trim.h`).
 
 ## C runtime
 `runtime/include/wireforge/c/` is the runtime for C99 code (`#include <wireforge/c/wireforge.h>`, or the single headers):

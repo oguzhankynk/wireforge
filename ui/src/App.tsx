@@ -13,6 +13,7 @@ import { Playground } from "./components/Playground";
 import { ProfileEditor } from "./components/ProfileEditor";
 import { ProjectSettings } from "./components/ProjectSettings";
 import { StructEditor } from "./components/StructEditor";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { VersionPanel } from "./components/VersionPanel";
 import { BUILTIN_TYPES } from "./model";
 
@@ -191,7 +192,10 @@ export function App({ api }: { api: Api }) {
   return (
     <main>
       <header>
-        <h1>WireForge</h1>
+        <h1>
+          <span className="logo" aria-hidden="true" />
+          WireForge
+        </h1>
         <label>
           Project
           <select
@@ -217,6 +221,7 @@ export function App({ api }: { api: Api }) {
           Project settings
         </button>
         {error !== "" && <p role="alert">{error}</p>}
+        <ThemeToggle />
       </header>
       <nav aria-label="Entries">
         {SECTION_TITLES.map(([section, title, singular]) => (
@@ -225,7 +230,11 @@ export function App({ api }: { api: Api }) {
             <ul>
               {(sections[section] ?? []).map((name) => (
                 <li key={name}>
-                  <button type="button" onClick={() => { setSelection({ section, name }); }}>
+                  <button
+                    type="button"
+                    aria-current={selection?.section === section && selection.name === name ? "true" : undefined}
+                    onClick={() => { setSelection({ section, name }); }}
+                  >
                     {name}
                   </button>
                 </li>

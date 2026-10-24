@@ -97,7 +97,7 @@ export function EnumEditor(props: {
       <button type="button" onClick={() => { setForm({ ...form, values: [...form.values, { name: "", value: nextValue() }] }); }}>
         Add member
       </button>
-      <button type="button" disabled={entryName.trim() === "" || problems.length > 0} onClick={() => void save()}>
+      <button type="button" className="primary" disabled={entryName.trim() === "" || problems.length > 0} onClick={() => void save()}>
         Save enum
       </button>
       {problems.length > 0 && (

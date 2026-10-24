@@ -1,6 +1,7 @@
 /**
  * @file wireforge.h
- * @brief The whole C runtime: status codes, bit and byte helpers, encoder and decoder, checks, CRC.
+ * @brief The whole C runtime: status codes, bit and byte helpers, encoder and decoder, checks, CRC,
+ *        trimmed payloads.
  *
  * Header-only C99; nothing allocates memory or keeps state between calls. Code generated with
  * `wireforge generate --language c` includes the headers it needs.
@@ -17,6 +18,7 @@
 #include "wireforge/c/link.h"
 #include "wireforge/c/ring.h"
 #include "wireforge/c/status.h"
+#include "wireforge/c/trim.h"
 #include "wireforge/c/validation.h"
 
 #endif /* WIREFORGE_C_WIREFORGE_H */

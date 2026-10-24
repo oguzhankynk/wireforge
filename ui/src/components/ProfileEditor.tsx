@@ -70,7 +70,7 @@ export function ProfileEditor(props: {
       <button type="button" onClick={() => { setRows((current) => [...current, { name: "", value: "0" }]); }}>
         Add define
       </button>
-      <button type="button" disabled={entryName.trim() === ""} onClick={() => void save()}>
+      <button type="button" className="primary" disabled={entryName.trim() === ""} onClick={() => void save()}>
         Save profile
       </button>
       {error !== "" && <p role="alert">{error}</p>}

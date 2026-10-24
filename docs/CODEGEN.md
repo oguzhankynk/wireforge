@@ -167,7 +167,15 @@ link.poll();                                         // calls app.onCommandRecei
   checked automatically; other header fields are members of `Header`. A `protocol_version` field without `const` carries
   the interface major version.
 - Supported subset (D30): header fields are byte-aligned integers; the trailer holds at most one checksum plus constants;
-  checksums in headers are not supported. Unsupported layouts are reported by `wireforge.generate`.
+  checksums in headers are not supported. Unsupported layouts are reported by `wireforge.generate`. A header bit-field
+  is supported when it is unsigned, not a constant, a whole number of bytes wide and the header bit order follows its
+  byte order (`little` with `lsb_first`, `big` with `msb_first`): each such field then has bytes of its own and is
+  written with `Encoder::write_width` (a 24-bit message id after an 8-bit component id, as in MAVLink 2).
+- With `trim_trailing_zeros` the frame writer sends the payload without its trailing zero bytes
+  (`wireforge::trimmed_size`, the first byte stays), and the default `on<Message>Raw` decodes the payload extended with
+  zeros to the size of the message (`wireforge::ZeroExtended`); an override of `on<Message>Raw` gets the bytes as they
+  were received. The generated tests add `TrimsTrailingZeros` (the frame of every default message has the trimmed
+  size); the dispatch and golden tests send frames whose payloads were trimmed by the reference codec.
 - Every message has a virtual `on<Message>Raw(const wireforge::RawMessage& raw)` in `Handler`. Its default decodes
   `raw.payload` and calls `on<Message>Received` when the decode succeeds, and returns the decode status. Override it to
   take the bytes without decoding: framing, the frame checksum and the message id were checked, the payload was not
@@ -316,7 +324,7 @@ the sync value and a correct checksum, the ring always gets free space).
 
 Gates: `quality/run_generated_tests.sh` runs the differential test for every example and profile;
 `quality/run_fuzz.sh` builds all fuzz targets with Clang and runs each for `WIREFORGE_FUZZ_SECONDS` (20 locally, 60 in
-CI, 900 in the `fuzz-nightly` workflow, which is started by hand), `WIREFORGE_FUZZ_JOBS` targets at a time (default: the number of CPUs),
-seeded with `tests/regressions/fuzz/<target>/` and the golden vectors; a crash leaves its input in
+CI, 900 in the weekly `fuzz-long` workflow, whose four jobs take every fourth target each through
+`WIREFORGE_FUZZ_SHARD=k/4`), `WIREFORGE_FUZZ_JOBS` targets at a time (default: the number of CPUs), seeded with `tests/regressions/fuzz/<target>/` and the golden vectors; a crash leaves its input in
 `build/fuzz/artifacts/`.
 

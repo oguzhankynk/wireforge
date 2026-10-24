@@ -1,6 +1,7 @@
 // Generates the TypeScript types of the UI from the JSON Schema of project files and from the
 // OpenAPI document of the server, so no model or API shape is written twice.
-// Usage: node scripts/gen-types.mjs [--check]   (WIREFORGE_PYTHON selects the Python interpreter)
+// Usage: node scripts/gen-types.mjs [--check]   (WIREFORGE_PYTHON selects the Python interpreter;
+// default: the repository's .venv when there is one, else python3)
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -29,7 +30,8 @@ const schemaText = schemaTypes.replace(
 
 const scratch = mkdtempSync(join(tmpdir(), "wireforge-openapi-"));
 const openapiFile = join(scratch, "openapi.json");
-const python = process.env.WIREFORGE_PYTHON ?? "python3";
+const venv = join(repo, ".venv", "bin", "python");
+const python = process.env.WIREFORGE_PYTHON ?? (existsSync(venv) ? venv : "python3");
 execFileSync(
   python,
   ["-m", "wireforge.cli", "serve", "--workspace", scratch, "--openapi", openapiFile],

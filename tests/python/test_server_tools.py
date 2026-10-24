@@ -59,6 +59,27 @@ def test_generate_zip_is_self_contained(client: TestClient) -> None:
     assert "SR-6" in failed.json()["issues"][0]["message"]
 
 
+def test_generate_zip_and_preview_in_c(client: TestClient) -> None:
+    response = client.get("/api/projects/edge/generate", params={"language": "c"})
+    assert response.status_code == 200
+    assert "edge_cases-c-generated.zip" in response.headers["content-disposition"]
+    archive = zipfile.ZipFile(io.BytesIO(response.content))
+    names = set(archive.namelist())
+    for name in (
+        "edge_cases/include/edge_cases/model.h",
+        "edge_cases/include/edge_cases/model.c",
+        "edge_cases/include/edge_cases/generated_tests/CMakeLists.txt",
+        "edge_cases/runtime/include/wireforge/c/status.h",
+    ):
+        assert name in names, name
+    assert "edge_cases/include/edge_cases/model.hpp" not in names
+    assert b"C99 sources and headers" in archive.read("edge_cases/README.md")
+    preview = client.get("/api/projects/edge/preview", params={"language": "c"}).json()
+    assert preview["ok"]
+    assert set(preview["data"]["files"]) >= {"edge_cases/model.h", "edge_cases/model.c"}
+    assert client.get("/api/projects/edge/preview", params={"language": "rust"}).status_code == 422
+
+
 def test_preview_and_analyze(client: TestClient) -> None:
     preview = client.get("/api/projects/edge/preview").json()
     assert preview["ok"]

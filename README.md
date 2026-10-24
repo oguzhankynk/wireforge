@@ -15,6 +15,11 @@ generated code at 100 % line, branch and function coverage.
 The way in is short: `wireforge init` gives a working first project, you change it to your protocol, generate the C++
 code, run the tests and read the results. Nothing about requirements or standards is needed for that.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oguzhankynk/wireforge/master/docs/images/web-ui-dark.png">
+  <img alt="The web UI right after New project: the first message open in the editor, the next steps, and the Generate tab with the generated C++ and the download of code and tests" src="https://raw.githubusercontent.com/oguzhankynk/wireforge/master/docs/images/web-ui.png">
+</picture>
+
 ## For teams with a development or assurance process
 Optionally, `wireforge docs` turns the same model into requirements, design, test and traceability documents with test
 and coverage results, change impact between revisions and ReqIF/CSV exchange with requirements tools (docs/LIFECYCLE.md,
@@ -22,7 +27,9 @@ docs/integration/). For projects that apply standards such as DO-178C, ISO 26262
 supports your processes and your tool assessment; it does not by itself give conformity, certification or tool
 qualification, which depend on the whole project and its assessor (docs/DO178C.md).
 
-**Start with docs/GUIDE.md** (install, 5-minute quickstart, examples), or with the [wiki](https://github.com/oguzhankynk/wireforge/wiki) for a short tour. Reference:
+**Start with the [tutorial](docs/tutorial/README.md)** (a MAVLink 2 drone link from the model to the application, tests,
+CI, Wireshark and AI agents), **docs/GUIDE.md** (install, 5-minute quickstart, examples), or the
+[wiki](https://github.com/oguzhankynk/wireforge/wiki) for a short tour. Reference:
 
 | Topic | Document |
 |-------|----------|
@@ -36,7 +43,7 @@ qualification, which depend on the whole project and its assessor (docs/DO178C.m
 | Server, web UI, MCP | docs/SERVER.md, docs/UI.md, docs/MCP.md |
 | Secure deployment and operation | docs/SERVER.md, "Deployment and operation" |
 | Importers (CSV/Excel ICD, C headers, CAN databases) | docs/IMPORT.md |
-| Published protocols (Modbus, CRSF, J1939, MAVLink 1, UBX; `wireforge init --protocol`) | docs/GUIDE.md, `protocols/` |
+| Published protocols (Modbus, CRSF, J1939, MAVLink 1 and 2, UBX; `wireforge init --protocol`) | docs/GUIDE.md, `protocols/` |
 | Quality, safety, traceability | quality/QUALITY_POLICY.md, docs/SAFETY.md, docs/CODING_RULES.md |
 | Architecture and design decisions | docs/ARCHITECTURE.md, docs/DECISIONS.md |
 
@@ -48,7 +55,7 @@ Development: see CONTRIBUTING.md (`pip install -e ".[dev]"`, `cmake --preset dev
 pull request and runs the generated tests (docs/integration/github_actions.md):
 
 ```yaml
-- uses: oguzhankynk/wireforge@v0.2.1
+- uses: oguzhankynk/wireforge@v0.3.0
   with: { project: icd }
 ```
 

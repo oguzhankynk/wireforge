@@ -621,6 +621,25 @@ static void test_crc(void) {
     CHECK(wf_crc(&crc32, check, 0U) == 0U);
 }
 
+static void test_trim(void) {
+    const uint8_t some[6] = {1U, 0U, 2U, 0U, 0U, 0U};
+    const uint8_t zeros[3] = {0U, 0U, 0U};
+    CHECK(wf_trimmed_size(some, 6U) == 3U);
+    CHECK(wf_trimmed_size(some, 3U) == 3U);
+    CHECK(wf_trimmed_size(zeros, 3U) == 1U);
+    CHECK(wf_trimmed_size(zeros, 0U) == 0U);
+
+    uint8_t buffer[5];
+    size_t size = 0U;
+    const uint8_t* full = wf_zero_extend(some, 3U, buffer, 5U, &size);
+    CHECK(full == buffer && size == 5U);
+    CHECK(buffer[0] == 1U && buffer[2] == 2U && buffer[3] == 0U && buffer[4] == 0U);
+    full = wf_zero_extend(some, 6U, buffer, 5U, &size);
+    CHECK(full == some && size == 6U);
+    full = wf_zero_extend(some, 5U, buffer, 5U, &size);
+    CHECK(full == some && size == 5U);
+}
+
 int main(void) {
     test_status();
     test_masks_and_fits();
@@ -638,6 +657,7 @@ int main(void) {
     test_validation();
     test_expressions();
     test_crc();
+    test_trim();
     if (failures == 0) {
         printf("c runtime: all checks passed\n");
     }

@@ -131,6 +131,9 @@ An interface is one communication endpoint with a remote party (`our_to_nodeA`, 
 - `messages`: names or `{name, id?, if?, since?}`; `id` overrides the message id on this interface.
 - `buffers.rx_bytes/tx_bytes`: optional circular/linear buffer sizes; default derived from `max_frame_size`.
 - `allow_trailing_bytes`: default false; leftover payload bytes give `TrailingBytes`.
+- `trim_trailing_zeros`: default false; every payload is sent without its trailing zero bytes (the first byte always
+  stays) and the receiver reads the bytes it did not get as zeros (MAVLink 2). Needs messages of fixed size (SR-25);
+  changing it is a breaking change.
 
 ## 11. Versioning and file identity
 | Key | Meaning | Written by |
@@ -200,6 +203,9 @@ carry file, line and JSON pointer.
   `init()` and the reference codec start every field at zero; a dynamic array starts empty and is exempt.
 - SR-24 `scale` and `offset` are allowed only on a plain integer or floating-point field: not on enums, `bool`,
   `char`, structs, arrays, reserved or constant fields, roles and checksums.
+- SR-25 An interface with `trim_trailing_zeros` does not use `fixed` framing, and every message it carries has a fixed
+  wire size in every profile (no dynamic arrays or optional fields), because the receiver restores the trimmed zeros up
+  to that size.
 - SR-21 Every id in a `reqs` list names an entry of the `requirements` catalog (section 17). An unused catalog entry is
   not an error.
 
@@ -297,6 +303,9 @@ produce the same bytes and statuses (golden vectors in `tests/golden/`, regenera
   that does not match the frame is `InvalidLength`; `fixed` framing needs exactly `frame_size` bytes (no padding is ever
   added) and every frame must fit `max_frame_size`. Decoding verifies the trailer checksum before looking up the id.
 - Leftover payload bytes are `TrailingBytes` unless the interface sets `allow_trailing_bytes`.
+- `trim_trailing_zeros`: the encoder leaves out the zero bytes at the end of the payload (the first byte always stays),
+  so the length field and the checksum cover the bytes that are sent; the decoder extends a shorter payload with zeros
+  to the size of the message before decoding it. A payload of the full size or longer is decoded as it is.
 
 ## 17. Requirements and traceability
 The model can carry the user's high-level requirements (HLR) and tie model elements to them. WireForge derives the
@@ -327,6 +336,7 @@ built from names only (`SensorReading.temperature.RANGE`) and the displayed id `
 | `DEFAULT`, `RANGE`, `ENUM`, `BITS`, `COUNT`, `CHARS`, `CONST`, `CHECKSUM` | a field with that attribute (`<Owner>.<field>.<KIND>`, `<Interface>.header.<field>.<KIND>` for frame fields); `RANGE`, `ENUM` and `BITS` only where range checking is on |
 | `FRAME_ENCODE`, `FRAME_MAX`, `DISPATCH`, `RAW` | every interface |
 | `FRAME_SYNC`, `FRAME_LENGTH`, `FRAME_RESYNC`, `DISPATCH_UNKNOWN` | an interface with a sync field, a length (field or framing), framing other than `none`, a `message_id` field |
+| `FRAME_TRIM` | an interface with `trim_trailing_zeros` |
 
 The fields of a nested type belong to the type (`Vec3.x.RANGE`), not to each message that uses it. An LLR inherits the
 HLRs of the elements it comes from (its field, its struct, the enum or checksum it uses, the interface and its

@@ -5,6 +5,9 @@ code that serializes, validates, frames and dispatches them without heap, except
 project that proves the code against a reference codec. The wire format is the one you describe: the generator never
 adds bytes.
 
+New to WireForge? The [tutorial](tutorial/README.md) builds a MAVLink 2 drone link step by step: the web UI, the code
+in an application, the tests, CI, Wireshark and AI agents.
+
 ## Install
 Python 3.10 to 3.13.
 ```sh
@@ -90,6 +93,7 @@ published protocol that is written from its public documents and checked against
 | `crsf` | CRSF (radio link to flight controller): the frame and HEARTBEAT, BATTERY_SENSOR, LINK_STATISTICS, one message per interface | `crsf-parser` |
 | `j1939` | SAE J1939: the identifier word (priority, PGN, source address) and the groups EEC1, CCVS, ET1 | `cantools` |
 | `mavlink1` | MAVLink 1: the frame and HEARTBEAT, ATTITUDE, GLOBAL_POSITION_INT, COMMAND_LONG; a checksum that adds the CRC_EXTRA byte of the message | `pymavlink` |
+| `mavlink2` | MAVLink 2 (what current autopilots speak): the frame with the 24-bit message id, payloads without their trailing zero bytes, HEARTBEAT, GPS_RAW_INT and COMMAND_ACK with extension fields, ATTITUDE, GLOBAL_POSITION_INT, COMMAND_LONG; a Lua checksum hook for Wireshark | `pymavlink` |
 | `ubx` | u-blox UBX: the frame, ACK-ACK, ACK-NAK, CFG-RATE, NAV-PVT, MON-VER; Fletcher-8 that skips the sync characters | `pyubx2` |
 
 ## Examples

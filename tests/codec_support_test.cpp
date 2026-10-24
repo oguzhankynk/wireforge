@@ -207,6 +207,41 @@ TEST(CodecSupport, ReadBytesFailsWhenTruncated) {
     EXPECT_EQ(decoder.status(), Status::Truncated);
 }
 
+TEST(CodecSupport, NarrowFieldsHaveTheirOwnWidth) {
+    ::testing::Test::RecordProperty("requirements", "RTR-codec_support-009");
+    Bytes buffer{};
+    Encoder encoder(Span<std::uint8_t>(buffer), kLittle);
+    encoder.write_width(std::uint32_t{0x0A0B0CU}, 3U);
+    encoder.write_width(std::uint8_t{0x7FU}, 1U);
+    ASSERT_EQ(encoder.status(), Status::Ok);
+    ASSERT_EQ(encoder.position(), 4U);
+    EXPECT_EQ(buffer[0], 0x0CU);
+    EXPECT_EQ(buffer[2], 0x0AU);
+    EXPECT_EQ(buffer[3], 0x7FU);
+
+    Decoder decoder(Span<const std::uint8_t>(buffer.data(), 4U), kLittle);
+    std::uint32_t wide = 0U;
+    std::uint8_t narrow = 0U;
+    decoder.read_width(wide, 3U);
+    decoder.read_width(narrow, 1U);
+    EXPECT_EQ(decoder.status(), Status::Ok);
+    EXPECT_EQ(wide, 0x0A0B0CU);
+    EXPECT_EQ(narrow, 0x7FU);
+    decoder.read_width(wide, 1U);
+    EXPECT_EQ(decoder.status(), Status::Truncated);
+
+    // A value that does not fit is refused and nothing is written.
+    Encoder small(Span<std::uint8_t>(buffer), kLittle);
+    small.write_width(std::uint32_t{0x01000000U}, 3U);
+    EXPECT_EQ(small.status(), Status::OutOfRange);
+    EXPECT_EQ(small.position(), 0U);
+    small.write_width(std::uint8_t{1U}, 1U);
+    EXPECT_EQ(small.position(), 0U);
+    Encoder full(Span<std::uint8_t>(buffer), kLittle);
+    full.write_width(std::uint64_t{0xFFFFFFFFFFFFFFFFU}, 8U);
+    EXPECT_EQ(full.status(), Status::Ok);
+}
+
 TEST(CodecSupport, NoHeapAllocation) {
     ::testing::Test::RecordProperty("requirements", "RTR-static_vector-005");
     const wireforge::testing::AllocationTrap trap;

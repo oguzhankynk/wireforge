@@ -19,7 +19,7 @@
           "code": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true, "description": "Symbols searched for in the header." },
           "realizes": {
             "type": "array",
-            "items": { "enum": ["VALUES", "ALGORITHM", "LAYOUT", "SIZE", "TRUNCATED", "TRAILING", "DEFAULT", "RANGE", "ENUM", "BITS", "COUNT", "CHARS", "CONST", "CHECKSUM", "FRAME_ENCODE", "FRAME_SYNC", "FRAME_LENGTH", "FRAME_RESYNC", "FRAME_MAX", "DISPATCH", "DISPATCH_UNKNOWN", "RAW"] },
+            "items": { "enum": ["VALUES", "ALGORITHM", "LAYOUT", "SIZE", "TRUNCATED", "TRAILING", "DEFAULT", "RANGE", "ENUM", "BITS", "COUNT", "CHARS", "CONST", "CHECKSUM", "FRAME_ENCODE", "FRAME_SYNC", "FRAME_LENGTH", "FRAME_RESYNC", "FRAME_MAX", "FRAME_TRIM", "DISPATCH", "DISPATCH_UNKNOWN", "RAW"] },
             "uniqueItems": true,
             "description": "Kinds of generated low-level requirements this runtime behaviour implements."
           },

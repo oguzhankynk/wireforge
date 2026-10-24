@@ -68,9 +68,14 @@ def _value_source(args: argparse.Namespace) -> object:
     return _yaml_value(args.value)
 
 
+def _plugins(args: argparse.Namespace) -> Path | None:
+    """Return the checksum plugin file: --plugins, else the project's own `plugins/*.py`."""
+    return args.plugins if args.plugins is not None else service.find_plugins(Path(args.project))
+
+
 def _tests(args: argparse.Namespace) -> test_project.TestOptions:
     return test_project.TestOptions(
-        plugins=args.plugins,
+        plugins=_plugins(args),
         runtime=args.runtime,
         threshold=args.coverage_threshold,
         language=args.language,
@@ -82,7 +87,7 @@ def _codec_target(args: argparse.Namespace) -> CodecTarget:
         message=args.message,
         interface=args.interface,
         profile=args.profile,
-        plugins=service.load_plugins(args.plugins),
+        plugins=service.load_plugins(_plugins(args)),
     )
 
 
@@ -338,7 +343,11 @@ def _project(parser: argparse.ArgumentParser) -> None:
 
 
 def _test_options(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--plugins", type=Path, help="Python file defining checksum PLUGINS")
+    parser.add_argument(
+        "--plugins",
+        type=Path,
+        help="Python file defining checksum PLUGINS (default: the project's plugins/*.py)",
+    )
     parser.add_argument(
         "--runtime",
         type=Path,
@@ -366,7 +375,11 @@ def _value(parser: argparse.ArgumentParser, name: str = "value") -> None:
 def _codec_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--interface")
     parser.add_argument("--profile")
-    parser.add_argument("--plugins", type=Path, help="Python file defining checksum PLUGINS")
+    parser.add_argument(
+        "--plugins",
+        type=Path,
+        help="Python file defining checksum PLUGINS (default: the project's plugins/*.py)",
+    )
 
 
 Handler = Callable[[argparse.Namespace], Result]

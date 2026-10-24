@@ -62,7 +62,7 @@ export function ChecksumEditor({
           </label>
         </>
       )}
-      <button type="button" disabled={name.trim() === ""} onClick={() => void save()}>
+      <button type="button" className="primary" disabled={name.trim() === ""} onClick={() => void save()}>
         Save checksum
       </button>
       {error !== "" && <p role="alert">{error}</p>}
