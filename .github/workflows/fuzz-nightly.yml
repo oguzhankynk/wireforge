@@ -1,8 +1,7 @@
 name: fuzz-nightly
-# Long fuzzing of every target; pull requests run the same targets for 60 s each (ci.yml).
+# Long fuzzing of every target, started by hand; pull requests run the same targets for 60 s each
+# (ci.yml).
 on:
-  schedule:
-    - cron: "17 2 * * *"
   workflow_dispatch:
     inputs:
       seconds:
