@@ -1,0 +1,32 @@
+name: Protocol model request
+description: Ask for a published protocol model (`wireforge init --protocol <name>`)
+labels: [protocol]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Published models are written from public documents and checked byte for byte against an independent implementation, so these two answers matter most.
+  - type: input
+    id: protocol
+    attributes:
+      label: Protocol
+      placeholder: "e.g. MSP (MultiWii Serial Protocol), NMEA 2000 PGNs, SBUS"
+    validations:
+      required: true
+  - type: textarea
+    id: documents
+    attributes:
+      label: Public documents
+      description: Where the frame and the messages are specified (links).
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: Independent implementation
+      description: A library or tool that encodes and decodes it (preferably Python), to check the model against.
+  - type: textarea
+    id: messages
+    attributes:
+      label: Messages you need
+      description: The messages or commands that matter for you first.
