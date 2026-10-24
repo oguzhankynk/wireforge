@@ -523,6 +523,8 @@ class _InterfaceBuilder:
         }
         if settings.allow_trailing:
             result["allow_trailing"] = True
+        if interface.trim_trailing_zeros:
+            result["trim"] = True
         if framing.resync and framing.kind != "none":
             result["resync"] = True
         if framing.kind == "fixed" and framing.frame_size is not None:
@@ -578,6 +580,9 @@ class _InterfaceBuilder:
             identifier = ids.get(message.name)
             if identifier is not None:
                 item["id"] = identifier
+            if interface.trim_trailing_zeros:
+                # A trimmed payload is dissected after being extended with zeros to this size.
+                item["size"] = builder.fixed_size(message.fields, message.name)
             result.append(item)
         return result
 

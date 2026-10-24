@@ -225,8 +225,16 @@ export function InterfaceEditor(props: InterfaceEditorProps) {
           />{" "}
           Allow trailing bytes
         </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={form.trimTrailingZeros}
+            onChange={(event) => { set({ trimTrailingZeros: event.target.checked }); }}
+          />{" "}
+          Trim trailing zeros
+        </label>
       </fieldset>
-      <button type="button" disabled={entryName.trim() === "" || problems.length > 0} onClick={() => void save()}>
+      <button type="button" className="primary" disabled={entryName.trim() === "" || problems.length > 0} onClick={() => void save()}>
         Save interface
       </button>
       {problems.length > 0 && (

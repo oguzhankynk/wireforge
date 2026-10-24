@@ -472,6 +472,16 @@
   expect: "reserved, constant, a role or a checksum"
   patch: [{ set: [messages, Command, fields, 1, scale], value: 2 }]
 
+# SR-25 trimmed payloads
+- name: trim_with_fixed_framing
+  rule: SR-25
+  expect: "not fixed framing"
+  patch: [{ set: [interfaces, fixed, trim_trailing_zeros], value: true }]
+- name: trim_with_variable_message
+  rule: SR-25
+  expect: "message Blob needs a fixed size"
+  patch: [{ set: [interfaces, raw, trim_trailing_zeros], value: true }]
+
 # SR-22 requirement test vectors
 - name: vector_unknown_message
   rule: SR-22

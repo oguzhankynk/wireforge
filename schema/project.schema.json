@@ -884,6 +884,10 @@
         "allow_trailing_bytes": {
           "type": "boolean"
         },
+        "trim_trailing_zeros": {
+          "type": "boolean",
+          "description": "Send every payload without its trailing zero bytes (the first byte stays); the receiver reads the missing bytes as zeros."
+        },
         "reqs": {
           "$ref": "#/$defs/reqs"
         }

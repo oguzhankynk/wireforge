@@ -120,6 +120,7 @@ export function StructEditor(props: StructEditorProps) {
       />
       <button
         type="button"
+        className="primary"
         disabled={entryName.trim() === "" || problems.length > 0}
         onClick={() => void save()}
       >

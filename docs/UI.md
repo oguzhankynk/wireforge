@@ -4,6 +4,11 @@ React + TypeScript (strict), built with Vite (`ui/`). `npm run dev` serves it an
 `wireforge serve` on port 8000; `npm run build` writes `ui/dist/`. Pass `?token=<T>` for a server started with
 `--token`.
 
+The look is plain and token based (`src/styles.css`): one set of color variables with a light and a dark value, the
+system setting by default and the button at the right of the header to switch; the choice is kept in the browser
+(`localStorage`, `src/theme.ts`). The selected entry is highlighted in the list, and the main action of each editor
+(save, create, download) is the accent-coloured button.
+
 ## New project
 "New project" in the header opens a form: choose a template (`telemetry`, `command` or `raw`), give the project id and
 name, and the first working model appears, already valid, with its first message open in the editor. "Next steps"
@@ -42,14 +47,15 @@ or through the CLI, not in the UI:
 ## Interfaces, profiles, versions and tools
 - **Interface editor:** version, description, direction, endian, header (or none: raw dispatch) and trailer fields
   with roles, constants and checksums, framing (kind, frame size, maximum frame size, length counts, resync), the
-  message list with per-interface id overrides, buffer sizes and trailing-byte tolerance. A new interface of a project
+  message list with per-interface id overrides, buffer sizes, trailing-byte tolerance and trimmed payloads (trailing
+  zeros not sent). A new interface of a project
   that keeps one interface per file gets its own file (`interfaces/<name>.yaml`).
 - **Profile editor:** description and define values.
 - **Tools** (tabs): C++ preview; **Layout** (offsets, sizes, bit positions and a byte bar per field of a message, link
   RAM per interface; per profile); **Playground** (encode a JSON value to payload/frame hex and decode hex, with
   interface and profile, using the reference codec); **Versions** (git history of the project directory and the
-  compatibility of the working copy with any earlier commit); **Generate** (every generated file of the project, and
-  "Download code and tests": the zip of `GET /api/projects/{id}/generate` with the generated headers, the GoogleTest
+  compatibility of the working copy with any earlier commit); **Generate** (every generated file of the project in C++17 or C99, and
+  "Download code and tests" in the same language: the zip of `GET /api/projects/{id}/generate` with the generated headers, the GoogleTest
   project, the runtime, the model and a README with the commands that build and run the tests).
 
 Saving shows `Saved <section>/<name>.`; a save that finishes after the user moved to another entry does not change the
@@ -72,6 +78,6 @@ field, a profile define, a new interface, playground round trip, layout bit map,
 baseline) and checks with `git diff` that exactly the edited lines changed. A third end-to-end test creates a project,
 sets its settings and defines, adds an enum and a message with its own encoding settings, and checks that message and
 interface keys the editors do not show survive a save. A fourth one shows the generated files of a new project and
-downloads its zip; an empty workspace opens the new project form. A new project opens its first message and its next
-steps. Gates: `npm run typecheck`, `npm run lint` (typescript-eslint strict type-checked, React
+downloads its zip, in C++ and in C; an empty workspace opens the new project form. A new project opens its first message and its next
+steps. A unit test switches the theme and checks that the choice is kept. Gates: `npm run typecheck`, `npm run lint` (typescript-eslint strict type-checked, React
 hooks), `npm run check:types`, `npm test`, `vite build` (`quality/run_all.sh`, CI job `ui`).

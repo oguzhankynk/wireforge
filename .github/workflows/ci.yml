@@ -300,6 +300,10 @@ jobs:
         with: { python-version: "3.12" }
       - run: sudo apt-get update && sudo apt-get install -y ninja-build
       - run: quality/run_quickstart.sh
+      # The tutorial (docs/tutorial/) with the wheel the quickstart installed, as a reader runs it.
+      - run: |
+          build/quickstart/venv/bin/pip install --quiet "$(ls build/quickstart/dist/wireforge-*.whl)[server,mcp]"
+          PATH="$PWD/build/quickstart/venv/bin:$PATH" python quality/run_tutorial.py
 
   docker:
     runs-on: ubuntu-24.04

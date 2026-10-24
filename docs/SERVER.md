@@ -33,8 +33,8 @@ types are generated from it. Code: `wireforge.server` (`storage.py`, `app.py`).
 | `GET/PUT /api/projects/{id}/files/{path}` | read/replace a file (text + ETag) | editor |
 | `GET/PUT/DELETE /api/projects/{id}/entries/{section}/{name}` | read/create-or-update/delete an entry | `wireforge get/upsert/remove` |
 | `GET/PUT/DELETE /api/projects/{id}/value?pointer=P` | read/set/delete any element | `wireforge get/set/remove` |
-| `GET /api/projects/{id}/generate[?tests=false]` | zip of the generated code (see below) | `wireforge generate --tests` |
-| `GET /api/projects/{id}/preview` | generated C++ files as text (nothing written; C99 is available from the CLI only) | `wireforge generate` |
+| `GET /api/projects/{id}/generate[?tests=false][&language=c]` | zip of the generated C++ (or C99) code (see below) | `wireforge generate --tests [--language c]` |
+| `GET /api/projects/{id}/preview[?language=c]` | generated C++ (or C99) files as text (nothing written) | `wireforge generate [--language c]` |
 | `GET /api/projects/{id}/analyze?profile=P&export=markdown\|csv\|json` | layout report (data) and ICD export (text) | `wireforge analyze` |
 | `POST /api/projects/{id}/requirements/import` | take a baseline of high-level requirements (JSON with the base64 file; needs `If-Match`) | `wireforge reqs-import` |
 | `POST /api/projects/{id}/requirements/lock` | number the low-level requirements (needs `If-Match`) | `wireforge reqs-lock` |
@@ -50,8 +50,8 @@ Edit bodies accept `dry_run` (return the diff, write nothing) and `strict` (refu
 Responses carry the service `Result` (`ok`, `issues`, `data`, `text`) plus the new `etag`.
 
 ## Downloaded code
-The zip of `generate` is self-contained: `<project>/include/<project>/` (generated headers and, unless
-`tests=false`, `generated_tests/`), `<project>/runtime/include/wireforge/` (the runtime), `<project>/model/` (the
+The zip of `generate` is self-contained: `<project>/include/<project>/` (generated headers, or with `language=c` the
+C99 sources and headers, and, unless `tests=false`, `generated_tests/`), `<project>/runtime/include/wireforge/` (the runtime), `<project>/model/` (the
 project definition with its `user_includes` directories) and a README. The CMake paths of the test project are
 relative inside the zip, so `cmake -S include/<project>/generated_tests -B build && cmake --build build && ctest
 --test-dir build` works after unpacking; `quality/run_generated_tests.sh` does exactly that for example 02.

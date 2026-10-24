@@ -380,6 +380,7 @@ def _compare_framing(
         ),
         "length_counts": (old_framing.length_counts, new_framing.length_counts),
         "direction": (old.direction, new.direction),
+        "trim_trailing_zeros": (old.trim_trailing_zeros, new.trim_trailing_zeros),
     }
     for key, (before, after) in breaking.items():
         if before != after:

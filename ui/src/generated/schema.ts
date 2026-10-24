@@ -275,6 +275,10 @@ export interface InterfaceDef {
     tx_bytes?: IntOrExpr;
   };
   allow_trailing_bytes?: boolean;
+  /**
+   * Send every payload without its trailing zero bytes (the first byte stays); the receiver reads the missing bytes as zeros.
+   */
+  trim_trailing_zeros?: boolean;
   reqs?: Reqs;
 }
 export interface TrailerDef {

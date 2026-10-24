@@ -101,6 +101,7 @@ INTERFACE = (
     "framing",
     "buffers",
     "allow_trailing_bytes",
+    "trim_trailing_zeros",
     "messages",
 )
 ORDERS: dict[str, tuple[str, ...]] = {
