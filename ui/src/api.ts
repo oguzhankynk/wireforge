@@ -167,4 +167,17 @@ export class Api {
   async preview(id: string): Promise<ServiceResult> {
     return (await this.request(`/api/projects/${id}/preview`)) as ServiceResult;
   }
+
+  /** The zip of the generated code, its test project, the runtime and the model. */
+  async archive(id: string): Promise<Blob> {
+    const headers = new Headers();
+    if (this.token !== undefined) headers.set("Authorization", `Bearer ${this.token}`);
+    const response = await fetch(`${this.base}/api/projects/${id}/generate`, { headers });
+    if (!response.ok) {
+      const body = (await response.json()) as { text?: unknown; detail?: unknown };
+      const message = typeof body.text === "string" ? body.text : body.detail;
+      throw new ApiError(response.status, typeof message === "string" ? message.trim() : response.statusText);
+    }
+    return response.blob();
+  }
 }

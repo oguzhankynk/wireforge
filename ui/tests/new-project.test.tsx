@@ -1,5 +1,5 @@
 // A new user starts a project from a template in the UI against a real server.
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, inject, it } from "vitest";
 import { Api } from "../src/api";
@@ -35,6 +35,15 @@ describe("new project", () => {
       expect(messages.textContent).toContain("Command");
     });
     expect(screen.getByLabelText("Save result").textContent).toBe("Created first-link.");
+
+    // The first message opens, and the next steps lead to the tools.
+    const editor = await screen.findByRole("region", { name: "Message editor" });
+    expect(within(editor).getByLabelText<HTMLInputElement>("Message name").value).toBe("Command");
+    const steps = screen.getByRole("region", { name: "Next steps" });
+    await user.click(within(steps).getByRole("button", { name: "Open Generate" }));
+    expect(screen.getByRole("tab", { name: "Generate" }).getAttribute("aria-selected")).toBe("true");
+    await user.click(within(steps).getByRole("button", { name: "Hide next steps of first-link" }));
+    expect(screen.queryByRole("region", { name: "Next steps" })).toBeNull();
   });
 
   it("creates a project from a published protocol", async () => {

@@ -6,8 +6,9 @@ React + TypeScript (strict), built with Vite (`ui/`). `npm run dev` serves it an
 
 ## New project
 "New project" in the header opens a form: choose a template (`telemetry`, `command` or `raw`), give the project id and
-name, and the first working model appears, already valid. The advanced parts of the schema stay in the YAML files and
-the CLI; the form does not offer them.
+name, and the first working model appears, already valid, with its first message open in the editor. "Next steps"
+then lead to the Playground and to Generate until hidden or another project is chosen. An empty workspace opens this
+form directly. The advanced parts of the schema stay in the YAML files and the CLI; the form does not offer them.
 
 ## Struct editor
 - **Entries:** the project's enums, types, messages, interfaces, profiles and checksums, with "New ..." buttons.
@@ -47,7 +48,9 @@ or through the CLI, not in the UI:
 - **Tools** (tabs): C++ preview; **Layout** (offsets, sizes, bit positions and a byte bar per field of a message, link
   RAM per interface; per profile); **Playground** (encode a JSON value to payload/frame hex and decode hex, with
   interface and profile, using the reference codec); **Versions** (git history of the project directory and the
-  compatibility of the working copy with any earlier commit).
+  compatibility of the working copy with any earlier commit); **Generate** (every generated file of the project, and
+  "Download code and tests": the zip of `GET /api/projects/{id}/generate` with the generated headers, the GoogleTest
+  project, the runtime, the model and a README with the commands that build and run the tests).
 
 Saving shows `Saved <section>/<name>.`; a save that finishes after the user moved to another entry does not change the
 selection.
@@ -68,5 +71,7 @@ shows the generated struct. A second end-to-end test edits the three-interface e
 field, a profile define, a new interface, playground round trip, layout bit map, compatibility with the committed
 baseline) and checks with `git diff` that exactly the edited lines changed. A third end-to-end test creates a project,
 sets its settings and defines, adds an enum and a message with its own encoding settings, and checks that message and
-interface keys the editors do not show survive a save. Gates: `npm run typecheck`, `npm run lint` (typescript-eslint strict type-checked, React
+interface keys the editors do not show survive a save. A fourth one shows the generated files of a new project and
+downloads its zip; an empty workspace opens the new project form. A new project opens its first message and its next
+steps. Gates: `npm run typecheck`, `npm run lint` (typescript-eslint strict type-checked, React
 hooks), `npm run check:types`, `npm test`, `vite build` (`quality/run_all.sh`, CI job `ui`).
