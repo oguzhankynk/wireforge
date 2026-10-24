@@ -45,9 +45,13 @@ tested on every pull request (ruff and mypy on 3.12 only).
   (workflow `release.yml`, environment `pypi`), then set the repository variable `PUBLISH_TO_PYPI` to `true`.
   A published version cannot be replaced, so do the first release as a tag you are sure of.
 - `pymodbus`, `pyubx2`, `pymavlink`, `crsf-parser` and `cantools` (pinned) are development dependencies: `tests/python/test_independent.py`,
-  `test_ubx.py`, `test_mavlink.py`, `test_crsf.py`, `test_j1939.py` and `test_dbc.py` compare the Modbus RTU, UBX, MAVLink 1, CRSF and J1939 models and the DBC importer with them, byte for byte.
+  `test_ubx.py`, `test_mavlink.py`, `test_mavlink2.py`, `test_crsf.py`, `test_j1939.py` and `test_dbc.py` compare the Modbus RTU, UBX, MAVLink 1 and 2, CRSF and J1939 models and the DBC importer with them, byte for byte.
 - Development tools are pinned to one minor version (`ruff`, `mypy` in `pyproject.toml`) so that a new release of a
   linter does not turn CI red by itself; raise them deliberately.
+
+## Community
+Questions and ideas go to Discussions, bugs and requests to the issue forms, security problems to private
+vulnerability reporting (SECURITY.md). Everyone taking part follows the code of conduct (CODE_OF_CONDUCT.md).
 
 ## Conventions
 - C++17, no heap, exceptions or RTTI in `runtime/` and generated code; never add bytes to the wire format.

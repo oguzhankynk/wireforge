@@ -1,0 +1,62 @@
+name: Bug report
+description: Something WireForge does wrong (generated code, a command, the web UI, the server)
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. A security problem goes through **Security → Report a vulnerability** instead (SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `wireforge version`
+      placeholder: "0.3.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Generated C++ code
+        - Generated C code
+        - Runtime
+        - Validation or the definition format
+        - Command line
+        - Web UI or server
+        - MCP server
+        - Wireshark dissector
+        - Importers (ICD, C header, DBC)
+        - Documents and traceability
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: model
+    attributes:
+      label: Model
+      description: The smallest part of the project that shows the problem (YAML), or a published protocol name.
+      render: yaml
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: Commands or clicks, in order.
+      placeholder: |
+        wireforge init drone --protocol mavlink2
+        wireforge test drone -o build/drone
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual result
+      description: What you expected, what happened instead, and the output or error text.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, compiler and version, Python version, target (if you cross-compile)

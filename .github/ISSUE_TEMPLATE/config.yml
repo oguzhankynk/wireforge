@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/oguzhankynk/wireforge/discussions
+    about: How do I ...? Is WireForge right for ...? Ask in Discussions.
+  - name: Tutorial
+    url: https://github.com/oguzhankynk/wireforge/blob/master/docs/tutorial/README.md
+    about: Ten chapters from the model to a working application.

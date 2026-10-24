@@ -1,0 +1,21 @@
+name: Feature request
+description: Something WireForge should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what stops you today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How it could work (the definition format, a command, the generated code). Optional.
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: A protocol, an ICD row or a message that shows the need.
