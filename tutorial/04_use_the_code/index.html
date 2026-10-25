@@ -16,11 +16,14 @@
         <link rel="prev" href="../03_your_own_protocol/">
       
       
-        <link rel="next" href="../05_tests/">
+        <link rel="next" href="../05_on_a_microcontroller/">
+      
+      
+        
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.39">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -28,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.8c3ca2c6.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -54,7 +57,6 @@
     
       
 
-    
     
     
   </head>
@@ -150,11 +152,13 @@
     
     
     
-      <label class="md-header__button md-icon" for="__search">
-        
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
-      </label>
-      <div class="md-search" data-md-component="search" role="dialog">
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
@@ -186,13 +190,14 @@
     </div>
   </div>
 </div>
+      
     
     
       <div class="md-header__source">
         <a href="https://github.com/oguzhankynk/wireforge" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -238,7 +243,7 @@
       <a href="https://github.com/oguzhankynk/wireforge" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -258,9 +263,16 @@
       <a href="../../GUIDE/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Home
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -276,6 +288,7 @@
   
   
   
+    
     
     
     
@@ -295,9 +308,16 @@
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Tutorial
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -306,7 +326,11 @@
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
-            Tutorial
+            
+  
+    Tutorial
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -320,9 +344,16 @@
       <a href="../" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Overview
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -341,9 +372,16 @@
       <a href="../01_install_first_project/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     1. Install and the first project
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -362,9 +400,16 @@
       <a href="../02_web_ui/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     2. The web UI
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -383,9 +428,16 @@
       <a href="../03_your_own_protocol/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     3. Your own protocol
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -413,9 +465,16 @@
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
   
+  
   <span class="md-ellipsis">
+    
+  
     4. Use the code
+  
+
+    
   </span>
+  
   
 
           <span class="md-nav__icon md-icon"></span>
@@ -424,9 +483,16 @@
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     4. Use the code
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -449,7 +515,9 @@
         <li class="md-nav__item">
   <a href="#get-the-example" class="md-nav__link">
     <span class="md-ellipsis">
-      Get the example
+      
+        Get the example
+      
     </span>
   </a>
   
@@ -458,7 +526,9 @@
         <li class="md-nav__item">
   <a href="#build-it" class="md-nav__link">
     <span class="md-ellipsis">
-      Build it
+      
+        Build it
+      
     </span>
   </a>
   
@@ -467,7 +537,9 @@
         <li class="md-nav__item">
   <a href="#fly-it" class="md-nav__link">
     <span class="md-ellipsis">
-      Fly it
+      
+        Fly it
+      
     </span>
   </a>
   
@@ -476,7 +548,31 @@
         <li class="md-nav__item">
   <a href="#how-the-code-is-used" class="md-nav__link">
     <span class="md-ellipsis">
-      How the code is used
+      
+        How the code is used
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-same-in-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The same in C
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#against-ardupilot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Against ArduPilot
+      
     </span>
   </a>
   
@@ -498,12 +594,19 @@
   
   
     <li class="md-nav__item">
-      <a href="../05_tests/" class="md-nav__link">
+      <a href="../05_on_a_microcontroller/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
-    5. Tests
+    
+  
+    5. On a microcontroller
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -519,12 +622,19 @@
   
   
     <li class="md-nav__item">
-      <a href="../06_versions_and_ci/" class="md-nav__link">
+      <a href="../06_tests/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
-    6. Versions and CI
+    
+  
+    6. Tests
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -540,12 +650,19 @@
   
   
     <li class="md-nav__item">
-      <a href="../07_wireshark/" class="md-nav__link">
+      <a href="../07_versions_and_ci/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
-    7. Wireshark
+    
+  
+    7. Versions and CI
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -561,12 +678,19 @@
   
   
     <li class="md-nav__item">
-      <a href="../08_ai_agents_mcp/" class="md-nav__link">
+      <a href="../08_wireshark/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
-    8. AI agents (MCP)
+    
+  
+    8. Wireshark
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -582,12 +706,19 @@
   
   
     <li class="md-nav__item">
-      <a href="../09_team_server/" class="md-nav__link">
+      <a href="../09_ai_agents_mcp/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
-    9. Team server
+    
+  
+    9. AI agents (MCP)
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -603,12 +734,47 @@
   
   
     <li class="md-nav__item">
-      <a href="../10_documents_and_evidence/" class="md-nav__link">
+      <a href="../10_team_server/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
-    10. Documents and evidence
+    
+  
+    10. Team server
+  
+
+    
   </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11_documents_and_evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11. Documents and evidence
+  
+
+    
+  </span>
+  
   
 
       </a>
@@ -634,9 +800,16 @@
       <a href="../../COMPARISON/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     How it compares
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -650,6 +823,7 @@
   
   
   
+    
     
     
     
@@ -669,9 +843,16 @@
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Reference
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -680,7 +861,11 @@
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
-            Reference
+            
+  
+    Reference
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -694,9 +879,16 @@
       <a href="../../SCHEMA_SPEC/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Definition format
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -715,9 +907,16 @@
       <a href="../../CLI/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Command line
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -736,9 +935,16 @@
       <a href="../../CODEGEN/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Generated code
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -757,9 +963,16 @@
       <a href="../../RUNTIME/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Runtime
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -778,9 +991,16 @@
       <a href="../../LAYOUT/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Layout analysis
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -799,9 +1019,16 @@
       <a href="../../IMPORT/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Importers
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -820,9 +1047,16 @@
       <a href="../../UI/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Web UI
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -841,9 +1075,16 @@
       <a href="../../SERVER/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Server
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -862,9 +1103,16 @@
       <a href="../../MCP/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     MCP
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -883,9 +1131,16 @@
       <a href="../../WIRESHARK/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Wireshark
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -907,6 +1162,7 @@
   
   
   
+    
     
     
     
@@ -926,9 +1182,16 @@
           <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Assurance
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -937,7 +1200,11 @@
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
-            Assurance
+            
+  
+    Assurance
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -951,9 +1218,16 @@
       <a href="../../LIFECYCLE/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Lifecycle documents
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -972,9 +1246,16 @@
       <a href="../../DO178C/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     DO-178C
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -993,9 +1274,16 @@
       <a href="../../SAFETY/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Safety
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -1014,9 +1302,16 @@
       <a href="../../CODING_RULES/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Coding rules
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -1035,9 +1330,16 @@
       <a href="../../integration/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Integrations
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -1062,6 +1364,7 @@
     
     
     
+    
       
         
         
@@ -1078,9 +1381,16 @@
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Design
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -1089,7 +1399,11 @@
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
-            Design
+            
+  
+    Design
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -1103,9 +1417,16 @@
       <a href="../../ARCHITECTURE/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Architecture
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -1124,9 +1445,16 @@
       <a href="../../DECISIONS/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Decisions
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -1171,7 +1499,9 @@
         <li class="md-nav__item">
   <a href="#get-the-example" class="md-nav__link">
     <span class="md-ellipsis">
-      Get the example
+      
+        Get the example
+      
     </span>
   </a>
   
@@ -1180,7 +1510,9 @@
         <li class="md-nav__item">
   <a href="#build-it" class="md-nav__link">
     <span class="md-ellipsis">
-      Build it
+      
+        Build it
+      
     </span>
   </a>
   
@@ -1189,7 +1521,9 @@
         <li class="md-nav__item">
   <a href="#fly-it" class="md-nav__link">
     <span class="md-ellipsis">
-      Fly it
+      
+        Fly it
+      
     </span>
   </a>
   
@@ -1198,7 +1532,31 @@
         <li class="md-nav__item">
   <a href="#how-the-code-is-used" class="md-nav__link">
     <span class="md-ellipsis">
-      How the code is used
+      
+        How the code is used
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-same-in-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The same in C
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#against-ardupilot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Against ArduPilot
+      
     </span>
   </a>
   
@@ -1214,9 +1572,11 @@
           
           
             <div class="md-content" data-md-component="content">
+              
               <article class="md-content__inner md-typeset">
                 
                   
+
 
   
   
@@ -1228,14 +1588,16 @@ check it with pymavlink, an independent MAVLink implementation. The vehicle send
 answers COMMAND_LONG with COMMAND_ACK.</p>
 <h2 id="get-the-example">Get the example</h2>
 <p>The application is in the WireForge repository, <code>examples/tutorial/drone_app/</code>: three files, <code>CMakeLists.txt</code>,
-<code>main.cpp</code> and <code>udp_transport.hpp</code>, plus <code>ground_station.py</code>.
+<code>main.cpp</code> and <code>udp_transport.hpp</code>, plus <code>ground_station.py</code>. Its C version and the firmware of chapter 5 are next to
+it.
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>--depth<span class="w"> </span><span class="m">1</span><span class="w"> </span>https://github.com/oguzhankynk/wireforge.git<span class="w"> </span>wireforge-src
-cp<span class="w"> </span>-r<span class="w"> </span>wireforge-src/examples/tutorial/drone_app<span class="w"> </span>.
 </code></pre></div></p>
 <!-- tutorial: hidden
-cp -r "$WIREFORGE_REPO/examples/tutorial/drone_app" .
+ln -s "$WIREFORGE_REPO" wireforge-src
 -->
-
+<!-- tutorial: run -->
+<div class="highlight"><pre><span></span><code>cp<span class="w"> </span>-r<span class="w"> </span>wireforge-src/examples/tutorial/drone_app<span class="w"> </span>wireforge-src/examples/tutorial/drone_app_c<span class="w"> </span>.
+</code></pre></div>
 <h2 id="build-it">Build it</h2>
 <!-- tutorial: run -->
 <p><div class="highlight"><pre><span></span><code>cmake<span class="w"> </span>-S<span class="w"> </span>drone_app<span class="w"> </span>-B<span class="w"> </span>build/drone_app<span class="w"> </span>-DDRONE_PROJECT<span class="o">=</span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/drone"</span><span class="w"> </span>-DWireForge_DIR<span class="o">=</span><span class="s2">"</span><span class="k">$(</span>wireforge<span class="w"> </span>cmake-dir<span class="k">)</span><span class="s2">"</span>
@@ -1293,11 +1655,54 @@ The endpoint joins the frame decoder, the dispatcher and the handler; the link r
 A transport is any class with a non-blocking <code>send</code> and <code>receive</code> (<code>udp_transport.hpp</code> is 60 lines); on a
 microcontroller it is a UART or a CAN driver. Nothing allocates memory, nothing throws, and trimming the trailing zeros
 of MAVLink 2 is done by the generated code: the application never sees it.</p>
-<p>For C, generate with <code>--language c</code>: the same model gives <code>model.h</code>/<code>model.c</code> and a handler struct of callbacks.</p>
-<p><strong>More:</strong> <a href="../../CODEGEN/">generated code</a>, <a href="../../RUNTIME/">runtime</a>, <code>examples/cmake_consumer/</code>.</p>
+<h2 id="the-same-in-c">The same in C</h2>
+<p><code>drone_app_c/</code> is the same vehicle in C99. One option of <code>wireforge_generate</code> makes the generated code C, and the
+library becomes a static library of the generated sources:
+<div class="highlight"><pre><span></span><code><span class="nb">wireforge_generate</span><span class="p">(</span><span class="s">drone_model</span><span class="w"> </span><span class="s">PROJECT</span><span class="w"> </span><span class="s2">"${DRONE_PROJECT}"</span><span class="w"> </span><span class="s">LANGUAGE</span><span class="w"> </span><span class="s">c</span><span class="p">)</span>
+</code></pre></div></p>
+<!-- tutorial: run -->
+<p><div class="highlight"><pre><span></span><code>cmake<span class="w"> </span>-S<span class="w"> </span>drone_app_c<span class="w"> </span>-B<span class="w"> </span>build/drone_app_c<span class="w"> </span>-DDRONE_PROJECT<span class="o">=</span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/drone"</span><span class="w"> </span>-DWireForge_DIR<span class="o">=</span><span class="s2">"</span><span class="k">$(</span>wireforge<span class="w"> </span>cmake-dir<span class="k">)</span><span class="s2">"</span>
+cmake<span class="w"> </span>--build<span class="w"> </span>build/drone_app_c
+build/drone_app_c/drone_sim_c<span class="w"> </span><span class="m">6</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span>python<span class="w"> </span>drone_app/ground_station.py<span class="p">;</span><span class="w"> </span><span class="nb">wait</span>
+</code></pre></div>
+The ground station sees the same messages. In C the handler is a struct of callbacks, and a callback left <code>NULL</code>
+means "decode and ignore", so the vehicle sets only the two it acts on:
+<div class="highlight"><pre><span></span><code><span class="n">self</span><span class="o">-&gt;</span><span class="n">handler</span><span class="p">.</span><span class="n">context</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">self</span><span class="p">;</span>
+<span class="n">self</span><span class="o">-&gt;</span><span class="n">handler</span><span class="p">.</span><span class="n">on_Heartbeat_received</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">on_heartbeat</span><span class="p">;</span>
+<span class="n">self</span><span class="o">-&gt;</span><span class="n">handler</span><span class="p">.</span><span class="n">on_CommandLong_received</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">on_command_long</span><span class="p">;</span>
+<span class="n">drone_mavlink2_link_link_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">self</span><span class="o">-&gt;</span><span class="n">link</span><span class="p">,</span><span class="w"> </span><span class="n">transport</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">self</span><span class="o">-&gt;</span><span class="n">handler</span><span class="p">);</span>
+</code></pre></div>
+The vehicle itself (<code>vehicle.c</code>) knows nothing about UDP: <code>main.c</code> gives it a transport and calls <code>vehicle_tick()</code>
+every 10 ms. That is what lets the next chapter run it on a microcontroller.</p>
+<h2 id="against-ardupilot">Against ArduPilot</h2>
+<p>So far both ends were ours. ArduPilot's simulator (SITL) runs the real ArduCopter firmware on your computer, and
+<code>ardupilot_gcs/</code> is a small ground station in C for it, built from the import of the whole <code>ardupilotmega.xml</code> (every
+message of chapter 3's dialect, not just two). Get a SITL build of ArduCopter for Linux from ArduPilot's firmware server
+and its default parameters, and start it; it waits for a ground station on TCP port 5760:
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-fLO<span class="w"> </span>https://firmware.ardupilot.org/Copter/stable/SITL_x86_64_linux_gnu/arducopter<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span>arducopter
+curl<span class="w"> </span>-fLO<span class="w"> </span>https://raw.githubusercontent.com/ArduPilot/ardupilot/master/Tools/autotest/default_params/copter.parm
+./arducopter<span class="w"> </span>--model<span class="w"> </span>quad<span class="w"> </span>--defaults<span class="w"> </span>copter.parm<span class="w"> </span>-I0<span class="w"> </span><span class="p">&amp;</span>
+</code></pre></div>
+Then import the dialect, build the ground station and run it:
+<div class="highlight"><pre><span></span><code>cp<span class="w"> </span>-r<span class="w"> </span>wireforge-src/examples/tutorial/ardupilot_gcs<span class="w"> </span>.
+wireforge<span class="w"> </span>import-mavlink<span class="w"> </span><span class="s2">"</span><span class="nv">$DIALECTS</span><span class="s2">/ardupilotmega.xml"</span><span class="w"> </span>ardupilot<span class="w"> </span>--name<span class="w"> </span>ardupilot
+cmake<span class="w"> </span>-S<span class="w"> </span>ardupilot_gcs<span class="w"> </span>-B<span class="w"> </span>build/ardupilot_gcs<span class="w"> </span>-DARDUPILOT_PROJECT<span class="o">=</span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/ardupilot"</span><span class="w"> </span>-DWireForge_DIR<span class="o">=</span><span class="s2">"</span><span class="k">$(</span>wireforge<span class="w"> </span>cmake-dir<span class="k">)</span><span class="s2">"</span>
+cmake<span class="w"> </span>--build<span class="w"> </span>build/ardupilot_gcs
+build/ardupilot_gcs/ardupilot_gcs<span class="w"> </span><span class="m">15</span>
+</code></pre></div>
+It sends a HEARTBEAT every second, asks for the telemetry streams, the AUTOPILOT_VERSION (with a COMMAND_LONG) and the
+parameter list, and counts what the autopilot sends back. With ArduCopter 4.7.2:
+<div class="highlight"><pre><span></span><code>ardupilot_gcs: 2992 frames decoded, 0 rejected
+ardupilot_gcs: HEARTBEAT 15 (type 2), ATTITUDE 59 (roll 0.001), GLOBAL_POSITION_INT 59, VFR_HUD 59 (alt 584.08)
+ardupilot_gcs: AUTOPILOT_VERSION 1 (firmware 4.7.2), COMMAND_ACK 1 (command 512, result 0)
+ardupilot_gcs: PARAM_VALUE 1369 of 1369
+</code></pre></div>
+Every frame of the autopilot, of more than thirty kinds, is decoded and its checksum verified; none is rejected. The
+handler has callbacks for seven messages, and the others are decoded and ignored. Stop the simulator with <code>kill %1</code>.</p>
+<p><strong>More:</strong> <a href="../../CODEGEN/">generated code</a> (C++ and C), <a href="../../RUNTIME/">runtime</a>, <code>examples/cmake_consumer/</code>.</p>
 <p><strong>If something goes wrong:</strong> <code>Could not find a package configuration file provided by "WireForge"</code>: pass
 <code>-DWireForge_DIR="$(wireforge cmake-dir)"</code>. Port 14550 or 14551 in use: another ground station or simulator is running.</p>
-<p>Next: <a href="../05_tests/">5. Tests</a></p>
+<p>Next: <a href="../05_on_a_microcontroller/">5. On a microcontroller</a></p>
 
 
 
@@ -1350,10 +1755,13 @@ of MAVLink 2 is done by the generated code: the application never sees it.</p>
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.top", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.525ec568.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
