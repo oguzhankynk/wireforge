@@ -25,12 +25,13 @@ How the model says what MAVLink 2 does:
 - The checksum is CRC-16/MCRF4XX over the frame without the start byte, followed by the CRC_EXTRA byte of the message.
   `mav2sum::Crc` (`app/include/mav2sum/crc.hpp`, `app/include/mav2sum/crc.h` for C, `plugins/mavlink2_crc.py`) skips the
   start byte, keeps the message id when it passes by and adds the CRC_EXTRA byte of that message last. The CRC_EXTRA
-  bytes are one list, `app/include/mav2sum/crc_extra.h`, that the C, C++ and Python code all read: a new message needs
-  its line there (and in `wireshark/mav2sum.lua` for Wireshark).
+  bytes are one list, `app/include/mav2sum/crc_extra.h`, that the C, C++ and Python code and the Wireshark hook all
+  read: a new message needs its line there only.
 - `incompatFlags` is the constant 0, so a signed frame (flag 0x01) is refused with `ConstMismatch`.
 
-Wireshark: `wireforge wireshark <project> -o mavlink2.lua` writes the dissector; load `wireshark/mav2sum.lua` as another
-Lua plugin next to it and the dissector also verifies the checksum.
+Wireshark: `wireforge wireshark <project> -o mavlink2.lua` writes the dissector; load `wireshark/mav2sum.lua` from the
+project as another Lua plugin and the dissector also verifies the checksum. The hook finds the CRC_EXTRA list from its
+place in the project; when you copy it elsewhere, copy `crc_extra.h` next to it.
 
 Not covered: message signing (signed frames are refused) and the other messages of the common set; for all of them,
 or for ArduPilot's or your own dialect, `wireforge import-mavlink <dialect.xml>` writes a project with the same frame

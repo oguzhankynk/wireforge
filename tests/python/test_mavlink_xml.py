@@ -171,7 +171,7 @@ def test_selected_messages_take_only_their_enums(tmp_path: Path) -> None:
     header = (tmp_path / "p" / mavlink_xml.CRC_EXTRA_HEADER).read_text(encoding="utf-8")
     assert "X(0U, 50U) /* HEARTBEAT */" in header
     lua = (tmp_path / "p" / mavlink_xml.LUA_HOOK).read_text(encoding="utf-8")
-    assert "local CRC_EXTRA = { [0] = 50 }" in lua
+    assert "local BUILT_IN = { [0] = 50 }" in lua
 
 
 def test_an_unknown_message_is_refused(tmp_path: Path) -> None:

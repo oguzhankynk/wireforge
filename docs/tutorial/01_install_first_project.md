@@ -8,7 +8,7 @@ run the tests WireForge generates for it.
 python -m pip install "wireforge[server,mcp]"
 wireforge --version
 ```
-`server` adds the web UI of chapter 2, `mcp` the agent server of chapter 8. Make a directory for the tutorial and work
+`server` adds the web UI of chapter 2, `mcp` the agent server of chapter 9. Make a directory for the tutorial and work
 in it:
 ```sh
 mkdir wireforge-tutorial && cd wireforge-tutorial
@@ -74,7 +74,7 @@ that checks every message and frame against WireForge's reference codec, builds 
 code instead, add `--language c`.
 
 **What happened:** the model was validated, the code generated (no heap, no exceptions, no RTTI), and the tests were
-derived from the model itself, not written by hand. Chapter 5 shows what they prove.
+derived from the model itself, not written by hand. Chapter 6 shows what they prove.
 
 **More:** [User guide](../GUIDE.md), [command line](../CLI.md), [definition format](../SCHEMA_SPEC.md).
 

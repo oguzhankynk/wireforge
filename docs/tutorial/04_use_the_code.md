@@ -6,14 +6,18 @@ answers COMMAND_LONG with COMMAND_ACK.
 
 ## Get the example
 The application is in the WireForge repository, `examples/tutorial/drone_app/`: three files, `CMakeLists.txt`,
-`main.cpp` and `udp_transport.hpp`, plus `ground_station.py`.
+`main.cpp` and `udp_transport.hpp`, plus `ground_station.py`. Its C version and the firmware of chapter 5 are next to
+it.
 ```sh
 git clone --depth 1 https://github.com/oguzhankynk/wireforge.git wireforge-src
-cp -r wireforge-src/examples/tutorial/drone_app .
 ```
 <!-- tutorial: hidden
-cp -r "$WIREFORGE_REPO/examples/tutorial/drone_app" .
+ln -s "$WIREFORGE_REPO" wireforge-src
 -->
+<!-- tutorial: run -->
+```sh
+cp -r wireforge-src/examples/tutorial/drone_app wireforge-src/examples/tutorial/drone_app_c .
+```
 
 ## Build it
 <!-- tutorial: run -->
@@ -81,11 +85,61 @@ A transport is any class with a non-blocking `send` and `receive` (`udp_transpor
 microcontroller it is a UART or a CAN driver. Nothing allocates memory, nothing throws, and trimming the trailing zeros
 of MAVLink 2 is done by the generated code: the application never sees it.
 
-For C, generate with `--language c`: the same model gives `model.h`/`model.c` and a handler struct of callbacks.
+## The same in C
+`drone_app_c/` is the same vehicle in C99. One option of `wireforge_generate` makes the generated code C, and the
+library becomes a static library of the generated sources:
+```cmake
+wireforge_generate(drone_model PROJECT "${DRONE_PROJECT}" LANGUAGE c)
+```
+<!-- tutorial: run -->
+```sh
+cmake -S drone_app_c -B build/drone_app_c -DDRONE_PROJECT="$PWD/drone" -DWireForge_DIR="$(wireforge cmake-dir)"
+cmake --build build/drone_app_c
+build/drone_app_c/drone_sim_c 6 & python drone_app/ground_station.py; wait
+```
+The ground station sees the same messages. In C the handler is a struct of callbacks, and a callback left `NULL`
+means "decode and ignore", so the vehicle sets only the two it acts on:
+```c
+self->handler.context = self;
+self->handler.on_Heartbeat_received = on_heartbeat;
+self->handler.on_CommandLong_received = on_command_long;
+drone_mavlink2_link_link_init(&self->link, transport, &self->handler);
+```
+The vehicle itself (`vehicle.c`) knows nothing about UDP: `main.c` gives it a transport and calls `vehicle_tick()`
+every 10 ms. That is what lets the next chapter run it on a microcontroller.
 
-**More:** [generated code](../CODEGEN.md), [runtime](../RUNTIME.md), `examples/cmake_consumer/`.
+## Against ArduPilot
+So far both ends were ours. ArduPilot's simulator (SITL) runs the real ArduCopter firmware on your computer, and
+`ardupilot_gcs/` is a small ground station in C for it, built from the import of the whole `ardupilotmega.xml` (every
+message of chapter 3's dialect, not just two). Get a SITL build of ArduCopter for Linux from ArduPilot's firmware server
+and its default parameters, and start it; it waits for a ground station on TCP port 5760:
+```sh
+curl -fLO https://firmware.ardupilot.org/Copter/stable/SITL_x86_64_linux_gnu/arducopter && chmod +x arducopter
+curl -fLO https://raw.githubusercontent.com/ArduPilot/ardupilot/master/Tools/autotest/default_params/copter.parm
+./arducopter --model quad --defaults copter.parm -I0 &
+```
+Then import the dialect, build the ground station and run it:
+```sh
+cp -r wireforge-src/examples/tutorial/ardupilot_gcs .
+wireforge import-mavlink "$DIALECTS/ardupilotmega.xml" ardupilot --name ardupilot
+cmake -S ardupilot_gcs -B build/ardupilot_gcs -DARDUPILOT_PROJECT="$PWD/ardupilot" -DWireForge_DIR="$(wireforge cmake-dir)"
+cmake --build build/ardupilot_gcs
+build/ardupilot_gcs/ardupilot_gcs 15
+```
+It sends a HEARTBEAT every second, asks for the telemetry streams, the AUTOPILOT_VERSION (with a COMMAND_LONG) and the
+parameter list, and counts what the autopilot sends back. With ArduCopter 4.7.2:
+```text
+ardupilot_gcs: 2992 frames decoded, 0 rejected
+ardupilot_gcs: HEARTBEAT 15 (type 2), ATTITUDE 59 (roll 0.001), GLOBAL_POSITION_INT 59, VFR_HUD 59 (alt 584.08)
+ardupilot_gcs: AUTOPILOT_VERSION 1 (firmware 4.7.2), COMMAND_ACK 1 (command 512, result 0)
+ardupilot_gcs: PARAM_VALUE 1369 of 1369
+```
+Every frame of the autopilot, of more than thirty kinds, is decoded and its checksum verified; none is rejected. The
+handler has callbacks for seven messages, and the others are decoded and ignored. Stop the simulator with `kill %1`.
+
+**More:** [generated code](../CODEGEN.md) (C++ and C), [runtime](../RUNTIME.md), `examples/cmake_consumer/`.
 
 **If something goes wrong:** `Could not find a package configuration file provided by "WireForge"`: pass
 `-DWireForge_DIR="$(wireforge cmake-dir)"`. Port 14550 or 14551 in use: another ground station or simulator is running.
 
-Next: [5. Tests](05_tests.md)
+Next: [5. On a microcontroller](05_on_a_microcontroller.md)

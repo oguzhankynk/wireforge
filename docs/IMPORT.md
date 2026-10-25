@@ -87,7 +87,8 @@ The interface `link` is the one of the published MAVLink 2 model (`wireforge ini
 message id, payloads without their trailing zero bytes (`trim_trailing_zeros`) and the checksum with the CRC_EXTRA
 byte of each message. The importer computes that byte from the definition, as the MAVLink generators do (the name of
 the message and the type, name and array length of its base fields), and writes the list to
-`app/include/mav2sum/crc_extra.h` and the Wireshark hook `wireshark/mav2sum.lua`; the checksum code itself is copied
+`app/include/mav2sum/crc_extra.h`, which the Wireshark hook `wireshark/mav2sum.lua` reads too (with a copy of the
+list as its fallback); the checksum code itself is copied
 from the published model. Fields keep their integer types even when they name an enum, because a MAVLink receiver must
 accept values a newer dialect added. Signed frames are refused, as in the published model.
 

@@ -403,8 +403,8 @@ def _crc_extra_header(messages: list[XmlMessage], dialect_name: str) -> str:
 
 def _lua_hook(template: str, messages: list[XmlMessage]) -> str:
     table = ", ".join(f"[{message.id}] = {crc_extra(message)}" for message in messages)
-    pattern = re.compile(r"^local CRC_EXTRA = \{.*\}$", re.MULTILINE)
-    return pattern.sub(lambda _: f"local CRC_EXTRA = {{ {table} }}", template, count=1)
+    pattern = re.compile(r"^local BUILT_IN = \{.*\}$", re.MULTILINE)
+    return pattern.sub(lambda _: f"local BUILT_IN = {{ {table} }}", template, count=1)
 
 
 README = """\

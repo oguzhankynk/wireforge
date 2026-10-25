@@ -65,7 +65,7 @@ Development: see CONTRIBUTING.md (`pip install -e ".[dev]"`, `cmake --preset dev
 pull request and runs the generated tests (docs/integration/github_actions.md):
 
 ```yaml
-- uses: oguzhankynk/wireforge@v0.4.0
+- uses: oguzhankynk/wireforge@v0.4.1
   with: { project: icd }
 ```
 

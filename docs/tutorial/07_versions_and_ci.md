@@ -1,4 +1,4 @@
-# 6. Versions and CI
+# 7. Versions and CI
 
 **What we will do:** let WireForge tell a compatible change from a breaking one, and check every pull request.
 
@@ -54,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }          # the base revision must be readable
-      - uses: oguzhankynk/wireforge@v0.4.0
+      - uses: oguzhankynk/wireforge@v0.4.1
         with:
           project: drone
           test: "true"                    # generate, build and run the tests
@@ -64,4 +64,4 @@ Running it in CI is free, also in commercial repositories. For GitLab there is a
 
 **More:** [GitHub Actions](../integration/github_actions.md), [compatibility rules](../SCHEMA_SPEC.md#11-versioning-and-file-identity).
 
-Next: [7. Wireshark](07_wireshark.md)
+Next: [8. Wireshark](08_wireshark.md)

@@ -35,6 +35,23 @@ wireforge encode sensor ImuSample '{ sensorId: 3, temperature: 21.5 }' --interfa
 ```
 `resync: true` lets a receiver find the next frame after garbage or a broken frame.
 
+## A whole MAVLink dialect
+MAVLink keeps its messages in XML files, the dialects: `common.xml`, ArduPilot's `ardupilotmega.xml` or your own.
+`wireforge import-mavlink` turns a dialect and the files it includes into a project with every message and enum, the
+fields in the order MAVLink sends them and the checksum byte of every message computed from its definition. pymavlink
+ships the dialects, so take them from there:
+<!-- tutorial: run -->
+```sh
+python -m pip install pymavlink
+DIALECTS="$(python -c 'import os, pymavlink; print(os.path.dirname(pymavlink.__file__))')/dialects/v20"
+wireforge import-mavlink "$DIALECTS/common.xml" mavlink --name mavlink
+wireforge import-mavlink "$DIALECTS/ardupilotmega.xml" apm --name apm --message HEARTBEAT --message AHRS2
+wireforge encode mavlink SysStatus '{ voltageBattery: 12600, batteryRemaining: 87 }' --interface link
+```
+`mavlink/` has the 210 messages of `common.xml`; `apm/` has only the two messages asked for (and the enums they
+use). Both have the frame of the `drone` project, so chapter 4 works with them the same way. Import the dialect again
+when it changes: the project follows it.
+
 ## The parts of a model
 | Part | What it is | Example |
 |------|------------|---------|

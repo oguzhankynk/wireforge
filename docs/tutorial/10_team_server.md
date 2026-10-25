@@ -1,4 +1,4 @@
-# 9. Team server
+# 10. Team server
 
 **What we will do:** run the web UI for a team.
 
@@ -32,4 +32,4 @@ The server is meant for a team's internal network. Read the deployment notes bef
 
 **More:** [server and REST API](../SERVER.md), [deployment and operation](../SERVER.md#deployment-and-operation).
 
-Next: [10. Documents and evidence](10_documents_and_evidence.md)
+Next: [11. Documents and evidence](11_documents_and_evidence.md)

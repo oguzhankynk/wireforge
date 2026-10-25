@@ -1,4 +1,4 @@
-# 5. Tests
+# 6. Tests
 
 **What we will do:** look at the tests WireForge generated for `drone`, measure the coverage of the generated code and
 read the results.
@@ -32,7 +32,7 @@ The generated code has no branch of its own that a test cannot reach, so the gat
 
 ## Results
 The coverage build writes `results/` next to the build: the JUnit XML of the tests and the coverage reports. Each test
-records the requirements it verifies, which chapter 10 turns into a traceability matrix:
+records the requirements it verifies, which chapter 11 turns into a traceability matrix:
 ```text
 TEST(Interface_link, TrimsTrailingZeros) {
     ::testing::Test::RecordProperty("requirements", "LLR-link.FRAME_TRIM");
@@ -43,4 +43,4 @@ TEST(Interface_link, TrimsTrailingZeros) {
 **If something goes wrong:** `--coverage` needs `gcovr` and GCC or Clang. A failing generated test is a defect of
 WireForge (the model was valid); please report it with the model.
 
-Next: [6. Versions and CI](06_versions_and_ci.md)
+Next: [7. Versions and CI](07_versions_and_ci.md)

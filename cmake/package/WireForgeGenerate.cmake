@@ -1,8 +1,9 @@
-# wireforge_generate(<target> PROJECT <dir> [OUTPUT <dir>] [PLUGINS <file>] [TESTS])
+# wireforge_generate(<target> PROJECT <dir> [OUTPUT <dir>] [PLUGINS <file>] [LANGUAGE cpp|c] [TESTS])
 #
 # Runs `wireforge generate` at configure time (again whenever a model file changes) and creates
 # the INTERFACE library <target> with the generated headers, the project's user include
-# directories and wireforge::runtime. With TESTS the GoogleTest project is generated too
+# directories and wireforge::runtime. With LANGUAGE c the code is C99 and <target> is a STATIC
+# library of the generated sources with the C runtime headers; the project needs only C. With TESTS the GoogleTest project is generated too
 # (<OUTPUT>/<project>/generated_tests). The generator is the `wireforge` command, or
 # `python -m wireforge.cli` when only the Python package is found (WIREFORGE_COMMAND overrides).
 include_guard(GLOBAL)
@@ -22,7 +23,7 @@ function(_wireforge_command result)
 endfunction()
 
 function(wireforge_generate target)
-  cmake_parse_arguments(PARSE_ARGV 1 arg "TESTS" "PROJECT;OUTPUT;PLUGINS" "")
+  cmake_parse_arguments(PARSE_ARGV 1 arg "TESTS" "PROJECT;OUTPUT;PLUGINS;LANGUAGE" "")
   if(NOT arg_PROJECT)
     message(FATAL_ERROR "wireforge_generate(${target}): PROJECT is required")
   endif()
@@ -39,6 +40,13 @@ function(wireforge_generate target)
   if(arg_PLUGINS)
     list(APPEND arguments --plugins "${arg_PLUGINS}")
   endif()
+  if(NOT arg_LANGUAGE)
+    set(arg_LANGUAGE cpp)
+  endif()
+  if(NOT arg_LANGUAGE MATCHES "^(cpp|c)$")
+    message(FATAL_ERROR "wireforge_generate(${target}): LANGUAGE is cpp or c, not ${arg_LANGUAGE}")
+  endif()
+  list(APPEND arguments --language "${arg_LANGUAGE}")
   execute_process(COMMAND ${command} ${arguments} RESULT_VARIABLE failed OUTPUT_VARIABLE log ERROR_VARIABLE log)
   if(failed)
     message(FATAL_ERROR "wireforge_generate(${target}) failed:\n${log}")
@@ -57,6 +65,14 @@ function(wireforge_generate target)
         list(APPEND include_dirs "${project}/${directory}")
       endforeach()
     endif()
+  endif()
+  if(arg_LANGUAGE STREQUAL "c")
+    file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${output}/*.c")
+    list(FILTER sources EXCLUDE REGEX "/generated_tests/")
+    add_library(${target} STATIC ${sources})
+    target_include_directories(${target} PUBLIC "${output}" ${include_dirs} "${WIREFORGE_INCLUDE_DIR}")
+    set_target_properties(${target} PROPERTIES C_STANDARD 99 C_STANDARD_REQUIRED ON)
+    return()
   endif()
   add_library(${target} INTERFACE)
   target_include_directories(${target} INTERFACE "${output}" ${include_dirs})
