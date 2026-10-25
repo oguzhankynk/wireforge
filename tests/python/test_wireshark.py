@@ -6,6 +6,7 @@ import os
 import shutil
 import struct
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -39,6 +40,9 @@ _G.wireforge_checksums["vendor::SumChecksum"] = function(data)
   return sum
 end
 """
+# The checksum hooks of the avionics example and of the MAVLink 2 model, which tshark loads from the
+# model's directory so that it reads the model's CRC_EXTRA list.
+HOOKS = VENDOR_SUM_HOOK + f"dofile([[{MAVLINK2 / 'wireshark' / 'mav2sum.lua'}]])\n"
 UDP_PORT = 9999
 TCP_PORT = 9998
 SEVERITY_WARN = 0x00600000
@@ -264,9 +268,7 @@ def run_tshark(
     capture = tmp_path / f"{protocol}.pcap"
     write_pcap(capture, packets)
     hook = tmp_path / "hooks.lua"
-    # The checksum hooks of the avionics example and of the MAVLink 2 model.
-    hooks = VENDOR_SUM_HOOK + (MAVLINK2 / "wireshark" / "mav2sum.lua").read_text(encoding="utf-8")
-    hook.write_text(hooks, encoding="utf-8")
+    hook.write_text(HOOKS, encoding="utf-8")
     config = tmp_path / "config"
     config.mkdir(exist_ok=True)
     env = {**os.environ, "WIRESHARK_CONFIG_DIR": str(config), "HOME": str(tmp_path)}
@@ -469,6 +471,39 @@ def test_tshark_shows_trimmed_mavlink2_payloads(tmp_path: Path) -> None:
             assert len(got) == len(wanted), abbr
             assert all(_same(project, want, have) for want, have in zip(wanted, got, strict=True))
     assert "ChecksumMismatch" in shown[-1].statuses
+
+
+@needs_tshark
+def test_the_mavlink2_hook_reads_the_crc_extra_list_of_the_project(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A message added to a project (VFR_HUD) is checked with the CRC_EXTRA byte of its list."""
+    location = tmp_path / "drone"
+    assert service.init_project(location, "mavlink2", "drone").ok
+    hud = "{ id: 74, fields: [{ name: airspeed, type: f32 }, { name: groundspeed, type: f32 }, "
+    hud += "{ name: alt, type: f32 }, { name: climb, type: f32 }, { name: heading, type: i16 }, "
+    hud += "{ name: throttle, type: u16 }] }"
+    assert cli.main(["upsert", str(location), "messages", "VfrHud", hud]) == 0
+    assert cli.main(["set", str(location), "/interfaces/link/messages/-", "VfrHud"]) == 0
+    table = location / "app" / "include" / "mav2sum" / "crc_extra.h"
+    marker = "    /* add new messages above this line */"
+    table.write_text(
+        table.read_text(encoding="utf-8").replace(marker, f"    X(74U, 20U) \\\n{marker}"),
+        encoding="utf-8",
+    )
+    project = _project(location)
+    plugin = tmp_path / "plugin.lua"
+    assert wireshark.generate(location, plugin).issues == []
+    protocol = wireshark.protocol_name(project, project.interfaces["link"])
+    codec = ReferenceCodec(
+        project, None, golden.load_plugins(location / "plugins" / "mavlink2_crc.py")
+    )
+    frame = codec.encode_frame("link", "VfrHud", {"alt": 12.5, "heading": 90}, {"sequence": 7})
+    hook = location / "wireshark" / "mav2sum.lua"
+    monkeypatch.setattr(sys.modules[__name__], "HOOKS", f"dofile([[{hook}]])\n")
+    (shown,) = run_tshark(tmp_path, plugin, protocol, [udp_packet(frame)], _prefs(None))
+    assert shown.problems == []
+    assert shown.values[f"{protocol}.VfrHud.alt"] == ["12.5"]
 
 
 @needs_tshark

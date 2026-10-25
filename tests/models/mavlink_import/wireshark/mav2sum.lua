@@ -2,7 +2,28 @@
 -- writes for this model: load this file as another Lua plugin, next to the dissector, and the
 -- dissector verifies the checksum of every frame. Plain arithmetic only, so it runs with the Lua
 -- of every Wireshark version (5.2 to 5.4).
-local CRC_EXTRA = { [0] = 50, [1] = 124, [22] = 220, [24] = 24, [31] = 246, [73] = 38, [76] = 152, [77] = 143, [131] = 223, [253] = 83 }
+--
+-- The CRC_EXTRA bytes come from the model's list, app/include/mav2sum/crc_extra.h, found from this
+-- file's place in the project (or a crc_extra.h copied next to it); the table below is used only
+-- when neither is there.
+local BUILT_IN = { [0] = 50, [1] = 124, [22] = 220, [24] = 24, [31] = 246, [73] = 38, [76] = 152, [77] = 143, [131] = 223, [253] = 83 }
+local function read_list(path)
+  local file = io.open(path, "r")
+  if file == nil then return nil end
+  local list = {}
+  for id, extra in file:read("*a"):gmatch("X%((%d+)U,%s*(%d+)U%)") do
+    list[tonumber(id)] = tonumber(extra)
+  end
+  file:close()
+  return next(list) ~= nil and list or nil
+end
+
+local source = debug.getinfo(1, "S").source
+local here = source:sub(1, 1) == "@" and (source:sub(2):match("^(.*)[/\\]") or ".") or "."
+local CRC_EXTRA = read_list(here .. "/crc_extra.h")
+  or read_list(here .. "/../app/include/mav2sum/crc_extra.h")
+  or BUILT_IN
+
 local MESSAGE_ID_AT = 8 -- the three-byte message id, little endian, from the eighth byte (1-based)
 
 local function bxor(a, b)

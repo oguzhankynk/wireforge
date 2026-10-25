@@ -81,6 +81,8 @@ jobs:
           libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib qemu-system-arm
       - run: pip install -e .
       - run: quality/run_freertos.sh
+      # The microcontroller chapter of the tutorial and the chapters it builds on, with the Arm tools.
+      - run: python quality/run_tutorial.py --chapters 01,02,04,05
 
   # The single check of the operating-system matrix: build-test, python-os, android and freertos.
   os-matrix:

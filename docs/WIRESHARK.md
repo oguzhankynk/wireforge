@@ -74,7 +74,8 @@ _G.wireforge_checksums["vendor::SumChecksum"] = function(bytes)  -- bytes: Lua s
 end
 ```
 Without a hook the field gets a *Note* `Checksum not verified`. The MAVLink 2 model brings its hook
-(`protocols/mavlink2/wireshark/mav2sum.lua`).
+(`protocols/mavlink2/wireshark/mav2sum.lua`); it reads the CRC_EXTRA bytes from the project's `crc_extra.h`, found from
+its own place in the project, so a message added to the model is verified too.
 
 ## Limits
 - There is no heuristic detection: bind a protocol by port, user DLT or Decode As.

@@ -18,24 +18,26 @@ ones that need a GUI, Wireshark or an AI agent, so what you read here works with
 |---------|----------|------|
 | [1. Install and the first project](01_install_first_project.md) | install WireForge, start from MAVLink 2, encode frames, run the generated tests | 10 min |
 | [2. The web UI](02_web_ui.md) | browse the model, add the VFR_HUD message, try frames in the Playground, download the code | 15 min |
-| [3. Your own protocol](03_your_own_protocol.md) | turn an ICD table into a project and learn the parts of a model | 15 min |
-| [4. Use the code](04_use_the_code.md) | build a vehicle that sends MAVLink 2 over UDP and answers commands; check it with pymavlink | 20 min |
-| [5. Tests](05_tests.md) | see what the generated tests prove, measure coverage, read the results | 10 min |
-| [6. Versions and CI](06_versions_and_ci.md) | tell a compatible change from a breaking one and check every pull request | 10 min |
-| [7. Wireshark](07_wireshark.md) | see the frames of your protocol, checksums included | 10 min |
+| [3. Your own protocol](03_your_own_protocol.md) | turn an ICD table into a project, learn the parts of a model, import a whole MAVLink dialect | 15 min |
+| [4. Use the code](04_use_the_code.md) | build a vehicle that sends MAVLink 2 over UDP and answers commands, in C++ and in C; check it with pymavlink and talk to ArduPilot's simulator | 30 min |
+| [5. On a microcontroller](05_on_a_microcontroller.md) | run the same vehicle in C on a Cortex-M4 (in QEMU), MAVLink 2 over its UART | 20 min |
+| [6. Tests](06_tests.md) | see what the generated tests prove, measure coverage, read the results | 10 min |
+| [7. Versions and CI](07_versions_and_ci.md) | tell a compatible change from a breaking one and check every pull request | 10 min |
+| [8. Wireshark](08_wireshark.md) | see the frames of your protocol, checksums included | 10 min |
 
 ## Advanced track
 | Chapter | You will | Time |
 |---------|----------|------|
-| [8. AI agents (MCP)](08_ai_agents_mcp.md) | let Claude or another agent edit the model safely | 10 min |
-| [9. Team server](09_team_server.md) | run the web UI for a team, with a token or in Docker | 10 min |
-| [10. Documents and evidence](10_documents_and_evidence.md) | generate requirements, design, test and traceability documents | 15 min |
+| [9. AI agents (MCP)](09_ai_agents_mcp.md) | let Claude or another agent edit the model safely | 10 min |
+| [10. Team server](10_team_server.md) | run the web UI for a team, with a token or in Docker | 10 min |
+| [11. Documents and evidence](11_documents_and_evidence.md) | generate requirements, design, test and traceability documents | 15 min |
 
 ## What you need
 - Python 3.10 to 3.13 and `pip`.
-- A C++17 compiler, CMake 3.21 or newer and Ninja or Make (chapters 1, 4 and 5 build code).
+- A C++17 compiler, CMake 3.21 or newer and Ninja or Make (chapters 1, 4, 5 and 6 build code).
 - For chapter 4, Linux or macOS (the example uses POSIX sockets) and `pip install pymavlink`.
-- For chapter 7, Wireshark 3.6 or newer (or `tshark`).
+- For chapter 5, the Arm GCC toolchain and QEMU (`sudo apt install gcc-arm-none-eabi libnewlib-arm-none-eabi qemu-system-arm`).
+- For chapter 8, Wireshark 3.6 or newer (or `tshark`).
 
 Work in an empty directory; every chapter continues where the previous one stopped. If you lose your way, start again
 from chapter 1: it takes a minute.

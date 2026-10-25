@@ -1,8 +1,10 @@
 """A ground station for the tutorial's vehicle, written with pymavlink (not with WireForge).
 
 It listens on UDP port 14550, waits for the vehicle's HEARTBEAT, sends COMMAND_LONG (arm) and checks
-that COMMAND_ACK, ATTITUDE and VFR_HUD arrive. Run it while drone_sim runs:
+that COMMAND_ACK, ATTITUDE and VFR_HUD arrive. Run it while drone_sim (or drone_sim_c) runs:
     python ground_station.py
+For the firmware on QEMU, give the serial port's TCP address:
+    python ground_station.py tcp:127.0.0.1:5760
 Exit code 0 when everything arrived.
 """
 
@@ -21,7 +23,8 @@ ARM_DISARM = 400
 
 def main() -> int:
     """Talk to the vehicle; return 0 when every expected message arrived."""
-    station = mavutil.mavlink_connection("udpin:127.0.0.1:14550", source_system=255)
+    address = sys.argv[1] if len(sys.argv) > 1 else "udpin:127.0.0.1:14550"
+    station = mavutil.mavlink_connection(address, source_system=255)
     heartbeat = station.wait_heartbeat(timeout=TIMEOUT)
     if heartbeat is None:
         print("ground station: no HEARTBEAT")

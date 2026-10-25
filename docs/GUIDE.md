@@ -54,6 +54,7 @@ Markdown summary. The repository has a GitHub action for it and a GitLab example
    wireforge_generate(imu_model PROJECT ${CMAKE_SOURCE_DIR}/demo)
    target_link_libraries(my_app PRIVATE imu_model)
    ```
+   `LANGUAGE c` gives a C99 library instead (docs/CODEGEN.md).
    See `examples/cmake_consumer/` (`quality/run_quickstart.sh` runs all of the above from a fresh wheel and checks that
    it takes less than 15 minutes).
 

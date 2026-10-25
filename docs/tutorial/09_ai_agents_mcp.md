@@ -1,4 +1,4 @@
-# 8. AI agents (MCP)
+# 9. AI agents (MCP)
 
 **What we will do:** connect an AI agent to the workspace through the Model Context Protocol (MCP), so that it can
 read, change, validate and test the model with the same rules as the command line.
@@ -35,4 +35,4 @@ agent to add its CRC_EXTRA line too (chapter 2).
 
 **More:** [MCP server](../MCP.md).
 
-Next: [9. Team server](09_team_server.md)
+Next: [10. Team server](10_team_server.md)

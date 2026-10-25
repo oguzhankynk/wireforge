@@ -92,7 +92,7 @@ Open the **Playground** tab (4 in the first picture).
    (pitch, yaw and the three angular speeds) are zero and are not sent.
 
 **Layout** shows the offset, size and bit position of every field and the RAM a link needs. **Versions** compares the
-working copy with any earlier git commit (chapter 6).
+working copy with any earlier git commit (chapter 7).
 
 ## Download the code
 ![Generate: the generated files and the download; the numbers are explained below](images/02-generate.png)
