@@ -318,6 +318,12 @@ def _trace(args: argparse.Namespace) -> Result:
     return result
 
 
+def _runtime_dir(args: argparse.Namespace) -> Result:
+    del args
+    path = resources.runtime_include()
+    return Result(ok=path.exists(), data={"path": str(path)}, text=f"{path}\n")
+
+
 def _cmake_dir(args: argparse.Namespace) -> Result:
     del args
     path = resources.cmake_dir()
@@ -444,7 +450,7 @@ def _commands(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser.add_argument("--single-file", action="store_true")
     _import_commands(add)
     _edit_commands(add)
-    add("cmake-dir", _cmake_dir, "Print the directory of the WireForge CMake package.")
+    _path_commands(add)
     add("version", _version, "Print the WireForge version.")
     _codec_commands(add)
     parser = add("mcp", _mcp, "Run the MCP server (stdio) over a workspace of projects.")
@@ -617,6 +623,11 @@ def _edit_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]) 
     _project(parser)
     parser.add_argument("pointer")
     _edit(parser)
+
+
+def _path_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]) -> None:
+    add("cmake-dir", _cmake_dir, "Print the directory of the WireForge CMake package.")
+    add("runtime-dir", _runtime_dir, "Print the directory of the WireForge runtime headers.")
 
 
 def _codec_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]) -> None:

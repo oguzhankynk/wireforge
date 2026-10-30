@@ -172,6 +172,15 @@ class DecodedFrame:
     trailer: dict[str, Any]
 
 
+def _range_text(number: float, low: float | None, high: float | None) -> str:
+    """Return the message for a value outside the bounds of its field."""
+    if low is None:
+        return f"{number} is above the maximum {high}"
+    if high is None:
+        return f"{number} is below the minimum {low}"
+    return f"{number} is outside [{low}, {high}]"
+
+
 def _int_bytes(number: int, width: int, settings: Settings) -> bytes:
     order: Literal["big", "little"] = "big" if settings.endian == "big" else "little"
     return (number % (1 << (width * BYTE_BITS))).to_bytes(width, order)
@@ -374,7 +383,7 @@ class ReferenceCodec:
         below = low is not None and not number >= low
         above = high is not None and not number <= high
         if below or above:
-            _fail("OutOfRange", path, f"{number} is outside [{low}, {high}]")
+            _fail("OutOfRange", path, _range_text(number, low, high))
         enum = self.project.enums.get(item.type)
         if enum is not None and number not in enum.values.values():
             _fail("OutOfRange", path, f"{number} is not a member of {item.type}")

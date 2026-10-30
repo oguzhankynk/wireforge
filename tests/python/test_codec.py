@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -258,6 +259,31 @@ def test_encoding_errors(rules: ReferenceCodec, change: dict[str, Any], status: 
     with pytest.raises(CodecError) as info:
         rules.encode_message("Values", {**_values(), **change})
     assert info.value.status == status
+
+
+@pytest.mark.parametrize(
+    ("low", "high", "text"),
+    [
+        (1, 10, "11 is outside [1, 10]"),
+        (None, 10, "11 is above the maximum 10"),
+        (20, None, "11 is below the minimum 20"),
+    ],
+)
+def test_a_range_error_names_only_the_bounds_of_the_field(
+    tmp_path: Path, low: int | None, high: int | None, text: str
+) -> None:
+    bounds = "".join(
+        f", {key}: {value}" for key, value in (("min", low), ("max", high)) if value is not None
+    )
+    (tmp_path / "project.yaml").write_text(
+        "schema_version: 1\nproject: p\nversion: '1.0.0'\ndefaults: { endian: big }\n"
+        f"messages:\n  M:\n    fields:\n      - {{ name: x, type: u8{bounds} }}\n",
+        encoding="utf-8",
+    )
+    project = load_project(tmp_path).project
+    assert project is not None
+    with pytest.raises(CodecError, match=re.escape(text)):
+        ReferenceCodec(project).encode_message("M", {"x": 11})
 
 
 def _corrupt(rules: ReferenceCodec, offset: int, mask: int) -> bytes:

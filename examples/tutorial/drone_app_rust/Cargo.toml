@@ -1,0 +1,19 @@
+# The vehicle of the WireForge tutorial in Rust: the generated C code, called through bindgen.
+#   DRONE_PROJECT=$PWD/drone cargo run --manifest-path drone_app_rust/Cargo.toml --release -- 6
+# The library (src/lib.rs) is no_std; the program (src/main.rs) adds UDP from the standard library.
+[package]
+name = "drone_app_rust"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "drone_model"
+
+[[bin]]
+name = "drone_sim_rust"
+path = "src/main.rs"
+
+[build-dependencies]
+bindgen = "0.71"
+cc = "1"

@@ -1,7 +1,7 @@
 # WireForge tutorial
 
 This tutorial builds one thing from start to end: the MAVLink 2 link of a small drone. You start from the published
-MAVLink 2 model, add a message, generate C++ for it, run the tests that prove the code, use it in an application that
+MAVLink 2 model, add a message, generate C++ for it, run the tests that check the code, use it in an application that
 talks to an independent MAVLink implementation (pymavlink), check every change in CI, look at the traffic in Wireshark
 and let an AI agent edit the model. The last chapters show the team server and the documents for teams with an
 assurance process.
@@ -20,8 +20,8 @@ ones that need a GUI, Wireshark or an AI agent, so what you read here works with
 | [2. The web UI](02_web_ui.md) | browse the model, add the VFR_HUD message, try frames in the Playground, download the code | 15 min |
 | [3. Your own protocol](03_your_own_protocol.md) | turn an ICD table into a project, learn the parts of a model, import a whole MAVLink dialect | 15 min |
 | [4. Use the code](04_use_the_code.md) | build a vehicle that sends MAVLink 2 over UDP and answers commands, in C++ and in C; check it with pymavlink and talk to ArduPilot's simulator | 30 min |
-| [5. On a microcontroller](05_on_a_microcontroller.md) | run the same vehicle in C on a Cortex-M4 (in QEMU), MAVLink 2 over its UART | 20 min |
-| [6. Tests](06_tests.md) | see what the generated tests prove, measure coverage, read the results | 10 min |
+| [5. On a microcontroller](05_on_a_microcontroller.md) | run the same vehicle in C on a Cortex-M4 (in QEMU) or a real STM32 board, MAVLink 2 over its UART | 20 min |
+| [6. Tests](06_tests.md) | see what the generated tests check, measure coverage, read the results | 10 min |
 | [7. Versions and CI](07_versions_and_ci.md) | tell a compatible change from a breaking one and check every pull request | 10 min |
 | [8. Wireshark](08_wireshark.md) | see the frames of your protocol, checksums included | 10 min |
 

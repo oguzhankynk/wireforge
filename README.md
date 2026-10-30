@@ -7,22 +7,29 @@
 [![CI](https://github.com/oguzhankynk/wireforge/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/oguzhankynk/wireforge/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-BUSL--1.1%20%2B%20MIT%20runtime-blue)](#license)
 
-Schema-driven wire-format toolkit for C++17 and C99: describe binary messages in YAML (by hand, in the web UI, through
-the CLI or an AI agent) and generate allocation-free serializers, validators, framers and dispatchers (C++17, or C99
-with `--language c`) together with a GoogleTest project that proves them against a reference codec and gates the
-generated code at 100 % line, branch and function coverage.
+**Match your wire format byte for byte.**
 
-- The wire format is imposed by the remote party: generated code never adds bytes.
+Define the wire format and interface (in YAML by hand, in the web UI, through the CLI or an AI agent) and generate
+heap-free C++17 or C99 code that implements it byte for byte: serializers, validators, framers and dispatchers, with a
+GoogleTest project that checks them against a reference codec and fails below 100 % line, branch and function coverage
+of the generated code.
+
+- Only your side needs WireForge. With Protocol Buffers, every device on an interface has to use protobuf; here the
+  other end can be hardware, an autopilot or another team's hand-written code. Code generated from ArduPilot's MAVLink
+  definitions talks to ArduPilot, which knows nothing about WireForge.
+- The interface decides the bytes: generated code never adds any.
 - Runtime and generated code use only pre-allocated storage: no heap, no exceptions, no RTTI required.
 - One service layer behind the `wireforge` CLI, the Python API, the REST server with its web UI and the MCP server.
 - A generated Wireshark Lua dissector shows every interface's frames, with the same checks as the decoder.
-- Zero warnings from every compiler and analyzer; tested on 32/64 bit, little and big endian, x86 and ARM, on Linux,
+- Zero warnings from the compilers and analyzers that gate CI; tested on 32/64 bit, little and big endian, x86 and ARM, on Linux,
   Windows, macOS, Android and FreeRTOS; differential testing and fuzzing.
 
 The way in is short: `wireforge init` gives a working first project, you change it to your protocol, generate the C++
 code, run the tests and read the results. Nothing about requirements or standards is needed for that.
 
 [![WireForge in one minute (video)](https://raw.githubusercontent.com/oguzhankynk/wireforge/master/docs/images/video-cover.png)](https://youtu.be/o5CbrNqxPiI)
+
+On a real board: [the generated C code on an STM32, talking MAVLink 2 to pymavlink](https://youtu.be/vMN9FbNLx7o) (video).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oguzhankynk/wireforge/master/docs/images/web-ui-dark.png">
@@ -65,7 +72,7 @@ Development: see CONTRIBUTING.md (`pip install -e ".[dev]"`, `cmake --preset dev
 pull request and runs the generated tests (docs/integration/github_actions.md):
 
 ```yaml
-- uses: oguzhankynk/wireforge@v0.4.1
+- uses: oguzhankynk/wireforge@v0.4.2
   with: { project: icd }
 ```
 
@@ -76,4 +83,4 @@ only on this MIT-licensed runtime, so shipping it in your product carries no res
 Everything else (the CLI, code generator, server, web UI, and MCP server) is licensed under the Business Source
 License 1.1 (see LICENSE): free for development, testing, and evaluation; a commercial license is required for
 production use, except that running it in continuous integration (validation, comparison with earlier
-revisions, generated tests) is free, also in commercial product repositories. It converts to MIT on 2036-10-17. Contact the Licensor for commercial licensing: kaynak.oguzhan0@gmail.com.
+revisions, generated tests) is free, also in commercial product repositories. Each version converts to MIT four years after its release. Contact the Licensor for commercial licensing: kaynak.oguzhan0@gmail.com.
