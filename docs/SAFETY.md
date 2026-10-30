@@ -3,7 +3,7 @@
 ## Evidence (`quality/run_evidence.sh`, CI artifact `evidence`)
 | File | Shows |
 |------|-------|
-| `no_heap.md` | Every runtime header, every generated header of every example and profile, and the generated self-tests, compiled with `-fno-exceptions -fno-rtti -DWIREFORGE_NO_STD_MUTEX` at `-O0` and `-O2`: the external symbols of each object. Anything outside a short allow list (compiler runtime, string functions; printing in self-tests) fails, so no object references `operator new/delete`, `malloc`/`free`, exception or RTTI support or threads. |
+| `no_heap.md` | Every runtime header, every generated header of every model (examples, protocols and test models, among them an import of a MAVLink dialect) and profile, and the generated self-tests, compiled with `-fno-exceptions -fno-rtti -DWIREFORGE_NO_STD_MUTEX` at `-O0` and `-O2`: the external symbols of each object. Anything outside a short allow list (compiler runtime, string functions; printing in self-tests) fails, so no object references `operator new/delete`, `malloc`/`free`, exception or RTTI support or threads. |
 | `trace_<project>.md`, `.csv` | Every enum, checksum, type, message, field and interface: model source (`file:line`, the ICD row), C++ symbol, generated `file:line`, the high-level requirements (`reqs`) and derived low-level requirements (`llrs`) of the element, and the generated tests that verify them. A second table lists every low-level requirement with its parents and test count. Messages and interfaces without tests, LLRs without tests, LLRs verified by the runtime tests, requirements without model elements and derived LLRs are listed. |
 | `icd_<project>.md` | Layout per profile: offsets, sizes, bit positions, frame sizes, link RAM. |
 | `hashes.txt` | Model hash (sha256 of the definition content) of every project; the same hash is in the banner of every generated file, so generated code is tied to the exact model. |
@@ -12,6 +12,12 @@ Generated code carries the trace inline as well: each struct is documented with 
 pointer>)` and each member with its `file:line`. In a project with a `requirements` catalog, every struct, enum,
 checksum and interface also lists `Requirements: <HLR ids>; <LLR ids>`, and every generated test records the LLR ids it
 verifies (`RecordProperty("requirements", ...)`, docs/SCHEMA_SPEC.md section 17).
+
+In `no_heap.md`, a header's object holds only what the header defines outside templates and uncalled inline functions,
+so it shows that the header is clean; the self-tests instantiate the code, and the check fails when a message of an
+interface is missing from them. The generated C (`model.c` and the interfaces) is checked the same way, compiled as C99.
+The check covers the models of this repository. For the model of a user, the generated test project gives the same
+answer: `no_allocation_test.cpp` counts the allocations of every message in C++, and in C the heap functions do not link.
 
 A user type's own `encode`/`decode` is outside the no-heap check's object-file inspection unless its header is
 compiled into an example the safety-evidence pipeline builds; this is the same "informative, not a conformance

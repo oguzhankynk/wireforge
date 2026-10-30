@@ -6,9 +6,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from wireforge import cli, service
+from wireforge.loader import load_project
 
 if TYPE_CHECKING:
     from types import ModuleType
+
+    import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples"
@@ -127,3 +130,17 @@ def test_no_heap_report() -> None:
     assert "| runtime span.hpp | -O2 | none | pass |" in text
     assert "FAIL: operator new(unsigned long)" in text
     assert text.endswith("2 objects checked, 1 failed.\n")
+
+
+def test_no_heap_covers_every_kind_of_model_and_finds_a_message_without_self_test(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _no_heap()
+    assert {"01_basic_telemetry", "mavlink2", "mavlink_import"} <= {
+        path.name for path in module.models()
+    }
+    project = load_project(ROOT / "examples" / "01_basic_telemetry").project
+    assert project is not None
+    assert module.untested_messages(project, None) == []
+    monkeypatch.setattr(module.golden, "vectors", lambda *_: [])
+    assert module.untested_messages(project, None) == ["sensor_to_us/SensorReading"]

@@ -15,7 +15,7 @@ copy before you rely on it.
 ## Concerns and their enforcement
 | Concern | Related rules (examples) | Enforcement | Evidence |
 |---------|------------------------|-------------|----------|
-| No dynamic memory | MISRA C++:2008 18-4-1, AUTOSAR A18-5-1 | Fixed-capacity containers (`StaticVector`, `FixedString`, rings); allocation-trap tests; symbol check | `no_heap.md`, allocation-trap tests in every runtime suite |
+| No dynamic memory | MISRA C++:2008 18-4-1, AUTOSAR A18-5-1 | Fixed-capacity containers (`StaticVector`, `FixedString`, rings); allocation-trap tests; symbol check | `no_heap.md`, allocation-trap tests in every runtime suite and in every generated test project |
 | No exceptions, no RTTI | | `noexcept` APIs returning `Status`; production code compiled with `-fno-exceptions -fno-rtti` in every build; no `std::array::at` (`wireforge::array_at`) | `no_heap.md`, header-check targets |
 | Defined integer and conversion behaviour | | `-Wconversion -Wsign-conversion -Wuseless-cast`, `-Weverything` (Clang), UBSan, 32-bit and big-endian test runs; byte-wise shifts, no type punning | gates in `quality/run_all.sh`, `run_portability.sh` |
 | Bounds and lifetime safety | CERT C++ (CTR, EXP, MEM rules via clang-tidy `cert-*`) | clang-tidy `cppcoreguidelines-*`, `bugprone-*`, `cert-*`; ASan; cppcheck; GCC `-fanalyzer`; clang static analyzer | gates, fuzzing (`run_fuzz.sh`) |
