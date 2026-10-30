@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Schema-driven wire-format toolkit for C++17 and C99">
+        <meta name="description" content="Match your wire format byte for byte. Define the interface, generate heap-free C99 and C++17 code with its tests.">
       
       
       
@@ -1528,7 +1528,7 @@
 <tbody>
 <tr>
 <td><code>no_heap.md</code></td>
-<td>Every runtime header, every generated header of every example and profile, and the generated self-tests, compiled with <code>-fno-exceptions -fno-rtti -DWIREFORGE_NO_STD_MUTEX</code> at <code>-O0</code> and <code>-O2</code>: the external symbols of each object. Anything outside a short allow list (compiler runtime, string functions; printing in self-tests) fails, so no object references <code>operator new/delete</code>, <code>malloc</code>/<code>free</code>, exception or RTTI support or threads.</td>
+<td>Every runtime header, every generated header of every model (examples, protocols and test models, among them an import of a MAVLink dialect) and profile, and the generated self-tests, compiled with <code>-fno-exceptions -fno-rtti -DWIREFORGE_NO_STD_MUTEX</code> at <code>-O0</code> and <code>-O2</code>: the external symbols of each object. Anything outside a short allow list (compiler runtime, string functions; printing in self-tests) fails, so no object references <code>operator new/delete</code>, <code>malloc</code>/<code>free</code>, exception or RTTI support or threads.</td>
 </tr>
 <tr>
 <td><code>trace_&lt;project&gt;.md</code>, <code>.csv</code></td>
@@ -1548,6 +1548,11 @@
 pointer&gt;)</code> and each member with its <code>file:line</code>. In a project with a <code>requirements</code> catalog, every struct, enum,
 checksum and interface also lists <code>Requirements: &lt;HLR ids&gt;; &lt;LLR ids&gt;</code>, and every generated test records the LLR ids it
 verifies (<code>RecordProperty("requirements", ...)</code>, docs/SCHEMA_SPEC.md section 17).</p>
+<p>In <code>no_heap.md</code>, a header's object holds only what the header defines outside templates and uncalled inline functions,
+so it shows that the header is clean; the self-tests instantiate the code, and the check fails when a message of an
+interface is missing from them. The generated C (<code>model.c</code> and the interfaces) is checked the same way, compiled as C99.
+The check covers the models of this repository. For the model of a user, the generated test project gives the same
+answer: <code>no_allocation_test.cpp</code> counts the allocations of every message in C++, and in C the heap functions do not link.</p>
 <p>A user type's own <code>encode</code>/<code>decode</code> is outside the no-heap check's object-file inspection unless its header is
 compiled into an example the safety-evidence pipeline builds; this is the same "informative, not a conformance
 claim" boundary as the rest of this table, not a new exception.</p>

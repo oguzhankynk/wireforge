@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Schema-driven wire-format toolkit for C++17 and C99">
+        <meta name="description" content="Match your wire format byte for byte. Define the interface, generate heap-free C99 and C++17 code with its tests.">
       
       
       
@@ -1935,7 +1935,7 @@ whatever the transport still holds is dropped.</p>
 <h2 id="tests">Tests</h2>
 <p><code>tests/io_test.cpp</code>, <code>containers_test.cpp</code>, <code>ring_buffer_test.cpp</code> (model fuzz, SPSC and MPMC stress under TSan),
 <code>frame_decoder_test.cpp</code> (chunking equivalence, garbage, bad checksum/length, all framings), <code>dispatcher_test.cpp</code> (delegates, lookup, life cycle, concurrent dispatch and registration), <code>link_test.cpp</code> (loopback, garbage, full transport, ITransport adapter, unframed, sender/poller threads), <code>checksum_test.cpp</code> (CRC catalogue check values in both modes, custom Fletcher-16), <code>lock_config_test.cpp</code>
-(built with <code>WIREFORGE_NO_STD_MUTEX</code>). Each suite proves zero heap use with the allocation trap.</p>
+(built with <code>WIREFORGE_NO_STD_MUTEX</code>). Each suite checks for zero heap use with the allocation trap.</p>
 <h2 id="portability">Portability</h2>
 <p>The runtime and the generated code are verified on every combination of word size and byte order, with an x86 and an
 ARM target for little endian: <code>quality/run_portability.sh</code> cross compiles every test suite with the full warning set
@@ -1969,7 +1969,7 @@ unsigned amount. The runtime uses atomics of at most the size of a pointer, so t
 PowerPC, Cortex-M) need no <code>libatomic</code>.</p>
 <h2 id="environments">Environments</h2>
 <p>The runtime and the generated code use only the C++17 standard library (an allow list of headers, checked by
-<code>quality/check_os_neutral.py</code>) and test for no operating system. The CI proves it in these environments:</p>
+<code>quality/check_os_neutral.py</code>) and test for no operating system. The CI checks it in these environments:</p>
 <table>
 <thead>
 <tr>

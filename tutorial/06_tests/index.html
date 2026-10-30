@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Schema-driven wire-format toolkit for C++17 and C99">
+        <meta name="description" content="Match your wire format byte for byte. Define the interface, generate heap-free C99 and C++17 code with its tests.">
       
       
       
@@ -1540,7 +1540,7 @@ not from the generated code itself. For MAVLink 2 the reference codec in turn is
 wireforge<span class="w"> </span><span class="nb">test</span><span class="w"> </span>drone<span class="w"> </span>-o<span class="w"> </span>build/drone<span class="w"> </span>--coverage
 </code></pre></div>
 The coverage build fails unless every line, branch and function of the generated code is run by the tests (100 %).
-The generated code has no branch of its own that a test cannot reach, so the gate holds for any model.</p>
+The generated code has no branch of its own that a test cannot reach, so the gate is designed to hold for any model.</p>
 <h2 id="results">Results</h2>
 <p>The coverage build writes <code>results/</code> next to the build: the JUnit XML of the tests and the coverage reports. Each test
 records the requirements it verifies, which chapter 11 turns into a traceability matrix:

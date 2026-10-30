@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Schema-driven wire-format toolkit for C++17 and C99">
+        <meta name="description" content="Match your wire format byte for byte. Define the interface, generate heap-free C99 and C++17 code with its tests.">
       
       
       
@@ -1518,7 +1518,7 @@
 
 <h1 id="wireforge-tutorial">WireForge tutorial</h1>
 <p>This tutorial builds one thing from start to end: the MAVLink 2 link of a small drone. You start from the published
-MAVLink 2 model, add a message, generate C++ for it, run the tests that prove the code, use it in an application that
+MAVLink 2 model, add a message, generate C++ for it, run the tests that check the code, use it in an application that
 talks to an independent MAVLink implementation (pymavlink), check every change in CI, look at the traffic in Wireshark
 and let an AI agent edit the model. The last chapters show the team server and the documents for teams with an
 assurance process.</p>
@@ -1558,12 +1558,12 @@ ones that need a GUI, Wireshark or an AI agent, so what you read here works with
 </tr>
 <tr>
 <td><a href="05_on_a_microcontroller/">5. On a microcontroller</a></td>
-<td>run the same vehicle in C on a Cortex-M4 (in QEMU), MAVLink 2 over its UART</td>
+<td>run the same vehicle in C on a Cortex-M4 (in QEMU) or a real STM32 board, MAVLink 2 over its UART</td>
 <td>20 min</td>
 </tr>
 <tr>
 <td><a href="06_tests/">6. Tests</a></td>
-<td>see what the generated tests prove, measure coverage, read the results</td>
+<td>see what the generated tests check, measure coverage, read the results</td>
 <td>10 min</td>
 </tr>
 <tr>

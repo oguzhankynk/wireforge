@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Schema-driven wire-format toolkit for C++17 and C99">
+        <meta name="description" content="Match your wire format byte for byte. Define the interface, generate heap-free C99 and C++17 code with its tests.">
       
       
       
@@ -1861,7 +1861,11 @@ in the same order, the same statuses (<code>wireforge/c/</code>, docs/RUNTIME.md
   <code>&lt;prefix&gt;_&lt;interface&gt;_&lt;Message&gt;_default_raw()</code> decodes and forwards). A null callback means the default; a handler
   without callbacks ignores the messages. The link reads and writes through a <code>wf_transport</code> (two functions) and is
   used by one thread at a time (docs/RUNTIME.md).
-Only the types and enums that a message or an interface uses get functions. User types are not supported yet.</p>
+Only the types and enums that a message or an interface uses get functions. User types are not supported yet.
+The test project builds the C library with <code>malloc</code>, <code>calloc</code>, <code>realloc</code> and <code>free</code> renamed to names that do not link,
+so C code that uses the heap fails the build.</p>
+<p>From Rust, the C code is used through <code>bindgen</code> (<code>examples/tutorial/drone_app_rust</code>, also <code>no_std</code>): <code>build.rs</code> runs
+<code>wireforge generate --language c</code>, and <code>wireforge runtime-dir</code> prints the directory of the runtime headers.</p>
 <p>In CMake, <code>wireforge_generate(&lt;target&gt; PROJECT &lt;dir&gt; LANGUAGE c)</code> generates the C code at configure time and makes
 <code>&lt;target&gt;</code> a static C99 library of it, with the C runtime headers; it needs no C++ compiler, so it also builds for a
 microcontroller (<code>examples/tutorial/drone_firmware</code>).</p>
@@ -2028,6 +2032,10 @@ of the generated headers; for the examples each is 100 %.</p>
 <tr>
 <td><code>interface_test.cpp</code></td>
 <td>per interface: every message dispatched to its handler, byte-wise delivery, bytes before the sync, a corrupted frame followed by a good one, <code>encode_frame</code> into too small buffers, raw delivery without decoding, raw delivery forwarded to the decoder, decode errors returned by the raw hook</td>
+</tr>
+<tr>
+<td><code>no_allocation_test.cpp</code>, <code>allocation_counter.cpp</code></td>
+<td>per interface and message: decoding, encoding, sending and dispatching the frame make no heap allocation, counted by replacing the global <code>operator new</code> of the test executable</td>
 </tr>
 <tr>
 <td><code>handlers.hpp</code>, <code>test_support.hpp</code>, <code>wire_support.hpp</code></td>

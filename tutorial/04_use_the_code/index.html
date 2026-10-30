@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Schema-driven wire-format toolkit for C++17 and C99">
+        <meta name="description" content="Match your wire format byte for byte. Define the interface, generate heap-free C99 and C++17 code with its tests.">
       
       
       
@@ -561,6 +561,17 @@
     <span class="md-ellipsis">
       
         The same in C
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#from-rust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From Rust
       
     </span>
   </a>
@@ -1552,6 +1563,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#from-rust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From Rust
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#against-ardupilot" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1674,6 +1696,25 @@ means "decode and ignore", so the vehicle sets only the two it acts on:
 </code></pre></div>
 The vehicle itself (<code>vehicle.c</code>) knows nothing about UDP: <code>main.c</code> gives it a transport and calls <code>vehicle_tick()</code>
 every 10 ms. That is what lets the next chapter run it on a microcontroller.</p>
+<h2 id="from-rust">From Rust</h2>
+<p>WireForge does not generate Rust, but the generated C code works from it, also in <code>no_std</code>: it needs no heap and no
+standard library. <code>drone_app_rust/</code> is the same vehicle in Rust. Its <code>build.rs</code> runs <code>wireforge generate --language c</code>,
+compiles the C code with the <code>cc</code> crate and writes the declarations with <code>bindgen</code>. With Rust, a C compiler and libclang
+installed:
+<div class="highlight"><pre><span></span><code>cp<span class="w"> </span>-r<span class="w"> </span>wireforge-src/examples/tutorial/drone_app_rust<span class="w"> </span>.
+<span class="nv">DRONE_PROJECT</span><span class="o">=</span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/drone"</span><span class="w"> </span>cargo<span class="w"> </span>build<span class="w"> </span>--manifest-path<span class="w"> </span>drone_app_rust/Cargo.toml<span class="w"> </span>--release
+drone_app_rust/target/release/drone_sim_rust<span class="w"> </span><span class="m">6</span><span class="w"> </span><span class="p">&amp;</span><span class="w"> </span>python<span class="w"> </span>drone_app/ground_station.py<span class="p">;</span><span class="w"> </span><span class="nb">wait</span>
+</code></pre></div>
+The ground station sees the same messages. The transport and the handler are <code>extern "C"</code> functions that get a context
+pointer, and the rest are the C functions of this chapter:
+<div class="highlight"><pre><span></span><code><span class="kd">let</span><span class="w"> </span><span class="n">transport</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wf_transport</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">context</span><span class="p">,</span><span class="w"> </span><span class="n">send</span><span class="p">:</span><span class="w"> </span><span class="nb">Some</span><span class="p">(</span><span class="n">udp_send</span><span class="p">),</span><span class="w"> </span><span class="n">receive</span><span class="p">:</span><span class="w"> </span><span class="nb">Some</span><span class="p">(</span><span class="n">udp_receive</span><span class="p">)</span><span class="w"> </span><span class="p">};</span>
+<span class="n">handler</span><span class="p">.</span><span class="n">on_CommandLong_received</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Some</span><span class="p">(</span><span class="n">on_command_long</span><span class="p">);</span>
+<span class="n">drone_mavlink2_link_link_init</span><span class="p">(</span><span class="n">link</span><span class="p">.</span><span class="n">as_mut_ptr</span><span class="p">(),</span><span class="w"> </span><span class="o">&amp;</span><span class="n">transport</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">handler</span><span class="p">);</span>
+</code></pre></div>
+These calls are <code>unsafe</code>: the generated API is C, so a safe wrapper for your application is yours to write. The library
+(<code>src/lib.rs</code>) is <code>no_std</code>, and only the program adds UDP from the standard library. For a microcontroller, build the
+library for its target, for example <code>--lib --target thumbv7em-none-eabihf</code> with the Arm toolchain (<code>bindgen</code> then also
+needs the toolchain's headers, in <code>BINDGEN_EXTRA_CLANG_ARGS</code>).</p>
 <h2 id="against-ardupilot">Against ArduPilot</h2>
 <p>So far both ends were ours. ArduPilot's simulator (SITL) runs the real ArduCopter firmware on your computer, and
 <code>ardupilot_gcs/</code> is a small ground station in C for it, built from the import of the whole <code>ardupilotmega.xml</code> (every

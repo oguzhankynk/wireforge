@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Schema-driven wire-format toolkit for C++17 and C99">
+        <meta name="description" content="Match your wire format byte for byte. Define the interface, generate heap-free C99 and C++17 code with its tests.">
       
       
       
@@ -1617,7 +1617,7 @@ This generates C++17 for the model (<code>build/drone/drone/model.hpp</code> and
 that checks every message and frame against WireForge's reference codec, builds it and runs it. All tests pass. For C99
 code instead, add <code>--language c</code>.</p>
 <p><strong>What happened:</strong> the model was validated, the code generated (no heap, no exceptions, no RTTI), and the tests were
-derived from the model itself, not written by hand. Chapter 6 shows what they prove.</p>
+derived from the model itself, not written by hand. Chapter 6 shows what they check.</p>
 <p><strong>More:</strong> <a href="../../GUIDE/">User guide</a>, <a href="../../CLI/">command line</a>, <a href="../../SCHEMA_SPEC/">definition format</a>.</p>
 <p><strong>If something goes wrong:</strong> <code>wireforge test</code> needs CMake and a C++ compiler on the <code>PATH</code>; the message says which tool
 is missing. <code>wireforge validate</code> reports every problem with file, line and JSON pointer.</p>

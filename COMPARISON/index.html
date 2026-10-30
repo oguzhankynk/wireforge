@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Schema-driven wire-format toolkit for C++17 and C99">
+        <meta name="description" content="Match your wire format byte for byte. Define the interface, generate heap-free C99 and C++17 code with its tests.">
       
       
       
@@ -1493,9 +1493,11 @@
 
 
 <h1 id="how-wireforge-compares">How WireForge compares</h1>
-<p>WireForge is for one situation: <strong>the wire format is given</strong> (by an ICD, a standard, a device or the other team) and you
-need C++ or C code for it that does not allocate, plus evidence that the code does what the format says. The tools
-below solve neighbouring problems; several of them are the better choice when your situation is different.</p>
+<p>WireForge implements a defined interface exactly, whatever the other side is built with: <strong>the other side doesn't need
+WireForge</strong>. It can be a device, an autopilot or another team's code, and the interface comes from an ICD, a standard or
+your own definition. You get C++ or C code for it that does not allocate, plus evidence that the code does what the
+interface says. The tools below solve neighbouring problems; several of them are the better choice when your situation
+is different.</p>
 <table>
 <thead>
 <tr>
@@ -1508,9 +1510,9 @@ below solve neighbouring problems; several of them are the better choice when yo
 <tbody>
 <tr>
 <td><strong>WireForge</strong></td>
-<td>you describe an existing format, field by field</td>
+<td>the interface you define, field by field</td>
 <td>C++17 or C99 encoders, decoders, validation, framing and dispatch; a GoogleTest project with coverage gates; a Wireshark dissector; layout reports and lifecycle documents</td>
-<td>the format is fixed by someone else, the target is embedded C or C++, and the code must be proven, not only written</td>
+<td>the other side doesn't use your tool, the target is embedded C or C++, and the code must come with evidence</td>
 </tr>
 <tr>
 <td>Protocol Buffers</td>
@@ -1563,19 +1565,21 @@ below solve neighbouring problems; several of them are the better choice when yo
 </tbody>
 </table>
 <h2 id="in-more-detail">In more detail</h2>
-<p><strong>Protocol Buffers, nanopb, FlatBuffers.</strong> These define their own encoding. They cannot express a format that someone
-else already fixed (a sync word, a 3-byte id, a CRC over the header and payload, bit-fields packed LSB first), and
-they are not meant to. If both ends are yours and you can choose the format, they are mature and well supported in many
-languages, which WireForge is not: it generates C++17 and C99 only.</p>
-<p><strong>Kaitai Struct</strong> is the closest in spirit: it also describes an existing format field by field, and it targets many
-languages. It focuses on parsing; WireForge generates both directions, the framing of a byte stream, the dispatch of
-messages to handlers, and the tests that check the generated code against an independent reference codec. Kaitai is
-the better tool for reverse engineering file formats and for languages other than C and C++.</p>
+<p><strong>Protocol Buffers, nanopb, FlatBuffers.</strong> These define their own encoding, so both sides have to use it. They cannot
+implement an interface that is already defined (a sync word, a 3-byte id, a CRC over the header and payload, bit-fields
+packed LSB first), and they are not meant to. If both ends are yours and you can choose the format, they are mature and
+well supported in many languages, which WireForge is not: it generates C++17 and C99 only.</p>
+<p><strong>Kaitai Struct</strong> is the closest in spirit: it also describes a format field by field, and it targets many languages. It
+focuses on parsing; WireForge generates both directions, the framing of a byte stream, the dispatch of messages to
+handlers, and the tests that check the generated code against an independent reference codec. Kaitai is the better tool
+for reverse engineering file formats and for languages other than C and C++.</p>
 <p><strong>mavgen and the official MAVLink libraries.</strong> They are the reference: message signing, the MAVLink microservices
-and many languages. WireForge reads the same XML dialects (<code>wireforge import-mavlink common.xml</code>, every message,
-checked byte for byte against pymavlink) and generates allocation-free C++17 or C99 with its own tests, coverage gates,
-a Wireshark dissector and traceability; it refuses signed frames. It fits when MAVLink is one of several protocols of a
-system that WireForge already describes, or when the generated code must come with evidence.</p>
+and many languages. WireForge reads the same XML dialects (<code>wireforge import-mavlink common.xml</code>; its Python reference
+codec is checked byte for byte against pymavlink on every message, and the generated code is tested against that codec)
+and generates C++17 or C99 with its own tests, coverage gates, a Wireshark dissector and traceability; it refuses signed
+frames. Neither side uses the heap: mavgen's C library doesn't either, so that is not a difference between them. It fits
+when MAVLink is one of several protocols of a system that WireForge already describes, or when the generated code must
+come with evidence.</p>
 <p><strong>cantools</strong> imports CAN databases and encodes and decodes in Python. WireForge imports the same DBC files
 (<code>wireforge import-dbc</code>) and generates C or C++ for the target, with the same tests as any other model.</p>
 <p><strong>Hand-written code</strong> is how most of these links are implemented today. It works until a field moves, a target has
@@ -1583,7 +1587,8 @@ a different byte order, or nobody remembers which side changed. The point of a m
 the dissector and the documents change together, and <code>wireforge compat</code> tells whether a change breaks the other side.</p>
 <h2 id="what-wireforge-does-not-do">What WireForge does not do</h2>
 <ul>
-<li>Languages other than C++17 and C99 (Python has the reference codec, not generated code).</li>
+<li>Languages other than C++17 and C99 (Python has the reference codec, not generated code). Rust can call the generated
+  C code through <code>bindgen</code>, also in <code>no_std</code>; <code>examples/tutorial/drone_app_rust</code> shows it.</li>
 <li>Self-describing or schema-evolving encodings: there are no tags on the wire unless your format has them.</li>
 <li>Encryption, authentication or message signing.</li>
 <li>Production use without a commercial license (development, evaluation and CI are free; the generated code and its
