@@ -29,10 +29,12 @@ messages to handlers, and the tests that check the generated code against an ind
 the better tool for reverse engineering file formats and for languages other than C and C++.
 
 **mavgen and the official MAVLink libraries.** They are the reference: message signing, the MAVLink microservices
-and many languages. WireForge reads the same XML dialects (`wireforge import-mavlink common.xml`, every message,
-checked byte for byte against pymavlink) and generates allocation-free C++17 or C99 with its own tests, coverage gates,
-a Wireshark dissector and traceability; it refuses signed frames. It fits when MAVLink is one of several protocols of a
-system that WireForge already describes, or when the generated code must come with evidence.
+and many languages. WireForge reads the same XML dialects (`wireforge import-mavlink common.xml`; its Python reference
+codec is checked byte for byte against pymavlink on every message, and the generated code is tested against that codec)
+and generates C++17 or C99 with its own tests, coverage gates, a Wireshark dissector and traceability; it refuses signed
+frames. Neither side uses the heap: mavgen's C library doesn't either, so that is not a difference between them. It fits
+when MAVLink is one of several protocols of a system that WireForge already describes, or when the generated code must
+come with evidence.
 
 **cantools** imports CAN databases and encodes and decodes in Python. WireForge imports the same DBC files
 (`wireforge import-dbc`) and generates C or C++ for the target, with the same tests as any other model.
