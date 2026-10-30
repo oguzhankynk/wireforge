@@ -28,7 +28,7 @@ python -m pip install gcovr
 wireforge test drone -o build/drone --coverage
 ```
 The coverage build fails unless every line, branch and function of the generated code is run by the tests (100 %).
-The generated code has no branch of its own that a test cannot reach, so the gate holds for any model.
+The generated code has no branch of its own that a test cannot reach, so the gate is designed to hold for any model.
 
 ## Results
 The coverage build writes `results/` next to the build: the JUnit XML of the tests and the coverage reports. Each test

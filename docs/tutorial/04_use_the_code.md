@@ -108,6 +108,28 @@ drone_mavlink2_link_link_init(&self->link, transport, &self->handler);
 The vehicle itself (`vehicle.c`) knows nothing about UDP: `main.c` gives it a transport and calls `vehicle_tick()`
 every 10 ms. That is what lets the next chapter run it on a microcontroller.
 
+## From Rust
+WireForge does not generate Rust, but the generated C code works from it, also in `no_std`: it needs no heap and no
+standard library. `drone_app_rust/` is the same vehicle in Rust. Its `build.rs` runs `wireforge generate --language c`,
+compiles the C code with the `cc` crate and writes the declarations with `bindgen`. With Rust, a C compiler and libclang
+installed:
+```sh
+cp -r wireforge-src/examples/tutorial/drone_app_rust .
+DRONE_PROJECT="$PWD/drone" cargo build --manifest-path drone_app_rust/Cargo.toml --release
+drone_app_rust/target/release/drone_sim_rust 6 & python drone_app/ground_station.py; wait
+```
+The ground station sees the same messages. The transport and the handler are `extern "C"` functions that get a context
+pointer, and the rest are the C functions of this chapter:
+```rust
+let transport = wf_transport { context, send: Some(udp_send), receive: Some(udp_receive) };
+handler.on_CommandLong_received = Some(on_command_long);
+drone_mavlink2_link_link_init(link.as_mut_ptr(), &transport, &handler);
+```
+These calls are `unsafe`: the generated API is C, so a safe wrapper for your application is yours to write. The library
+(`src/lib.rs`) is `no_std`, and only the program adds UDP from the standard library. For a microcontroller, build the
+library for its target, for example `--lib --target thumbv7em-none-eabihf` with the Arm toolchain (`bindgen` then also
+needs the toolchain's headers, in `BINDGEN_EXTRA_CLANG_ARGS`).
+
 ## Against ArduPilot
 So far both ends were ours. ArduPilot's simulator (SITL) runs the real ArduCopter firmware on your computer, and
 `ardupilot_gcs/` is a small ground station in C for it, built from the import of the whole `ardupilotmega.xml` (every

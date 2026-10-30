@@ -1,8 +1,8 @@
 # WireForge user guide
 
-WireForge turns a description of binary messages (YAML, edited by hand, in the web UI or by an AI agent) into C++17
+WireForge turns a description of binary messages (YAML, edited by hand, in the web UI or by an AI agent) into C++17 or C99
 code that serializes, validates, frames and dispatches them without heap, exceptions or RTTI, plus a GoogleTest
-project that proves the code against a reference codec. The wire format is the one you describe: the generator never
+project that checks the code against a reference codec. The wire format is the one you describe: the generator never
 adds bytes.
 
 New to WireForge? The [tutorial](tutorial/README.md) builds a MAVLink 2 drone link step by step: the web UI, the code
@@ -77,8 +77,8 @@ With `--language c` the code is C99 instead (`model.h`, `model.c`; docs/CODEGEN.
 header-only (`runtime/include/wireforge/`, docs/RUNTIME.md). Bare-metal builds define `WIREFORGE_NO_STD_MUTEX`.
 
 ## Quality and safety
-Zero warnings from every compiler and analyzer, a 95 % line-coverage gate on generated code (the examples reach
-100 %), differential and fuzz testing
+Zero warnings from the compilers and analyzers that gate CI, a 100 % line, branch and function coverage gate on
+generated code, differential and fuzz testing
 against the reference codec, big-endian and 32-bit test runs, no-heap evidence and a trace report from model rows to
 code and tests (quality/QUALITY_POLICY.md, docs/SAFETY.md).
 

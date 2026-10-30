@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "wireforge"
 dynamic = ["version"]
-description = "Schema-driven wire-format toolkit: C++17 and C99 code generation, validation, server and MCP."
+description = "Match your wire format byte for byte: define the interface, generate heap-free C99 and C++17 code with its tests."
 requires-python = ">=3.10"
 license = "BUSL-1.1 AND MIT"
 license-files = ["LICENSE", "runtime/LICENSE"]

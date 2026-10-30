@@ -115,7 +115,7 @@ whatever the transport still holds is dropped.
 ## Tests
 `tests/io_test.cpp`, `containers_test.cpp`, `ring_buffer_test.cpp` (model fuzz, SPSC and MPMC stress under TSan),
 `frame_decoder_test.cpp` (chunking equivalence, garbage, bad checksum/length, all framings), `dispatcher_test.cpp` (delegates, lookup, life cycle, concurrent dispatch and registration), `link_test.cpp` (loopback, garbage, full transport, ITransport adapter, unframed, sender/poller threads), `checksum_test.cpp` (CRC catalogue check values in both modes, custom Fletcher-16), `lock_config_test.cpp`
-(built with `WIREFORGE_NO_STD_MUTEX`). Each suite proves zero heap use with the allocation trap.
+(built with `WIREFORGE_NO_STD_MUTEX`). Each suite checks for zero heap use with the allocation trap.
 
 ## Portability
 The runtime and the generated code are verified on every combination of word size and byte order, with an x86 and an
@@ -136,7 +136,7 @@ PowerPC, Cortex-M) need no `libatomic`.
 
 ## Environments
 The runtime and the generated code use only the C++17 standard library (an allow list of headers, checked by
-`quality/check_os_neutral.py`) and test for no operating system. The CI proves it in these environments:
+`quality/check_os_neutral.py`) and test for no operating system. The CI checks it in these environments:
 
 | Environment | Compiler | What is proved |
 |---|---|---|

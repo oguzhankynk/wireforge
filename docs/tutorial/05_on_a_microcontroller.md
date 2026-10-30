@@ -67,10 +67,34 @@ There is no operating system: `main` sets up the UART and the SysTick timer and 
 timer has counted 10 ms. `startup.c` copies the initialized data, clears the rest and switches on the floating-point
 unit (the code is built for it), as every Cortex-M4 start-up does.
 
+## On a real board
+The same `vehicle.c` runs on real hardware: `drone_firmware_stm32h7/` is for the NUCLEO-H743ZI2, a Cortex-M7 board with
+an ST-LINK on it. Only the files around the vehicle differ: the board's USART3, which the ST-LINK offers to the computer
+as a serial port, the start-up and the memory map. There is no vendor library.
+<!-- tutorial: run -->
+```sh
+cp -r wireforge-src/examples/tutorial/drone_firmware_stm32h7 .
+cmake -S drone_firmware_stm32h7 -B build/stm32h7 -DDRONE_PROJECT="$PWD/drone" -DWireForge_DIR="$(wireforge cmake-dir)" \
+  -DCMAKE_TOOLCHAIN_FILE="$PWD/wireforge-src/cmake/toolchains/arm-none-eabi-cortex-m7.cmake"
+cmake --build build/stm32h7
+arm-none-eabi-size build/stm32h7/drone_firmware.elf
+```
+With the board on USB, flash it with [pyOCD](https://pyocd.io) (or STM32CubeProgrammer) and fly it. This replaces what
+is on the board:
+```sh
+python -m pip install pyocd pyserial
+pyocd flash -t stm32h743xx build/stm32h7/drone_firmware.elf
+python drone_app/ground_station.py /dev/ttyACM0,115200
+```
+The green LED blinks, and the yellow LED comes on when the ground station arms the vehicle
+([video](https://youtu.be/vMN9FbNLx7o)). The serial port is
+`/dev/ttyACM0` on Linux and a `COM` port on Windows. On a real UART a byte takes 87 us, so this firmware does what the
+QEMU one did not need: a loop moves bytes between the UART and two `wf_ring` buffers all the time, and the link only
+reads and writes the rings. It needs about 21 KB of flash and 16 KB of RAM.
+
 ## On your board
-- **The UART:** replace the four register macros and `uart_send`/`uart_receive` with your board's UART (or its HAL
-  calls). With interrupts, let the receive interrupt put bytes into a ring buffer (`wf_ring` of the runtime) and let
-  `uart_receive` take them from there.
+- **The UART:** start from `drone_firmware_stm32h7/main.c` and replace the registers with your board's UART (or its HAL
+  calls). With interrupts, let the receive interrupt put bytes into the ring buffer instead of `uart_pump`.
 - **The clock:** `CPU_HZ` is the clock of the SysTick timer; any 10 ms tick works, from a timer interrupt as well.
 - **With an RTOS:** call `vehicle_tick()` from one task every 10 ms. The C runtime has no locks, so the link belongs to
   that task; the C++ runtime has a lock policy for kernel mutexes (the FreeRTOS example is in `tests/rtos`).

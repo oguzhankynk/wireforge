@@ -268,3 +268,8 @@ def test_cli_test_accepts_the_runtime_coverage_flag() -> None:
     args = parser.parse_args(["test", "x", "-o", "y", "--coverage-runtime"])
     assert args.coverage_runtime
     assert not parser.parse_args(["test", "x", "-o", "y", "--coverage"]).coverage_runtime
+
+
+def test_runtime_dir(capsys: pytest.CaptureFixture[str]) -> None:
+    assert cli.main(["runtime-dir"]) == 0
+    assert (Path(capsys.readouterr().out.strip()) / "wireforge" / "c" / "link.h").exists()

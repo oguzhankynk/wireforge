@@ -109,6 +109,9 @@ Only the types and enums that a message or an interface uses get functions. User
 The test project builds the C library with `malloc`, `calloc`, `realloc` and `free` renamed to names that do not link,
 so C code that uses the heap fails the build.
 
+From Rust, the C code is used through `bindgen` (`examples/tutorial/drone_app_rust`, also `no_std`): `build.rs` runs
+`wireforge generate --language c`, and `wireforge runtime-dir` prints the directory of the runtime headers.
+
 In CMake, `wireforge_generate(<target> PROJECT <dir> LANGUAGE c)` generates the C code at configure time and makes
 `<target>` a static C99 library of it, with the C runtime headers; it needs no C++ compiler, so it also builds for a
 microcontroller (`examples/tutorial/drone_firmware`).

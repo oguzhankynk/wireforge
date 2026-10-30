@@ -74,7 +74,7 @@ that checks every message and frame against WireForge's reference codec, builds 
 code instead, add `--language c`.
 
 **What happened:** the model was validated, the code generated (no heap, no exceptions, no RTTI), and the tests were
-derived from the model itself, not written by hand. Chapter 6 shows what they prove.
+derived from the model itself, not written by hand. Chapter 6 shows what they check.
 
 **More:** [User guide](../GUIDE.md), [command line](../CLI.md), [definition format](../SCHEMA_SPEC.md).
 
