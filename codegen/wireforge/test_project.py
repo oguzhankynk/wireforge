@@ -32,7 +32,13 @@ VECTOR_NOTE = (
 DIRECTORY = "generated_tests"
 DEFAULT_COVERAGE = 100
 RUNTIME_INCLUDE = resources.runtime_include()
-SOURCES = ("golden_test.cpp", "message_test.cpp", "interface_test.cpp")
+SOURCES = (
+    "golden_test.cpp",
+    "message_test.cpp",
+    "interface_test.cpp",
+    "no_allocation_test.cpp",
+    "allocation_counter.cpp",
+)
 VECTOR_SOURCE = "hlr_vector_test.cpp"
 
 CLANG_TIDY = """\
@@ -294,7 +300,9 @@ WireForge reference codec:
 - `message_test.cpp`: defaults, minimum/maximum and out-of-range values, empty arrays, invalid enum
   values and decode errors (wrong checksum, count above the maximum, constants, truncation);
 - `interface_test.cpp`: dispatch of every message, byte-wise delivery, bytes before the sync,
-  corrupted frames and too small buffers.
+  corrupted frames and too small buffers;
+- `no_allocation_test.cpp`: decoding, encoding, sending and dispatching every message allocates
+  nothing (`allocation_counter.cpp` counts the allocations of the test executable).
 {vector_note}
 Profiles are separate executables: {executables}.
 
@@ -457,6 +465,8 @@ def render(
         "golden_test.cpp": cpp_tests.golden_test_source(project, golden_vectors),
         "message_test.cpp": cpp_tests.message_test_source(project, profiles, report),
         "interface_test.cpp": cpp_tests.interface_test_source(project, profiles, report),
+        "no_allocation_test.cpp": cpp_tests.no_allocation_test_source(project, golden_vectors),
+        "allocation_counter.cpp": cpp_tests.ALLOCATION_COUNTER_SOURCE,
     } | (
         {VECTOR_SOURCE: cpp_tests.hlr_vector_test_source(project, runs)} if project.vectors else {}
     )

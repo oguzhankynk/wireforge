@@ -106,6 +106,8 @@ in the same order, the same statuses (`wireforge/c/`, docs/RUNTIME.md). What dif
   without callbacks ignores the messages. The link reads and writes through a `wf_transport` (two functions) and is
   used by one thread at a time (docs/RUNTIME.md).
 Only the types and enums that a message or an interface uses get functions. User types are not supported yet.
+The test project builds the C library with `malloc`, `calloc`, `realloc` and `free` renamed to names that do not link,
+so C code that uses the heap fails the build.
 
 In CMake, `wireforge_generate(<target> PROJECT <dir> LANGUAGE c)` generates the C code at configure time and makes
 `<target>` a static C99 library of it, with the C runtime headers; it needs no C++ compiler, so it also builds for a
@@ -221,6 +223,7 @@ of the generated headers; for the examples each is 100 %.
 | `golden_test.cpp` | golden vectors: payload round trip, `encode_frame` equals the golden frame, `decode_header`, loopback through `Link`/`Endpoint`/`Handler` |
 | `message_test.cpp` | per message: defaults (`T{}`), every scalar member and the first element of every array at its minimum and maximum and one step outside (when the member type can hold it), an invalid enum value, every variable-size array emptied (the pattern value fills arrays to capacity), and single-byte mutations of the encoded pattern (the first one per distinct decode error and field: checksum, count above the maximum, constant, range), truncation and an extra byte |
 | `interface_test.cpp` | per interface: every message dispatched to its handler, byte-wise delivery, bytes before the sync, a corrupted frame followed by a good one, `encode_frame` into too small buffers, raw delivery without decoding, raw delivery forwarded to the decoder, decode errors returned by the raw hook |
+| `no_allocation_test.cpp`, `allocation_counter.cpp` | per interface and message: decoding, encoding, sending and dispatching the frame make no heap allocation, counted by replacing the global `operator new` of the test executable |
 | `handlers.hpp`, `test_support.hpp`, `wire_support.hpp` | recording handlers with a loopback link per interface; assertion and byte helpers |
 | `diff_harness.cpp` | `<project>_diff[_<profile>]`: line-based harness of the differential test (see below) |
 | `selftest.cpp` | `<project>_selftest[_<profile>]` (CTest): framework-free self-test without exceptions, RTTI or heap (golden vectors: payload, frame, loopback; decode cases), for embedded and cross targets |

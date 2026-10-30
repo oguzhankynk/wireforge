@@ -125,7 +125,10 @@ function(wireforge_add_profile suffix)
   set(model @NAME@_model${suffix})
   add_library(${model} STATIC ${WIREFORGE_GENERATED_DIR}/@NAME@/model.c@INTERFACE_SOURCES@)
   target_include_directories(${model} PRIVATE ${includes})
-  target_compile_definitions(${model} PRIVATE ${ARGN})
+  # The generated C code and the runtime must not use the heap: these names do not link.
+  target_compile_definitions(${model} PRIVATE ${ARGN} malloc=wireforge_forbidden_malloc
+                             calloc=wireforge_forbidden_calloc realloc=wireforge_forbidden_realloc
+                             free=wireforge_forbidden_free)
   target_link_libraries(${model} PRIVATE wireforge_c_flags)
   set(tests @NAME@_tests${suffix})
   add_executable(${tests} @SOURCES@)
@@ -188,6 +191,8 @@ tests are C++ and call the C functions. Every expectation comes from the WireFor
 - `message_test.cpp`: defaults, minimum/maximum and out-of-range values, empty arrays, invalid enum
   values, decode errors (wrong checksum, count above the maximum, constants, truncation) and the
   physical values of fields with a scale.
+
+`malloc`, `calloc`, `realloc` and `free` do not link in the C library under test.
 
 Profiles are separate executables: {executables}.
 

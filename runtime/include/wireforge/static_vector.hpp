@@ -156,7 +156,7 @@ public:
 
     /// @brief Creates a string holding @p text, truncated to N characters.
     explicit constexpr FixedString(std::string_view text) noexcept {
-        static_cast<void>(assign(text.substr(0U, text.size() < N ? text.size() : N)));
+        static_cast<void>(assign(std::string_view(text.data(), text.size() < N ? text.size() : N)));
     }
 
     /// @brief Maximum number of characters (N).
