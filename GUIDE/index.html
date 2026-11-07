@@ -362,6 +362,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#systems-of-several-units" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Systems of several units
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#generated-code" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -788,6 +799,34 @@
     
   
     11. Documents and evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/12_a_system_of_units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. A system of units
   
 
     
@@ -1559,6 +1598,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#systems-of-several-units" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Systems of several units
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#generated-code" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1685,6 +1735,16 @@ wireforge<span class="w"> </span>validate<span class="w"> </span>demo<span class
 <li><strong>Wireshark:</strong> <code>wireforge wireshark demo -o demo.lua</code> writes a Lua dissector plugin for every interface
   (docs/WIRESHARK.md).</li>
 </ul>
+<h2 id="systems-of-several-units">Systems of several units</h2>
+<p>Describe the whole system in one model: <code>nodes</code> (the units, each with an optional <code>language</code>), an interface with the
+<code>nodes</code> that take part in it, and for every message of an interface <code>from</code>, the unit or units that send it. Units
+that share no interface never talk. <code>wireforge generate &lt;project&gt; -o out</code> then writes <code>out/nodes/&lt;unit&gt;/</code> for every
+unit, with only its own messages, callbacks, tests and documents, and <code>out/system/</code> with the system ICD and (with
+<code>--tests</code>) a test of every sender's encoder against every receiver's decoder. <code>--node &lt;unit&gt;</code> generates one unit with
+the same files as the full run. <code>wireforge compat old new --node &lt;unit&gt;</code> says whether a change affects that unit, and
+the unit hash in the banner only changes with what reaches the unit. Split the model into files with <code>include</code> so that
+a change in one link does not move the source lines in the files of the units that are not in it. Chapter 12 of the
+tutorial walks through it; <code>examples/08_system</code> is a larger model.</p>
 <h2 id="generated-code">Generated code</h2>
 <p>With <code>--language c</code> the code is C99 instead (<code>model.h</code>, <code>model.c</code>; docs/CODEGEN.md, runtime in <code>runtime/include/wireforge/c/</code>).</p>
 <p><code>model.hpp</code> (types with defaults, <code>validate()</code>, sizes, <code>serialize()</code>/<code>deserialize()</code>), one header per interface (ids,
@@ -1773,6 +1833,10 @@ published protocol that is written from its public documents and checked against
 <tr>
 <td><code>examples/07_can_dbc</code></td>
 <td>a CAN network imported from a DBC file: Intel and Motorola signals, factor and offset, value tables as enums, an extended identifier (<code>wireforge import-dbc</code>)</td>
+</tr>
+<tr>
+<td><code>examples/08_system</code></td>
+<td>five units (C++ and C) over four interfaces (two way, one way, a shared line), one file per interface, counters per message; <code>wireforge generate examples/08_system -o build/system --tests</code></td>
 </tr>
 <tr>
 <td><code>examples/icd/</code></td>

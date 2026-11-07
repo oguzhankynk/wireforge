@@ -668,6 +668,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/12_a_system_of_units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. A system of units
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1649,6 +1677,10 @@ or through the CLI, not in the UI:
 - <code>if</code> and <code>since</code> of whole entries.</p>
 <h2 id="interfaces-profiles-versions-and-tools">Interfaces, profiles, versions and tools</h2>
 <ul>
+<li><strong>Units:</strong> the project settings list the units of a system (name, description, language) and the interface
+  editor lists the participants and, for every message, the senders (<code>from</code>) instead of the direction; a project
+  without units keeps the direction. <code>Count every message</code> is <code>message_counters</code>. In a project with units the Generate
+  tab has a unit selector: the files and the zip are those of the chosen unit (<code>&lt;project&gt;-&lt;unit&gt;-generated.zip</code>).</li>
 <li><strong>Interface editor:</strong> version, description, direction, endian, header (or none: raw dispatch) and trailer fields
   with roles, constants and checksums, framing (kind, frame size, maximum frame size, length counts, resync), the
   message list with per-interface id overrides, buffer sizes, trailing-byte tolerance and trimmed payloads (trailing

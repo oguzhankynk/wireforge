@@ -668,6 +668,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/12_a_system_of_units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. A system of units
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1557,7 +1585,7 @@ equivalent.</p>
 <td>upgrade the file format and refresh the version stamps</td>
 </tr>
 <tr>
-<td><code>wireforge generate &lt;project&gt; -o &lt;dir&gt; [--tests] [--plugins F] [--language cpp\|c]</code></td>
+<td><code>wireforge generate &lt;project&gt; -o &lt;dir&gt; [--tests] [--plugins F] [--language cpp\|c] [--node UNIT]</code></td>
 <td>C++17 code (or C99 with <code>--language c</code>, docs/CODEGEN.md), with <code>--tests</code> the GoogleTest project; custom checksums use <code>--plugins F</code> or else the project's <code>plugins/*.py</code></td>
 </tr>
 <tr>
@@ -1565,12 +1593,12 @@ equivalent.</p>
 <td>Wireshark Lua dissector plugin (docs/WIRESHARK.md)</td>
 </tr>
 <tr>
-<td><code>wireforge analyze &lt;project&gt; [--profile P] [--format markdown\|csv\|json]</code></td>
+<td><code>wireforge analyze &lt;project&gt; [--profile P] [--format markdown\|csv\|json] [--node UNIT]</code></td>
 <td>layout report / ICD (docs/LAYOUT.md)</td>
 </tr>
 <tr>
-<td><code>wireforge compat &lt;old&gt; &lt;new&gt; [--interface I]</code></td>
-<td>interface compatibility and version bump check</td>
+<td><code>wireforge compat &lt;old&gt; &lt;new&gt; [--interface I] [--node UNIT]</code></td>
+<td>interface compatibility and version bump check; with <code>--node</code> only the unit's interfaces and a first line <code>affects UNIT: yes\|no</code>; in a project with units the report ends with <code>affected nodes: ...</code></td>
 </tr>
 <tr>
 <td><code>wireforge reqs-import &lt;project&gt; &lt;file&gt; --baseline B</code></td>
@@ -1585,11 +1613,11 @@ equivalent.</p>
 <td>requirements, design, test and traceability documents (docs/LIFECYCLE.md)</td>
 </tr>
 <tr>
-<td><code>wireforge trace &lt;project&gt; [--format markdown\|csv] [-o file]</code></td>
+<td><code>wireforge trace &lt;project&gt; [--format markdown\|csv] [-o file] [--node UNIT]</code></td>
 <td>requirements, model elements, generated code and tests (docs/SAFETY.md)</td>
 </tr>
 <tr>
-<td><code>wireforge test &lt;project&gt; -o &lt;dir&gt; [--language cpp\|c] [--coverage] [--coverage-runtime] [--generator Ninja]</code></td>
+<td><code>wireforge test &lt;project&gt; -o &lt;dir&gt; [--language cpp\|c] [--node UNIT \| --system] [--coverage] [--coverage-runtime] [--generator Ninja]</code></td>
 <td>generate, build and run the generated tests; the coverage build writes <code>results/</code> for <code>docs --results</code></td>
 </tr>
 <tr>
@@ -1622,6 +1650,11 @@ equivalent.</p>
 </tr>
 </tbody>
 </table>
+<p><code>--node UNIT</code> needs a project with <code>nodes</code> (an error otherwise) and works on the view of that unit: its interfaces,
+the messages it sends or receives, its documents (<code>docs --node</code> adds <code>unit_icd.md</code>; without <code>--node</code> a project with
+units gets <code>system_icd.md</code>). <code>wireforge test --system</code> builds and runs the system test (docs/CODEGEN.md). In CMake,
+<code>wireforge_generate(&lt;target&gt; PROJECT &lt;dir&gt; NODE &lt;unit&gt;)</code> takes the code and the language of one unit; a project with
+<code>nodes</code> needs <code>NODE</code>.</p>
 <p>Values are YAML flow syntax (<code>85</code>, <code>deg</code>, <code>'{ name: age, type: u8 }'</code>) or a YAML file (<code>--file</code>). <code>--json</code> prints
 <code>{"ok", "issues", "data", "text"}</code>. Exit codes: <code>0</code> success, <code>1</code> the project or check failed (validation errors,
 <code>--check</code> differences, insufficient version bump, test failures, codec errors), <code>2</code> usage error, <code>3</code> the command could

@@ -668,6 +668,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/12_a_system_of_units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. A system of units
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1606,6 +1634,8 @@ reference codec (docs/SCHEMA_SPEC.md, section 16). Code: <code>wireforge.wiresha
 </ul>
 <h2 id="what-is-shown">What is shown</h2>
 <ul>
+<li><strong>Sender:</strong> in a project with <code>nodes</code> the message item names its senders, e.g. <code>Heartbeat (from A, B, D)</code>. The
+  dissector is made from the whole system, not from the view of one unit.</li>
 <li><strong>Field tree:</strong> one tree per frame, with Header, the message and Trailer. Structs and arrays become subtrees; array
   elements are labelled <code>[i]</code>. Bit-fields show their bit mask; enums show the member name. Units are added to the
   label (<code>temperature [degC]</code>) and descriptions become the field's blurb.</li>

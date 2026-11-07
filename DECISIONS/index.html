@@ -666,6 +666,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/12_a_system_of_units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. A system of units
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1668,7 +1696,8 @@
 | D78 | The tutorial on a microcontroller | The vehicle of the tutorial is written once in C99 against the generated C code and a two-function transport, and runs unchanged on a desktop over UDP and as bare-metal firmware on a Cortex-M4 over its UART. The firmware runs in QEMU's MPS2 board (<code>mps2-an386</code>), so the chapter needs no hardware and runs in CI where the Arm toolchain and QEMU are installed; a chapter declares the tools it needs and is skipped elsewhere. For this, <code>wireforge_generate()</code> takes <code>LANGUAGE c</code> and gives a static C99 library without the C++ runtime, so a C-only cross build works. The MAVLink 2 Wireshark hook reads the CRC_EXTRA bytes from the project's <code>crc_extra.h</code> (found from its own place in the project, with its built-in table as the fallback), so the list of CRC_EXTRA bytes stays one file. Against ArduPilot, the tutorial shows a C ground station built from the import of the whole <code>ardupilotmega.xml</code> talking to the ArduCopter simulator; that step needs a download from ArduPilot and is not run in CI. |
 | D79 | The no-heap claim for every model | The claim that generated code uses no heap has to hold for any model, not only for those in the repository. Three layers back it: the object-level symbol check now also takes the test models (an import of a MAVLink dialect among them) and the generated C, and fails when a message of an interface has no self-test, because header objects hold no template or inline code and only the self-tests instantiate it; the generated C++ test project counts <code>operator new</code> around decoding, encoding, sending and dispatching every message; the generated C test project renames the heap functions so that their use does not link, since <code>operator new</code> cannot be counted in C and wrapping <code>malloc</code> is not portable. A heap call put into the runtime on purpose is caught by all three. The wider check found <code>FixedString</code> calling <code>string_view::substr</code>, whose exception path stays in the object at -O0; it no longer does. |
 | D80 | Rust through the generated C | Rust users call the generated C code through <code>bindgen</code> (<code>examples/tutorial/drone_app_rust</code>) instead of a Rust generator. A generator would need its own runtime, tests, coverage gate and CI for every feature, and Rust has good derive-based libraries for binary formats, so the need is unproven; the C code needs no heap, so the <code>no_std</code> library works already. A Rust target can follow if users ask for one. The example needs a Rust toolchain and is not run in CI. <code>wireforge runtime-dir</code> gives a build script the runtime headers. |
-| D81 | The tutorial on real hardware | <code>examples/tutorial/drone_firmware_stm32h7</code> runs the same <code>vehicle.c</code> on a NUCLEO-H743ZI2 without a vendor library, MAVLink 2 over the ST-LINK's serial port. A real UART is slower than the emulated one and has a small FIFO, so a loop moves bytes between the UART and two ring buffers and the link only touches the rings. CI compiles the firmware with the tutorial; flashing needs the board, so running it is a manual check. A second toolchain file gives the Cortex-M7 flags and libraries. |</p>
+| D81 | The tutorial on real hardware | <code>examples/tutorial/drone_firmware_stm32h7</code> runs the same <code>vehicle.c</code> on a NUCLEO-H743ZI2 without a vendor library, MAVLink 2 over the ST-LINK's serial port. A real UART is slower than the emulated one and has a small FIFO, so a loop moves bytes between the UART and two ring buffers and the link only touches the rings. CI compiles the firmware with the tutorial; flashing needs the board, so running it is a manual check. A second toolchain file gives the Cortex-M7 flags and libraries. |
+| D82 | Systems of units | One model describes all the programs of a system: <code>nodes</code> at the project level, <code>nodes</code> per interface and <code>from</code> per message, because the direction belongs to a message (who sends it) and not to an interface, and a message is defined once. Each unit gets a view of the model (its interfaces, its messages and what they use) and the generators run on that view, so the code, tests and documents of a unit are the same in a full run and with <code>--node</code>, and a change that does not reach a unit leaves its hash. The unit sees a message only as sent or received: the handler has callbacks for what it receives, and a frame of a message it only sends is <code>NotForThisNode</code>, not an error. The hook for a frame that reaches no callback only counts by default and never prints, so the runtime has no output of its own. Link counters are always present; counters per message are a model setting (<code>message_counters</code>) because they cost RAM. Not in scope: question and answer pairing, timing, addressing, several instances of one unit, unit versions, hiding parts of the model in a bundle. |</p>
 
 
 

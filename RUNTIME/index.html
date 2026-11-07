@@ -668,6 +668,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/12_a_system_of_units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. A system of units
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -988,6 +1016,17 @@
     <span class="md-ellipsis">
       
         Transport and link
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unhandled-frames" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unhandled frames
       
     </span>
   </a>
@@ -1651,6 +1690,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#unhandled-frames" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unhandled frames
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#tests" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1865,6 +1915,10 @@ Every fallible call returns <code>wireforge::Status</code>.</p>
 <td><code>InvalidState</code></td>
 <td>The API was misused (invalid argument or call sequence)</td>
 </tr>
+<tr>
+<td><code>NotForThisNode</code></td>
+<td>A valid frame that this unit does not receive; not an error (not counted in <code>PollResult.errors</code>)</td>
+</tr>
 </tbody>
 </table>
 <h2 id="byte-and-bit-io">Byte and bit IO</h2>
@@ -1932,6 +1986,16 @@ complete frame and returns counts plus the last error. <code>Link::send(encode)<
 buffer under the tx lock and hands the frame to the transport; a transport that stops accepting bytes mid-frame gives
 <code>BufferTooSmall</code> (the receiver resynchronises). With <code>Unframed</code> each transport read is one frame; a read longer than <code>MaxFrame</code> is rejected as <code>InvalidLength</code> and
 whatever the transport still holds is dropped.</p>
+<p><code>Link::record</code> sorts every received frame into one counter of <code>LinkCounters</code> by its status: <code>rx_frames</code> (<code>Ok</code>),
+<code>rx_rejected</code> (the frame decoder refused it), <code>rx_unknown_id</code>, <code>rx_not_for_node</code> (<code>NotForThisNode</code>: a valid frame this
+unit does not receive; it is neither a frame nor an error of the poll result) and <code>rx_decode_errors</code> (any other
+status). <code>reset_counters()</code> (C: <code>wf_link_reset_counters</code>) sets every counter to zero.</p>
+<h2 id="unhandled-frames">Unhandled frames</h2>
+<p>A valid frame that reaches no received callback is handed to the generated handler's <code>onUnhandled(const
+UnhandledFrame&amp;)</code> (C: <code>on_unhandled</code>, <code>wf_unhandled_frame</code>) with its reason: <code>UnknownMessageId</code>, <code>NotForThisNode</code> or
+<code>DecodeError</code> (the default raw callback could not decode it). The default only lets the link count the frame. Frames
+the frame decoder rejects do not reach the hook, because no whole frame is at hand. <code>count_if_ok</code> (C:
+<code>wf_count_if_ok</code>) is the branch-free helper generated code counts messages with.</p>
 <h2 id="tests">Tests</h2>
 <p><code>tests/io_test.cpp</code>, <code>containers_test.cpp</code>, <code>ring_buffer_test.cpp</code> (model fuzz, SPSC and MPMC stress under TSan),
 <code>frame_decoder_test.cpp</code> (chunking equivalence, garbage, bad checksum/length, all framings), <code>dispatcher_test.cpp</code> (delegates, lookup, life cycle, concurrent dispatch and registration), <code>link_test.cpp</code> (loopback, garbage, full transport, ITransport adapter, unframed, sender/poller threads), <code>checksum_test.cpp</code> (CRC catalogue check values in both modes, custom Fletcher-16), <code>lock_config_test.cpp</code>

@@ -668,6 +668,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/12_a_system_of_units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. A system of units
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1524,7 +1552,7 @@ Python SDK, <code>MCPServer</code>). Every subdirectory of the workspace with a 
 <td><code>wireforge validate</code></td>
 </tr>
 <tr>
-<td><code>generate_code(project, tests?)</code></td>
+<td><code>generate_code(project, tests?, node?)</code></td>
 <td>C++ code and the GoogleTest project; lists the files</td>
 <td><code>wireforge generate --tests</code></td>
 </tr>
@@ -1534,7 +1562,7 @@ Python SDK, <code>MCPServer</code>). Every subdirectory of the workspace with a 
 <td><code>wireforge test</code></td>
 </tr>
 <tr>
-<td><code>analyze_layout(project, profile?, export?)</code></td>
+<td><code>analyze_layout(project, profile?, export?, node?)</code></td>
 <td>sizes, offsets, bit maps, frames, link RAM</td>
 <td><code>wireforge analyze</code></td>
 </tr>
@@ -1549,7 +1577,7 @@ Python SDK, <code>MCPServer</code>). Every subdirectory of the workspace with a 
 <td><code>wireforge reqs-lock</code></td>
 </tr>
 <tr>
-<td><code>lifecycle_docs(project, strict, results_dir?, rule_findings?)</code></td>
+<td><code>lifecycle_docs(project, strict, results_dir?, rule_findings?, node?)</code></td>
 <td>requirements, design, test and traceability documents in <code>&lt;workspace&gt;/.wireforge/docs/&lt;project&gt;/</code></td>
 <td><code>wireforge docs</code></td>
 </tr>
@@ -1559,7 +1587,7 @@ Python SDK, <code>MCPServer</code>). Every subdirectory of the workspace with a 
 <td><code>wireforge wireshark</code></td>
 </tr>
 <tr>
-<td><code>compat_check(project, old_project? \| revision?)</code></td>
+<td><code>compat_check(project, old_project? \| revision?, node?)</code></td>
 <td>compatibility with another project or a git revision</td>
 <td><code>wireforge compat</code></td>
 </tr>
@@ -1575,6 +1603,8 @@ Python SDK, <code>MCPServer</code>). Every subdirectory of the workspace with a 
 </tr>
 </tbody>
 </table>
+<p><code>node</code> limits a tool to one unit of a project with <code>nodes</code> (an error for other projects): <code>compat_check</code> then starts with
+<code>affects &lt;node&gt;: yes|no</code>. A project with units is generated below <code>nodes/&lt;unit&gt;</code>.</p>
 <p>Every result has <code>ok</code>, <code>issues</code>, <code>data</code> and <code>text</code>; writes with <code>dry_run: true</code> return the unified diff and change
 nothing. Bad arguments (unknown project, section or message, malformed hex) are tool errors. Custom checksum plugins
 (<code>plugins/*.py</code>) are executed, so serve trusted workspaces only.</p>

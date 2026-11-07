@@ -794,6 +794,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12_a_system_of_units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. A system of units
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1644,6 +1672,8 @@ ground station: VFR_HUD {'airspeed': 0.0, 'groundspeed': 0.0, 'heading': 10, 'th
 vehicle: COMMAND_LONG 400 (param1 1), answering COMMAND_ACK
 ground station: COMMAND_ACK {'command': 400, 'result': 0, 'progress': 0, ...}
 ground station: all messages arrived
+vehicle: done, 91 frames sent, ground station seen
+vehicle: link sent 91, received 2, unknown id 0
 </code></pre></div>
 pymavlink was not written with WireForge, so this is a real interoperability check: the frames, the trimmed payloads and
 the checksums are the ones every MAVLink tool expects. Ground station software such as QGroundControl listens on the
@@ -1674,7 +1704,12 @@ The endpoint joins the frame decoder, the dispatcher and the handler; the link r
 <span class="p">});</span>
 <span class="n">channel</span><span class="p">.</span><span class="n">poll</span><span class="p">();</span><span class="w">  </span><span class="c1">// reads what arrived and calls the handler</span>
 </code></pre></div>
-A transport is any class with a non-blocking <code>send</code> and <code>receive</code> (<code>udp_transport.hpp</code> is 60 lines); on a
+A frame that reaches no callback (an id the model does not know) goes to <code>onUnhandled</code>, whose default only lets the
+link count it. The vehicle overrides it to write a line with its own <code>log</code> function (in C the handler has an
+<code>on_unhandled</code> callback, <code>NULL</code> meaning "only count"). The link also counts what it did: <code>channel.counters()</code> has the
+frames sent and received, the frames rejected by the frame decoder and the unknown ids, and the last line of the
+program prints three of them.</p>
+<p>A transport is any class with a non-blocking <code>send</code> and <code>receive</code> (<code>udp_transport.hpp</code> is 60 lines); on a
 microcontroller it is a UART or a CAN driver. Nothing allocates memory, nothing throws, and trimming the trailing zeros
 of MAVLink 2 is done by the generated code: the application never sees it.</p>
 <h2 id="the-same-in-c">The same in C</h2>

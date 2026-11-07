@@ -668,6 +668,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/12_a_system_of_units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. A system of units
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2046,7 +2074,7 @@ width (SR-12). Checksums are optional everywhere.</p>
 <h2 id="10-interfaces">10. Interfaces</h2>
 <p>An interface is one communication endpoint with a remote party (<code>our_to_nodeA</code>, <code>nodeB_to_our</code>, ...).
 - <code>version</code> (semver, required): ICD version; may be carried on the wire by a <code>role: protocol_version</code> header field.
-- <code>direction</code>: <code>tx</code>, <code>rx</code>, <code>both</code>. <code>endian</code>, <code>bit_order</code>, <code>range_check</code>: defaults for its messages.
+- <code>direction</code>: <code>tx</code>, <code>rx</code>, <code>both</code> (not allowed when the project defines <code>nodes</code>; see below). <code>endian</code>, <code>bit_order</code>, <code>range_check</code>: defaults for its messages.
 - <code>header</code>: <code>none</code> or <code>{fields}</code>. Header field roles: <code>sync</code> (const marker), <code>message_id</code>, <code>payload_length</code>,
   <code>protocol_version</code>, <code>sequence</code>. A header with <code>message_id</code> enables header-based dispatch.
 - <code>header: none</code> means raw dispatch: the interface carries exactly one message type, or none (raw bytes) (SR-14).
@@ -2055,12 +2083,18 @@ width (SR-12). Checksums are optional everywhere.</p>
   <code>payload_length</code>), <code>length_prefixed</code> (header has <code>payload_length</code>). Non-<code>none</code> kinds need <code>max_frame_size</code>
   (drives static buffer sizes). <code>length_counts</code> says what the length field covers (default <code>payload</code>).
   <code>resync: true</code> rescans after garbage or bad frames.
-- <code>messages</code>: names or <code>{name, id?, if?, since?}</code>; <code>id</code> overrides the message id on this interface.
+- <code>messages</code>: names or <code>{name, from?, id?, if?, since?}</code>; <code>id</code> overrides the message id on this interface.
 - <code>buffers.rx_bytes/tx_bytes</code>: optional circular/linear buffer sizes; default derived from <code>max_frame_size</code>.
 - <code>allow_trailing_bytes</code>: default false; leftover payload bytes give <code>TrailingBytes</code>.
 - <code>trim_trailing_zeros</code>: default false; every payload is sent without its trailing zero bytes (the first byte always
   stays) and the receiver reads the bytes it did not get as zeros (MAVLink 2). Needs messages of fixed size (SR-25);
-  changing it is a breaking change.</p>
+  changing it is a breaking change.
+- <code>nodes</code> (interface): the units that take part, at least two without repeats (a shared line has more).
+  <code>message_counters</code>: default false; asks for a counter per message and direction in the generated code.</p>
+<p>A project may define <code>nodes</code>, a map of unit name to <code>{description?, language?}</code> (<code>language</code> is <code>cpp</code> or <code>c</code>). The direction
+of a message then belongs to the message: every interface lists its <code>nodes</code>, every message entry gives <code>from</code> (a unit or a
+list of units) and the other participants receive it. Without <code>nodes</code>, <code>direction</code> stays the only direction information
+and <code>nodes</code>/<code>from</code> are not allowed. Units that share no interface do not talk to each other.</p>
 <h2 id="11-versioning-and-file-identity">11. Versioning and file identity</h2>
 <table>
 <thead>
@@ -2078,7 +2112,7 @@ width (SR-12). Checksums are optional everywhere.</p>
 </tr>
 <tr>
 <td><code>schema_minor</code> (int, default 0)</td>
-<td>additive format changes inside a major (minor 1: <code>requirements</code>, <code>reqs</code>; minor 2: <code>vectors</code>)</td>
+<td>additive format changes inside a major (minor 1: <code>requirements</code>, <code>reqs</code>; minor 2: <code>vectors</code>; minor 3: <code>nodes</code>, <code>from</code>, <code>message_counters</code>)</td>
 <td>tool</td>
 </tr>
 <tr>
@@ -2120,7 +2154,8 @@ profile and classifies every difference:
 The report fails when the new <code>interface.version</code> is not at least the required step above the old one.</p>
 <h2 id="12-error-model">12. Error model</h2>
 <p>Codec calls return <code>Status</code> values (docs/contracts/runtime-error-codes.md). Validation messages produced by tools
-carry file, line and JSON pointer.</p>
+carry file, line and JSON pointer. <code>NotForThisNode</code> is a status of the generated receivers of a project with <code>nodes</code>: a
+valid frame of a message that the unit only sends is not for it, and is not an error (the reference codec never returns it).</p>
 <h2 id="13-semantic-rules-beyond-json-schema">13. Semantic rules (beyond JSON Schema)</h2>
 <ul>
 <li>SR-1 No duplicate names within a section across root and fragments.</li>
@@ -2157,6 +2192,11 @@ carry file, line and JSON pointer.</p>
 <li>SR-25 An interface with <code>trim_trailing_zeros</code> does not use <code>fixed</code> framing, and every message it carries has a fixed
   wire size in every profile (no dynamic arrays or optional fields), because the receiver restores the trimmed zeros up
   to that size.</li>
+<li>SR-26 Node names are identifiers that are not C or C++ keywords and are unique when case is ignored.</li>
+<li>SR-27 With <code>nodes</code> in the project, every interface lists known <code>nodes</code>, every message entry has a <code>from</code> naming
+  participants of that interface, and <code>direction</code> is not given. Without <code>nodes</code>, an interface has <code>direction</code> and uses
+  neither <code>nodes</code> nor <code>from</code>.</li>
+<li>SR-28 (warning) A node that takes part in no interface, or neither sends nor receives on an interface it lists.</li>
 <li>SR-21 Every id in a <code>reqs</code> list names an entry of the <code>requirements</code> catalog (section 17). An unused catalog entry is
   not an error.</li>
 </ul>

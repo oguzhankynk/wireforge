@@ -668,6 +668,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/12_a_system_of_units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. A system of units
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -966,6 +994,17 @@
     <span class="md-ellipsis">
       
         Interfaces
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#units-and-system-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Units and system output
       
     </span>
   </a>
@@ -1674,6 +1713,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#units-and-system-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Units and system output
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quality" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1987,9 +2037,98 @@ adds the physical values of the scaled fields to its decode result (<code>physic
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">onCommandReceived</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">demo</span><span class="o">::</span><span class="n">avionics</span><span class="o">::</span><span class="n">Command</span><span class="o">&amp;</span><span class="w"> </span><span class="cm">/*command*/</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
 <span class="p">};</span>
 </code></pre></div>
-- Both directions are generated for every interface (<code>direction</code> is documentation), so any interface can be looped
-  back in tests. The golden tests encode every golden frame with <code>encode_frame</code>, compare it byte for byte and send it
+- Without <code>nodes</code> both directions are generated for every interface (<code>direction</code> is documentation), so any interface
+  can be looped back in tests; with <code>nodes</code> see <a href="#units-and-system-output">Units and system output</a>. The golden tests encode every golden frame with <code>encode_frame</code>, compare it byte for byte and send it
   through a loopback <code>Link</code> to the generated <code>Handler</code>.</p>
+<h2 id="units-and-system-output">Units and system output</h2>
+<p>A project with <code>nodes</code> describes a system of units: programs that send and receive messages. Every interface lists its
+<code>nodes</code> and every message entry says who sends it with <code>from</code>; the other participants receive it. <code>wireforge generate</code>
+writes the code of every unit separately and <code>--node &lt;unit&gt;</code> only one unit, with the same bytes as in the full run:</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Without <code>nodes</code></th>
+<th>With <code>nodes</code> (unit <code>B</code>, project <code>avionics</code>, namespace <code>demo::avionics</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C++ namespace</td>
+<td><code>demo::avionics</code></td>
+<td><code>demo::avionics::B</code></td>
+</tr>
+<tr>
+<td>C prefix</td>
+<td><code>demo_avionics_</code></td>
+<td><code>demo_avionics_B_</code></td>
+</tr>
+<tr>
+<td>Include root</td>
+<td><code>&lt;out&gt;/</code> with <code>avionics/</code> below</td>
+<td><code>&lt;out&gt;/nodes/B/</code> with <code>avionics_B/</code> below</td>
+</tr>
+<tr>
+<td>Generated tests</td>
+<td><code>&lt;out&gt;/avionics/generated_tests/</code></td>
+<td><code>&lt;out&gt;/nodes/B/generated_tests/</code></td>
+</tr>
+<tr>
+<td>Banner</td>
+<td>model hash</td>
+<td>unit name and unit hash</td>
+</tr>
+<tr>
+<td>System output</td>
+<td></td>
+<td><code>&lt;out&gt;/system/</code>: <code>system_icd.md</code> and, with <code>--tests</code>, the system test</td>
+</tr>
+</tbody>
+</table>
+<p>The language of a unit is its <code>language</code> (<code>cpp</code> or <code>c</code>), else the one of the command (<code>--language</code>, default <code>cpp</code>).</p>
+<ul>
+<li><strong>Only the messages of the unit.</strong> The unit's model header holds the messages it sends or receives and the types they
+  use. The handler has a callback (<code>on&lt;Name&gt;Received</code>, <code>on&lt;Name&gt;Raw</code>) for every message the unit receives, and none for
+  the ones it only sends. <code>encode_frame</code>, <code>Endpoint::send</code> (C: <code>&lt;ip&gt;_encode_&lt;Name&gt;</code>, <code>&lt;ip&gt;_link_send_&lt;Name&gt;</code>) exist for
+  the messages it sends. A message the unit only sends is still known to its dispatcher: a valid frame of it is not for
+  this unit, so the receiver calls <code>onUnhandled</code> with <code>UnhandledReason::NotForThisNode</code> and returns
+  <code>Status::NotForThisNode</code> (C: <code>WF_NOT_FOR_THIS_NODE</code>). That is not an error: the poll result counts neither a frame nor an
+  error for it, and the link counts it in <code>rx_not_for_node</code>.</li>
+<li><strong><code>onUnhandled</code>.</strong> Every <code>Handler</code> (also without <code>nodes</code>) has <code>virtual void onUnhandled(const wireforge::UnhandledFrame&amp;)</code>;
+  the default does nothing (C: the <code>on_unhandled</code> member of the handler, <code>NULL</code> means "only count"). It gets a valid frame
+  that reaches no received callback: an unknown message id, a message that is not for this unit, or a payload the default
+  <code>on&lt;Name&gt;Raw</code> could not decode (<code>UnhandledReason::DecodeError</code>). Frames the frame decoder rejects (checksum, length,
+  lost sync) do not reach it; the link counts them in <code>rx_rejected</code>.</li>
+<li><strong><code>Endpoint::send</code>.</strong> <code>endpoint.send(link, message, header)</code> encodes the message and sends it on a link; it exists for
+  every message that can be sent, in every project. The older <code>encode_frame</code> with <code>link.send(...)</code> still works.</li>
+<li><strong>Link counters.</strong> <code>LinkCounters</code> (C: <code>wf_link_counters</code>) has <code>rx_frames</code>, <code>rx_rejected</code>, <code>rx_unknown_id</code>,
+  <code>rx_not_for_node</code>, <code>rx_decode_errors</code>, <code>rx_bytes</code>, <code>tx_frames</code>, <code>tx_bytes</code>, <code>tx_errors</code>; <code>Link::reset_counters()</code>
+  (C: <code>wf_link_reset_counters</code>) sets them to zero.</li>
+<li><strong>Counters per message.</strong> With <code>message_counters: true</code> on an interface the generated code has a struct
+  <code>MessageCounters</code> with <code>rx_&lt;Name&gt;</code> for the messages the unit receives and <code>tx_&lt;Name&gt;</code> for the ones it sends (every
+  message twice without <code>nodes</code>). <code>Endpoint::message_counters()</code> and <code>reset_message_counters()</code> give access (C:
+  <code>&lt;ip&gt;_link_message_counters</code>, <code>&lt;ip&gt;_link_reset_message_counters</code>). <code>MessageCounters</code> is a struct of the interface
+  namespace, not nested in <code>Endpoint</code>, because the receiver is declared before the endpoint and needs it. <code>rx_&lt;Name&gt;</code>
+  counts a message when its raw callback returns <code>Ok</code>: the default decodes the payload, but an override that returns <code>Ok</code>
+  without decoding is counted too. <code>tx_&lt;Name&gt;</code> counts a message that <code>Endpoint::send</code> (C: <code>&lt;ip&gt;_link_send_&lt;Name&gt;</code>)
+  sent; a frame sent with <code>encode_frame</code> and <code>link.send</code> is not counted. Without the flag no counter exists, so no RAM
+  is used.</li>
+<li><strong>The unit hash.</strong> <code>wireforge.nodes.node_hash</code> is the sha256 of the canonical form of the unit's view: its interfaces,
+  the messages, types, enums and checksums they use, the units that take part, the requirements catalog, the defines,
+  the profiles and the user constants (so a change to one of these last four changes the hash of every unit). Where an
+  element was written is not part of it. A change that does not reach a unit leaves its hash unchanged.</li>
+<li><strong>Source lines.</strong> The generated comments say where each element is written (<code>/// Defined in messages/a_b.yaml:12</code>).
+  With the whole model in one file, a line inserted above shifts the line numbers of every later element, so those
+  comments change in the files of units the change did not concern, though their code and hash did not. Split the model
+  into files per unit or per interface with <code>include</code>, so that a change elsewhere does not move the source lines of your
+  unit's elements (<code>examples/08_system</code>).</li>
+<li><strong>The system test.</strong> <code>wireforge generate &lt;project&gt; -o &lt;out&gt; --tests</code> also writes <code>&lt;out&gt;/system/</code>, a GoogleTest project that
+  encodes every message with its sender's generated code, decodes it with the generated code of every other
+  participant and compares the result with the reference codec. All C++ units are built into one executable (the
+  namespaces keep them apart); a unit written in C is linked as a static library (its prefix keeps its names apart).
+  <code>wireforge test &lt;project&gt; -o &lt;out&gt; --system</code> builds and runs it; <code>wireforge test ... --node &lt;unit&gt;</code> runs the tests of
+  one unit. Messages with an opaque user type are left out.</li>
+</ul>
 <h2 id="quality">Quality</h2>
 <p>Generated code compiles with the full warning set (<code>-Werror</code>), passes clang-tidy, cppcheck and the GCC analyzer and is
 completely documented for doxygen. Snapshots of the generated examples live in <code>tests/python/snapshots/</code>; after an
