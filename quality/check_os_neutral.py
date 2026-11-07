@@ -98,7 +98,15 @@ def main() -> int:
                 sys.stdout.write(f"{example}: {issues[0]}\n")
                 return 1
         findings += _scan_tree(
-            generated, ("*/model.hpp", "*/interfaces/*.hpp", "*/user_prelude.hpp")
+            generated,
+            (
+                "*/model.hpp",
+                "*/interfaces/*.hpp",
+                "*/user_prelude.hpp",
+                "nodes/*/*/model.hpp",
+                "nodes/*/*/interfaces/*.hpp",
+                "nodes/*/*/user_prelude.hpp",
+            ),
         )
     for finding in findings:
         sys.stdout.write(f"{finding}\n")

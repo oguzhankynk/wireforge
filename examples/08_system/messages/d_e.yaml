@@ -1,0 +1,11 @@
+schema_version: 1
+messages:
+  Packet:
+    id: 0x60
+    fields:
+      - { name: size, type: u8, max: 4 }
+      - { name: data, type: u8, occurs: { max: 4, count: size } }
+  Ack:
+    id: 0x61
+    fields:
+      - { name: sequence, type: u8 }

@@ -29,6 +29,7 @@ LAYOUT = {
     "requirements": "requirements/requirements.yaml",
     "profiles": "profiles/profiles.yaml",
     "messages": "messages/messages.yaml",
+    "nodes": "nodes/nodes.yaml",
     "vectors": "vectors/vectors.yaml",
 }
 TYPE_SECTIONS = ("enums", "types")

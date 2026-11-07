@@ -1,0 +1,8 @@
+schema_version: 1
+enums:
+  Mode: { type: u8, values: { idle: 0, run: 1, stop: 2 } }
+types:
+  Pair:
+    fields:
+      - { name: x, type: u8, default: 0 }
+      - { name: y, type: u8, default: 0 }

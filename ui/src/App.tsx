@@ -94,9 +94,10 @@ export function App({ api }: { api: Api }) {
     setIssues(result.issues);
     setEtag(result.etag ?? "");
     const name = projects.find((item) => item.id === project)?.name ?? "";
-    const preview = await api.preview(project);
+    const unit = loaded.nodes?.[0];
+    const preview = await api.preview(project, "cpp", unit);
     const files = (preview.data as { files?: Record<string, string> }).files ?? {};
-    setHeader(files[`${name}/model.hpp`] ?? "");
+    setHeader(files[`${unit === undefined ? name : `${name}_${unit}`}/model.hpp`] ?? "");
   }, [api, project, projects]);
 
   useEffect(() => {
@@ -147,6 +148,7 @@ export function App({ api }: { api: Api }) {
             project={project}
             name={selection.name}
             messageOptions={sections.messages ?? []}
+            nodeOptions={sections.nodes ?? []}
             typeOptions={typeOptions}
             checksumOptions={checksumOptions}
             onSaved={savedIn("interfaces")}
@@ -297,7 +299,7 @@ export function App({ api }: { api: Api }) {
           />
         )}
         {tool === "versions" && project !== "" && <VersionPanel api={api} project={project} etag={etag} />}
-        {tool === "generate" && project !== "" && <GeneratePanel api={api} project={project} etag={etag} />}
+        {tool === "generate" && project !== "" && <GeneratePanel api={api} project={project} etag={etag} nodes={sections.nodes ?? []} />}
       </div>
     </main>
   );

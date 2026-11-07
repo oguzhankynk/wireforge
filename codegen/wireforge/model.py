@@ -170,6 +170,17 @@ class InterfaceMessage:
     id: int | None = None
     condition: str | None = None
     reqs: tuple[str, ...] = ()
+    senders: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class Node:
+    """One unit of the system (`nodes` section): a program that sends and receives messages."""
+
+    name: str
+    source: Source
+    description: str | None = None
+    language: str | None = None
 
 
 @dataclass(frozen=True)
@@ -191,6 +202,9 @@ class Interface:
     trim_trailing_zeros: bool = False
     description: str | None = None
     reqs: tuple[str, ...] = ()
+    nodes: tuple[str, ...] = ()
+    message_counters: bool = False
+    direction_given: bool = True
 
 
 @dataclass(frozen=True)
@@ -315,6 +329,8 @@ class Project:
     types: dict[str, Struct] = field(default_factory=dict)
     user_types: dict[str, UserType] = field(default_factory=dict)
     messages: dict[str, Struct] = field(default_factory=dict)
+    nodes: dict[str, Node] = field(default_factory=dict)
+    node: str | None = None  # the unit this view belongs to (see wireforge.nodes)
     interfaces: dict[str, Interface] = field(default_factory=dict)
     vectors: dict[str, Vector] = field(default_factory=dict)
     constants: dict[str, UserConstant] = field(default_factory=dict)

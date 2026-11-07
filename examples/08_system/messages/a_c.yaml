@@ -1,0 +1,6 @@
+schema_version: 1
+messages:
+  Note:
+    id: 0x30
+    fields:
+      - { name: text, type: char, default: "hi", occurs: { max: 8 } }

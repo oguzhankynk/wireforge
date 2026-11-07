@@ -12,13 +12,22 @@ The output depends only on the model, never on the profile: profile differences 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from wireforge import bundle, c_test_project, test_project, versioning
+from wireforge import (
+    bundle,
+    c_test_project,
+    nodes,
+    system_docs,
+    system_tests,
+    test_project,
+    versioning,
+)
 from wireforge.c_interface import render_interfaces
 from wireforge.c_model import CModel
 from wireforge.c_names import CGenerationError
@@ -613,9 +622,22 @@ def _constant_assert(cpp: str, value: int) -> str:
     )
 
 
-def render(project: Project, content_hash: str, language: str = "cpp") -> dict[str, str]:
-    """Return the generated files of a valid project: relative path -> content."""
-    banner = Banner(project.name, project.version, content_hash)
+def render(
+    project: Project, content_hash: str, language: str = "cpp", node: str | None = None
+) -> dict[str, str]:
+    """Return the generated files of a valid project: relative path -> content.
+
+    With `node`, the files of that unit's view (below `<project>_<node>/`); the unit's own
+    `language` wins over `language`, and the banner carries the unit's hash instead of the model's.
+    """
+    if node is not None:
+        language = project.nodes[node].language or language
+        banner = Banner(
+            f"{project.name} (node {node})", project.version, nodes.node_hash(project, node)
+        )
+        project = nodes.node_view(project, node)
+    else:
+        banner = Banner(project.name, project.version, content_hash)
     if language == "c":
         model = CModel(project, banner)
         files = {
@@ -636,17 +658,42 @@ def render(project: Project, content_hash: str, language: str = "cpp") -> dict[s
     return files
 
 
+def _write(output: Path, files: dict[str, str]) -> None:
+    for relative, text in files.items():
+        target = output / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.exists() or target.read_text(encoding="utf-8") != text:
+            target.write_text(text, encoding="utf-8")
+
+
+def _write_tests(
+    project: Project,
+    location: Path,
+    output: Path,
+    tests: test_project.TestOptions,
+    language: str,
+) -> list[Issue]:
+    if language == "c":
+        return c_test_project.write_test_project(project, location, output, tests)
+    return test_project.write_test_project(project, location, output, tests)
+
+
 def generate(
     location: Path,
     output: Path,
     tests: test_project.TestOptions | None = None,
     *,
     language: str | None = None,
+    node: str | None = None,
 ) -> list[Issue]:
     """Validate the project at `location` and write its generated files below `output`.
 
     The code is C++17, or C99 with `language="c"` (also taken from `tests`). With `tests`, the
     GoogleTest project `<output>/<project>/generated_tests/` is written as well.
+
+    A project with `nodes` is written unit by unit: `<output>/nodes/<node>/<project>_<node>/` with
+    the unit's tests in `<output>/nodes/<node>/generated_tests/`. `node` limits that to one unit
+    (its files are the same as in the full run); the unit's own `language` wins over `language`.
     """
     language = language or (tests.language if tests is not None else "cpp")
     try:
@@ -656,21 +703,66 @@ def generate(
     result = load_project(location)
     if result.project is None:
         return result.issues
+    project = result.project
+    problem = _node_problem(project, node)
+    if problem is not None:
+        return [Issue(str(location), None, "/nodes" if project.nodes else "", problem)]
+    if project.nodes:
+        return _generate_nodes(_Run(project, location, output, tests, language, content_hash), node)
     try:
-        files = render(result.project, content_hash, language)
+        _write(output, render(project, content_hash, language))
     except (InterfaceError, CGenerationError) as error:
         pointer = "/interfaces" if isinstance(error, InterfaceError) else ""
         return [Issue(str(location), None, pointer, str(error))]
-    for relative, text in files.items():
-        target = output / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if not target.exists() or target.read_text(encoding="utf-8") != text:
-            target.write_text(text, encoding="utf-8")
-    if tests is None:
+    return [] if tests is None else _write_tests(project, location, output, tests, language)
+
+
+def _node_problem(project: Project, node: str | None) -> str | None:
+    if node is not None and not project.nodes:
+        return "--node needs a project that defines `nodes`"
+    if node is not None and node not in project.nodes:
+        return f"unknown node {node!r} (known: {', '.join(sorted(project.nodes))})"
+    return None
+
+
+@dataclass(frozen=True)
+class _Run:
+    """What `generate` was asked to write."""
+
+    project: Project
+    location: Path
+    output: Path
+    tests: test_project.TestOptions | None
+    language: str
+    content_hash: str
+
+
+def _generate_nodes(run: _Run, only: str | None) -> list[Issue]:
+    project = run.project
+    for name in [only] if only is not None else list(project.nodes):
+        unit_language = project.nodes[name].language or run.language
+        try:
+            files = render(project, "", unit_language, name)
+        except (InterfaceError, CGenerationError) as error:
+            pointer = "/interfaces" if isinstance(error, InterfaceError) else ""
+            return [Issue(str(run.location), None, pointer, f"node {name}: {error}")]
+        directory = run.output / "nodes" / name
+        _write(directory, files)
+        if run.tests is not None:
+            options = dataclasses.replace(run.tests, language=unit_language, include_root="..")
+            view = nodes.node_view(project, name)
+            issues = _write_tests(view, run.location, directory, options, unit_language)
+            if issues:
+                return issues
+    if only is not None:
         return []
-    if language == "c":
-        return c_test_project.write_test_project(result.project, location, output, tests)
-    return test_project.write_test_project(result.project, location, output, tests)
+    _write(
+        run.output,
+        {"system/system_icd.md": system_docs.system_icd(project, run.content_hash)},
+    )
+    if run.tests is not None:
+        return system_tests.write(project, run.location, run.output, run.tests)
+    return []
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -683,6 +775,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--plugins", type=Path, help="Python file defining checksum PLUGINS")
     parser.add_argument("--language", choices=("cpp", "c"), default="cpp")
+    parser.add_argument("--node", help="generate only this unit of a project with `nodes`")
     parser.add_argument(
         "--runtime",
         type=Path,
@@ -701,7 +794,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.tests
         else None
     )
-    issues = generate(args.project, args.output, options, language=args.language)
+    issues = generate(args.project, args.output, options, language=args.language, node=args.node)
     for issue in issues:
         sys.stdout.write(f"{issue}\n")
     return 1 if issues else 0

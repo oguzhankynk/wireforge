@@ -27,6 +27,7 @@ from wireforge.codec import FLOAT32_MAX, CodecError, ReferenceCodec
 from wireforge.cpp import Names, wire_only
 from wireforge.golden import Sampler, holds
 from wireforge.model import BUILTIN_BITS, FLOAT_TYPES, Field, Interface, Project, Scalar, Struct
+from wireforge.nodes import entry_directions
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -114,13 +115,15 @@ class MessageCases:
 class InterfaceCases:
     """Frames of one interface in one profile.
 
-    `frames` holds the pattern frame of every message (index into the interface's message list).
+    `frames` holds the pattern frame of every message the unit receives (index into the interface's
+    message list) and `passive` that of every message it only sends: the frames of the latter are
+    valid but not for this unit.
     `corrupt` is the first frame with its last byte inverted and `corrupt_status` the status it
     is rejected with (`Ok` when the change is harmless). `exact` is false when a frame decoder
     that resynchronizes could find a frame start inside the corrupted frame, so the number of
     errors and the recovery are not predictable byte by byte. `default_frame_size` is the frame
     size of the first message's default value, `overhead` the size of header and trailer.
-    `defaults` has, for every message of `frames`, the index, the frame size of its default value
+    `defaults` has, for every message the unit sends, the index, the frame size of its default value
     (0 when it does not encode) and the size of header and trailer. `raw_errors` has, for every
     message of `frames` whose pattern payload has a rejected mutation, the index and the first such
     decode case, computed with the settings (byte order) of this interface.
@@ -136,6 +139,7 @@ class InterfaceCases:
     overhead: int
     defaults: tuple[tuple[int, int, int], ...] = ()
     raw_errors: tuple[tuple[int, DecodeCase], ...] = ()
+    passive: tuple[tuple[int, bytes], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -391,18 +395,22 @@ class _ProfileOracle:
                 frames.append((index, frame))
         if not frames:
             return None
-        first = frames[0][1]
+        way = entry_directions(self.project, interface)
+        sent = [item for item in frames if way[interface.messages[item[0]].name] != "receive"]
+        passive = tuple(item for item in frames if way[interface.messages[item[0]].name] == "send")
+        frames = [item for item in frames if way[interface.messages[item[0]].name] != "send"]
+        first = (frames or list(passive))[0][1]
         corrupt = first[:-1] + bytes([first[-1] ^ BYTE_MASK])
         status = _status(lambda: self.codec.decode_frame(interface.name, corrupt))
         sync = self.sync_bytes(interface)
         resync = interface.framing.resync and interface.framing.kind != "none"
         exact = not resync or (bool(sync) and sync not in corrupt[1:])
-        first_message = interface.messages[frames[0][0]].name
+        first_message = interface.messages[sent[0][0] if sent else frames[0][0]].name
         default = _outcome(lambda: self.codec.encode_frame(interface.name, first_message))
         size = len(default) if isinstance(default, bytes) else 0
         payload = _sent(interface, self.codec.encode_message(first_message, None, interface.name))
         overhead = size - len(payload) if size else 0
-        defaults = tuple(self.default_sizes(interface, index) for index, _ in frames)
+        defaults = tuple(self.default_sizes(interface, index) for index, _ in sent)
         raw_errors = tuple(
             found for index, _ in frames if (found := self.raw_error(interface, index)) is not None
         )
@@ -417,6 +425,7 @@ class _ProfileOracle:
             overhead,
             defaults,
             raw_errors,
+            passive,
         )
 
     def raw_error(self, interface: Interface, index: int) -> tuple[int, DecodeCase] | None:

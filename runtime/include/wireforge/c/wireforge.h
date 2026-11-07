@@ -19,6 +19,7 @@
 #include "wireforge/c/ring.h"
 #include "wireforge/c/status.h"
 #include "wireforge/c/trim.h"
+#include "wireforge/c/unhandled.h"
 #include "wireforge/c/validation.h"
 
 #endif /* WIREFORGE_C_WIREFORGE_H */

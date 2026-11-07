@@ -33,12 +33,23 @@ static void on_command_long(void* context, const drone_mavlink2_CommandLong* com
     self->ack_pending = true;
 }
 
+/* A frame that reaches no callback above (an id the model does not know). Without this callback
+ * the link only counts it; the vehicle also says so, with its own log function. */
+static void on_unhandled(void* context, const wf_unhandled_frame* frame) {
+    vehicle* self = context;
+    char text[64];
+    (void)snprintf(text, sizeof text, "vehicle: unhandled message %u\n",
+                   (unsigned)frame->message_id);
+    self->log(text);
+}
+
 void vehicle_init(vehicle* self, const wf_transport* transport, void (*log)(const char* text)) {
     memset(self, 0, sizeof *self);
     self->log = log;
     self->handler.context = self;
     self->handler.on_Heartbeat_received = on_heartbeat;
     self->handler.on_CommandLong_received = on_command_long;
+    self->handler.on_unhandled = on_unhandled;
     drone_mavlink2_link_header_init(&self->header);
     self->header.systemId = 1U;
     self->header.componentId = 1U;

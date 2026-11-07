@@ -273,3 +273,71 @@ def test_cli_test_accepts_the_runtime_coverage_flag() -> None:
 def test_runtime_dir(capsys: pytest.CaptureFixture[str]) -> None:
     assert cli.main(["runtime-dir"]) == 0
     assert (Path(capsys.readouterr().out.strip()) / "wireforge" / "c" / "link.h").exists()
+
+
+FIXTURE = Path(__file__).parent / "system_fixture"
+
+
+def _changed_fixture(tmp_path: Path) -> Path:
+    """Return a copy of the system fixture whose a_c message Note has an extra field."""
+    copy = tmp_path / "next"
+    shutil.copytree(FIXTURE, copy)
+    text = (copy / "project.yaml").read_text(encoding="utf-8")
+    old = '      - { name: text, type: char, occurs: { max: 8 }, default: "hi" }\n'
+    assert old in text
+    (copy / "project.yaml").write_text(
+        text.replace(old, old + "      - { name: extra, type: u8, default: 0 }\n"), encoding="utf-8"
+    )
+    return copy
+
+
+def test_cli_node_options(tmp_path: Path) -> None:
+    code, result = _run(["analyze", str(FIXTURE), "--node", "C"])
+    assert code == cli.EXIT_OK
+    assert "ICD fixture_C" in str(result["text"])
+    assert "Note" in str(result["text"])
+    assert "Command" not in str(result["text"])
+    code, result = _run(["trace", str(FIXTURE), "--node", "B"])
+    assert code == cli.EXIT_OK
+    assert "fixture_B" in str(result["text"])
+    code, result = _run(["generate", str(FIXTURE), "-o", str(tmp_path / "gen"), "--node", "C"])
+    assert code == cli.EXIT_OK
+    assert [path.name for path in (tmp_path / "gen" / "nodes").iterdir()] == ["C"]
+    for command in ("analyze", "trace"):
+        code, result = _run([command, str(BASIC), "--node", "A"])
+        assert code != cli.EXIT_OK
+        assert "defines `nodes`" in str(result["text"])
+    code, result = _run(["analyze", str(FIXTURE), "--node", "Z"])
+    assert code != cli.EXIT_OK
+    assert "unknown node 'Z'" in str(result["text"])
+
+
+def test_cli_compat_by_node(tmp_path: Path) -> None:
+    changed = _changed_fixture(tmp_path)
+    code, result = _run(["compat", str(FIXTURE), str(changed), "--node", "B"])
+    assert str(result["text"]).splitlines()[0] == "affects B: no"
+    assert code == cli.EXIT_OK
+    code, result = _run(["compat", str(FIXTURE), str(changed), "--node", "A"])
+    lines = str(result["text"]).splitlines()
+    assert lines[0] == "affects A: yes"
+    assert lines[1] == "  interfaces: a_c"
+    assert lines[2] == "  messages: Note"
+    assert code == cli.EXIT_FAILED, "the version was not raised"
+    code, result = _run(["compat", str(FIXTURE), str(changed)])
+    assert str(result["text"]).splitlines()[-1] == "affected nodes: A, C"
+    code, result = _run(["compat", str(BASIC), str(BASIC), "--node", "A"])
+    assert "affected nodes" not in str(result["text"])
+    code, result = _run(["compat", str(FIXTURE), str(changed), "--node", "Z"])
+    assert code != cli.EXIT_OK
+
+
+def test_cli_docs_of_a_unit_and_of_the_system(tmp_path: Path) -> None:
+    unit, system = tmp_path / "unit", tmp_path / "system"
+    assert _run(["docs", str(FIXTURE), "-o", str(unit), "--node", "C"])[0] == cli.EXIT_OK
+    assert (unit / "unit_icd.md").exists()
+    assert not (unit / "system_icd.md").exists()
+    assert _run(["docs", str(FIXTURE), "-o", str(system)])[0] == cli.EXIT_OK
+    assert (system / "system_icd.md").exists()
+    assert not (system / "unit_icd.md").exists()
+    assert _run(["docs", str(BASIC), "-o", str(tmp_path / "plain")])[0] == cli.EXIT_OK
+    assert not (tmp_path / "plain" / "system_icd.md").exists()

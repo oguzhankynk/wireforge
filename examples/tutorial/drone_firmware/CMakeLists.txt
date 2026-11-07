@@ -13,7 +13,7 @@ if(NOT DRONE_PROJECT)
   message(FATAL_ERROR "Set DRONE_PROJECT to your project, for example -DDRONE_PROJECT=$PWD/drone")
 endif()
 
-find_package(WireForge 0.4 REQUIRED)
+find_package(WireForge 0.5 REQUIRED)
 wireforge_generate(drone_model PROJECT "${DRONE_PROJECT}" LANGUAGE c)
 
 set(vehicle "${CMAKE_CURRENT_SOURCE_DIR}/../drone_app_c")

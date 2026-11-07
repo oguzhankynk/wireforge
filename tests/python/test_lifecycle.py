@@ -92,7 +92,7 @@ def test_basic_example_documents() -> None:
         assert rid in files["requirements.md"]
     assert files["traceability.csv"].startswith("llr,kind,parents,code,tests,derived,result\n")
     tests = files["test_spec.csv"].splitlines()
-    assert len(tests) - 1 == len(_context(EXAMPLES / "01_basic_telemetry").tests) == 41
+    assert len(tests) - 1 == len(_context(EXAMPLES / "01_basic_telemetry").tests) == 43
     assert "Test results: not provided." in files["test_report.md"]
 
 
@@ -421,3 +421,64 @@ def test_integration_pages_make_no_forbidden_claim() -> None:
                 assert allowed.search(line) or "unqualified" in line, (
                     f"{page.name}:{number}: {line}"
                 )
+
+
+FIXTURE = Path(__file__).parent / "system_fixture"
+
+
+def _documents(tmp_path: Path, node: str | None) -> dict[str, str]:
+    options = service.DocsOptions(node=node)
+    result = service.lifecycle_docs(FIXTURE, tmp_path / (node or "system"), options=options)
+    assert result.ok
+    directory = tmp_path / (node or "system")
+    return {name: (directory / name).read_text(encoding="utf-8") for name in result.data["files"]}
+
+
+def test_unit_documents(tmp_path: Path) -> None:
+    files = _documents(tmp_path, "B")
+    icd = files["unit_icd.md"]
+    assert icd.startswith("# Interface description of unit B of fixture 1.0.0")
+    assert "| a_b | 1.0.0 | A | Status | Command, VersionQuery |" in icd
+    assert "| bus | 1.0.0 | A, C | Heartbeat | Heartbeat, VersionQuery |" in icd
+    assert "a_c" not in icd.split("## Wire layouts")[0], "B takes no part in a_c"
+    assert "## Messages sent" in icd
+    assert "| Status | a_b | 0x20 | A |" in icd
+    assert "| Command | a_b | 0x10 | A |" in icd
+    assert "system_icd.md" not in files
+    assert "fixture_B" in files["design.md"]
+    assert "Note" not in files["requirements.md"]
+
+
+def test_system_documents(tmp_path: Path) -> None:
+    files = _documents(tmp_path, None)
+    icd = files["system_icd.md"]
+    assert icd.startswith("# System interface description of fixture 1.0.0")
+    assert "| A | Flight computer | per command |" in icd
+    assert "| a_b | 1.0.0 | sends, receives | sends, receives | - |" in icd
+    assert "| a_c | 1.0.0 | sends | - | receives |" in icd
+    assert "| Heartbeat | bus | 0x40 | A, B, C | A, B, C |" in icd
+    assert "| Note | a_c | 0x30 | A | C |" in icd
+    assert "unit_icd.md" not in files
+
+
+def test_the_unit_documents_follow_only_the_unit(tmp_path: Path) -> None:
+    first = _documents(tmp_path / "one", "C")
+    copy = tmp_path / "copy"
+    shutil.copytree(FIXTURE, copy)
+    text = (copy / "project.yaml").read_text(encoding="utf-8")
+    changed = text.replace("max: 5000", "max: 6000")
+    assert changed != text
+    (copy / "project.yaml").write_text(changed, encoding="utf-8")
+    options = service.DocsOptions(node="A")
+    assert service.lifecycle_docs(copy, tmp_path / "a", options=options).ok
+    assert service.lifecycle_docs(FIXTURE, tmp_path / "b", options=options).ok
+    assert (tmp_path / "a" / "unit_icd.md").read_text() != (
+        tmp_path / "b" / "unit_icd.md"
+    ).read_text()
+    other = service.DocsOptions(node="C")
+    assert service.lifecycle_docs(copy, tmp_path / "c", options=other).ok
+    assert (tmp_path / "c" / "unit_icd.md").read_text() == first["unit_icd.md"]
+    with pytest.raises(service.ServiceError, match="unknown node"):
+        service.lifecycle_docs(FIXTURE, tmp_path / "z", options=service.DocsOptions(node="Z"))
+    with pytest.raises(service.ServiceError, match="defines `nodes`"):
+        service.lifecycle_docs(AVIONICS, tmp_path / "y", options=service.DocsOptions(node="A"))

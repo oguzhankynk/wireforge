@@ -45,6 +45,10 @@ or through the CLI, not in the UI:
 - `if` and `since` of whole entries.
 
 ## Interfaces, profiles, versions and tools
+- **Units:** the project settings list the units of a system (name, description, language) and the interface
+  editor lists the participants and, for every message, the senders (`from`) instead of the direction; a project
+  without units keeps the direction. `Count every message` is `message_counters`. In a project with units the Generate
+  tab has a unit selector: the files and the zip are those of the chosen unit (`<project>-<unit>-generated.zip`).
 - **Interface editor:** version, description, direction, endian, header (or none: raw dispatch) and trailer fields
   with roles, constants and checksums, framing (kind, frame size, maximum frame size, length counts, resync), the
   message list with per-interface id overrides, buffer sizes, trailing-byte tolerance and trimmed payloads (trailing

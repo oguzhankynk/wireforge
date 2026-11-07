@@ -105,6 +105,7 @@ class CompatRequest(BaseModel):
     old: str
     new: str
     interfaces: list[str] | None = None
+    node: str | None = None
 
 
 class RevisionCompat(BaseModel):
@@ -112,6 +113,7 @@ class RevisionCompat(BaseModel):
 
     revision: str = Field(pattern=r"^[A-Za-z0-9_][A-Za-z0-9_.^~/-]*$")
     interfaces: list[str] | None = None
+    node: str | None = None
 
 
 class ImportRequest(BaseModel):
@@ -486,33 +488,56 @@ def delete_value(context: Write, project: str, pointer: str) -> ResultResponse:
 
 @router.get("/projects/{project}/generate")
 def generate_zip(
-    store: Store, project: str, *, tests: bool = True, language: Literal["cpp", "c"] = "cpp"
+    store: Store,
+    project: str,
+    *,
+    tests: bool = True,
+    language: Literal["cpp", "c"] = "cpp",
+    node: str | None = None,
 ) -> Response:
-    """Download the generated C++ or C code as a self-contained zip (with the test project)."""
+    """Download the generated C++ or C code as a self-contained zip (with the test project).
+
+    With `node` the zip is that unit's: `<project>-<node>-generated.zip`.
+    """
     location = store.project_dir(project)
-    result, data = service.generate_archive(location, tests=tests, language=language)
+    try:
+        result, data = service.generate_archive(location, tests=tests, language=language, node=node)
+    except ServiceError as error:
+        raise _service_error(error) from error
     if not result.ok:
         return JSONResponse(result.to_dict(), status_code=422)
-    suffix = "-c" if language == "c" else ""
-    name = f"{result.data['project']}{suffix}-generated.zip"
+    name = result.data["archive"]
     headers = {"Content-Disposition": f'attachment; filename="{name}"'}
     return Response(data, media_type="application/zip", headers=headers)
 
 
 @router.get("/projects/{project}/docs")
-def lifecycle_zip(store: Store, project: str, *, strict: bool = False) -> Response:
+def lifecycle_zip(
+    store: Store, project: str, *, strict: bool = False, node: str | None = None
+) -> Response:
     """Download the requirements, design, test and traceability documents as a zip."""
-    result, data = service.lifecycle_archive(store.project_dir(project), strict=strict)
+    try:
+        result, data = service.lifecycle_archive(
+            store.project_dir(project), strict=strict, node=node
+        )
+    except ServiceError as error:
+        raise _service_error(error) from error
     if not data:
         return JSONResponse(result.to_dict(), status_code=422)
-    headers = {"Content-Disposition": f'attachment; filename="{project}-docs.zip"'}
+    part = f"-{node}" if node else ""
+    headers = {"Content-Disposition": f'attachment; filename="{project}{part}-docs.zip"'}
     return Response(data, media_type="application/zip", headers=headers)
 
 
 @router.get("/projects/{project}/preview")
-def preview(store: Store, project: str, language: Literal["cpp", "c"] = "cpp") -> ResultResponse:
-    """Return the generated C++ or C files without writing them."""
-    return _result(service.preview(store.project_dir(project), language))
+def preview(
+    store: Store, project: str, language: Literal["cpp", "c"] = "cpp", node: str | None = None
+) -> ResultResponse:
+    """Return the generated C++ or C files (of one unit with `node`) without writing them."""
+    try:
+        return _result(service.preview(store.project_dir(project), language, node))
+    except ServiceError as error:
+        raise _service_error(error) from error
 
 
 @router.get("/projects/{project}/wireshark")
@@ -528,13 +553,17 @@ def wireshark_plugin(store: Store, project: str) -> Response:
 
 @router.get("/projects/{project}/analyze")
 def analyze(
-    store: Store, project: str, profile: str | None = None, export: str = "markdown"
+    store: Store,
+    project: str,
+    profile: str | None = None,
+    export: str = "markdown",
+    node: str | None = None,
 ) -> ResultResponse:
     """Return the layout report (data) and its export (`text`: markdown, csv or json)."""
     if export not in {"markdown", "csv", "json"}:
         raise HTTPException(400, f"unknown export {export!r}")
     try:
-        return _result(service.analyze(store.project_dir(project), profile, export))
+        return _result(service.analyze(store.project_dir(project), profile, export, node))
     except ServiceError as error:
         raise _service_error(error) from error
 
@@ -543,7 +572,10 @@ def analyze(
 def compatibility(store: Store, body: CompatRequest) -> ResultResponse:
     """Compare two projects of the workspace (old and new version of the interfaces)."""
     old, new = store.project_dir(body.old), store.project_dir(body.new)
-    return _result(service.compatibility(old, new, body.interfaces))
+    try:
+        return _result(service.compatibility(old, new, body.interfaces, body.node))
+    except ServiceError as error:
+        raise _service_error(error) from error
 
 
 @router.get("/projects/{project}/history")
@@ -561,7 +593,7 @@ def compatibility_with_revision(store: Store, project: str, body: RevisionCompat
     try:
         location = store.project_dir(project)
         return _result(
-            service.compatibility_with_revision(location, body.revision, body.interfaces)
+            service.compatibility_with_revision(location, body.revision, body.interfaces, body.node)
         )
     except ServiceError as error:
         raise _service_error(error) from error

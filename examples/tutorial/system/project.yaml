@@ -1,0 +1,12 @@
+# The model of chapter 12: three units, two interfaces, one place for every message. One file per
+# interface for its messages and interface, so a change in one interface moves no line of the units
+# that do not take part in it.
+schema_version: 1
+project: system
+version: "1.0.0"
+namespace: demo::system
+defaults: { endian: big, bit_order: msb_first }
+include:
+  - nodes.yaml
+  - messages/*.yaml
+  - interfaces/*.yaml

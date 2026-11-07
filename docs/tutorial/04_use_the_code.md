@@ -48,6 +48,8 @@ ground station: VFR_HUD {'airspeed': 0.0, 'groundspeed': 0.0, 'heading': 10, 'th
 vehicle: COMMAND_LONG 400 (param1 1), answering COMMAND_ACK
 ground station: COMMAND_ACK {'command': 400, 'result': 0, 'progress': 0, ...}
 ground station: all messages arrived
+vehicle: done, 91 frames sent, ground station seen
+vehicle: link sent 91, received 2, unknown id 0
 ```
 pymavlink was not written with WireForge, so this is a real interoperability check: the frames, the trimmed payloads and
 the checksums are the ones every MAVLink tool expects. Ground station software such as QGroundControl listens on the
@@ -81,6 +83,12 @@ channel.send([&](wireforge::Span<std::uint8_t> buffer, std::size_t& size) {
 });
 channel.poll();  // reads what arrived and calls the handler
 ```
+A frame that reaches no callback (an id the model does not know) goes to `onUnhandled`, whose default only lets the
+link count it. The vehicle overrides it to write a line with its own `log` function (in C the handler has an
+`on_unhandled` callback, `NULL` meaning "only count"). The link also counts what it did: `channel.counters()` has the
+frames sent and received, the frames rejected by the frame decoder and the unknown ids, and the last line of the
+program prints three of them.
+
 A transport is any class with a non-blocking `send` and `receive` (`udp_transport.hpp` is 60 lines); on a
 microcontroller it is a UART or a CAN driver. Nothing allocates memory, nothing throws, and trimming the trailing zeros
 of MAVLink 2 is done by the generated code: the application never sees it.

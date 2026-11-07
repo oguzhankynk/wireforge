@@ -30,6 +30,7 @@ enum class Status : std::uint8_t {
     InvalidLength,    ///< A length field is inconsistent with the frame or buffer.
     TrailingBytes,    ///< The payload was not fully consumed.
     InvalidState,     ///< The API was misused (invalid argument or call sequence).
+    NotForThisNode,   ///< A valid frame that this unit does not receive; not an error.
 };
 
 /**
@@ -50,7 +51,7 @@ enum class Status : std::uint8_t {
 [[nodiscard]] constexpr const char* to_string(Status status) noexcept {
     // Indexed by the enumerator value. A lookup table instead of a switch: a switch over
     // every enumerator needs a default label that -Wcovered-switch-default rejects.
-    constexpr std::array<const char*, 11U> kNames{
+    constexpr std::array<const char*, 12U> kNames{
         "Ok",
         "BufferTooSmall",
         "Truncated",
@@ -62,6 +63,7 @@ enum class Status : std::uint8_t {
         "InvalidLength",
         "TrailingBytes",
         "InvalidState",
+        "NotForThisNode",
     };
     const auto index = static_cast<std::size_t>(status);
     if (index < kNames.size()) {

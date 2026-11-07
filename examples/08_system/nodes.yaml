@@ -1,0 +1,7 @@
+schema_version: 1
+nodes:
+  A: { description: Flight computer, language: cpp }
+  B: { description: Motor controller, language: c }
+  C: { description: Recorder }
+  D: { description: Radio }
+  E: { description: Ground station }

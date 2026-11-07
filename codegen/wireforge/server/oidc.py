@@ -68,13 +68,13 @@ class OidcVerifier:
         try:
             discovery = _get_json(url)
             jwks = _get_json(discovery["jwks_uri"])
-            keys = KeySet.import_key_set(cast("KeySetSerialization", jwks))
+            fetched: KeySet = KeySet.import_key_set(cast("KeySetSerialization", jwks))
         except (OSError, urllib.error.URLError, ValueError, KeyError, JoseError) as error:
             message = f"cannot fetch the OIDC keys of {self.config.issuer}: {error}"
             raise OidcUnavailableError(message) from error
-        self._keys = keys
+        self._keys = fetched
         self._fetched_at = time.monotonic()
-        return keys
+        return fetched
 
     def verify(self, bearer_token: str) -> OidcUser:
         """Return the token's user; raise ValueError on any failure (the caller maps it to 401)."""

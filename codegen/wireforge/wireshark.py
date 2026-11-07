@@ -568,7 +568,8 @@ class _InterfaceBuilder:
             settings = codec.message_settings(message.name, interface.name)
             prefix = f"{name}.{message.name}"
             description = " ".join((message.description or "").split())
-            spec = FieldSpec(prefix, message.name, "none", description=description)
+            sender = f" (from {', '.join(entry.senders)})" if entry.senders else ""
+            spec = FieldSpec(prefix, f"{message.name}{sender}", "none", description=description)
             fields = _Layout(builder, self.registry, prefix, settings).struct(message.fields, "")
             item: dict[str, LuaValue] = {
                 "name": message.name,

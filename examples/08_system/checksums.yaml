@@ -1,0 +1,3 @@
+schema_version: 1
+checksums:
+  frameCrc: { algo: crc32 }

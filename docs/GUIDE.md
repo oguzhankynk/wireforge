@@ -69,6 +69,17 @@ Markdown summary. The repository has a GitHub action for it and a GitLab example
 - **Wireshark:** `wireforge wireshark demo -o demo.lua` writes a Lua dissector plugin for every interface
   (docs/WIRESHARK.md).
 
+## Systems of several units
+Describe the whole system in one model: `nodes` (the units, each with an optional `language`), an interface with the
+`nodes` that take part in it, and for every message of an interface `from`, the unit or units that send it. Units
+that share no interface never talk. `wireforge generate <project> -o out` then writes `out/nodes/<unit>/` for every
+unit, with only its own messages, callbacks, tests and documents, and `out/system/` with the system ICD and (with
+`--tests`) a test of every sender's encoder against every receiver's decoder. `--node <unit>` generates one unit with
+the same files as the full run. `wireforge compat old new --node <unit>` says whether a change affects that unit, and
+the unit hash in the banner only changes with what reaches the unit. Split the model into files with `include` so that
+a change in one link does not move the source lines in the files of the units that are not in it. Chapter 12 of the
+tutorial walks through it; `examples/08_system` is a larger model.
+
 ## Generated code
 With `--language c` the code is C99 instead (`model.h`, `model.c`; docs/CODEGEN.md, runtime in `runtime/include/wireforge/c/`).
 
@@ -105,5 +116,6 @@ published protocol that is written from its public documents and checked against
 | `examples/03_edge_cases` | corner cases: zero counts, nested optional, signed bit-fields, u64, wire constants |
 | `examples/04_user_type` | an opaque field type backed by application code |
 | `examples/07_can_dbc` | a CAN network imported from a DBC file: Intel and Motorola signals, factor and offset, value tables as enums, an extended identifier (`wireforge import-dbc`) |
+| `examples/08_system` | five units (C++ and C) over four interfaces (two way, one way, a shared line), one file per interface, counters per message; `wireforge generate examples/08_system -o build/system --tests` |
 | `examples/icd/` | ICD sources for the importers (CSV table, C header) |
 | `examples/cmake_consumer/` | an application built with `find_package(WireForge)` |

@@ -74,6 +74,11 @@ requirements:
     code: [DefaultLock]
     text: The runtime shall build without the standard mutex (WIREFORGE_NO_STD_MUTEX), with the null lock as the default policy.
     verification: test
+  RTR-lock-005:
+    header: lock.hpp
+    code: [count_if_ok]
+    text: count_if_ok shall add one to a counter when the status is Ok, leave it otherwise, and return the status unchanged.
+    verification: test
   RTR-static_vector-005:
     header: static_vector.hpp
     code: [StaticVector, FixedString]
@@ -363,6 +368,12 @@ requirements:
     code: [Link]
     text: One thread may send while another polls. The claim is the integrator's to verify on the target.
     verification: analysis
+  RTR-link-008:
+    header: link.hpp
+    code: [Link, LinkCounters, record, reset_counters]
+    text: A link shall count received frames by outcome (delivered, rejected by the decoder, unknown id, not for this unit, decode error), shall not count a frame that is not for this unit as a frame or an error in the poll result, and shall reset all counters on request.
+    realizes: [DISPATCH, DISPATCH_UNKNOWN]
+    verification: test
 
   RTR-codec_support-001:
     header: codec_support.hpp

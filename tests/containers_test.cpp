@@ -213,6 +213,18 @@ TEST(Lock, RelaxedCounterAcrossThreads) {
     EXPECT_EQ(counter.load(), 0U);
 }
 
+TEST(Lock, CountIfOkCountsOnlySuccess) {
+    ::testing::Test::RecordProperty("requirements", "RTR-lock-005");
+    wireforge::RelaxedCounter counter;
+    EXPECT_EQ(wireforge::count_if_ok(counter, wireforge::Status::Ok), wireforge::Status::Ok);
+    EXPECT_EQ(counter.load(), 1U);
+    EXPECT_EQ(wireforge::count_if_ok(counter, wireforge::Status::OutOfRange),
+              wireforge::Status::OutOfRange);
+    EXPECT_EQ(wireforge::count_if_ok(counter, wireforge::Status::NotForThisNode),
+              wireforge::Status::NotForThisNode);
+    EXPECT_EQ(counter.load(), 1U);
+}
+
 TEST(Containers, NoHeapAllocation) {
     ::testing::Test::RecordProperty("requirements", "RTR-static_vector-005");
     const wireforge::testing::AllocationTrap trap;

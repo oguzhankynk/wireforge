@@ -17,8 +17,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from wireforge import expr
+from wireforge.c_names import C_KEYWORDS
 from wireforge.cpp import wire_only
 from wireforge.expr import ExprError, Scope
+from wireforge.issues import Issue
 from wireforge.loader import load_project
 from wireforge.model import (
     BUILTIN_BITS,
@@ -40,7 +42,6 @@ from wireforge.model import (
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from wireforge.issues import Issue
 
 BYTE_BITS = 8
 MAX_GROUP_BITS = 64
@@ -147,6 +148,7 @@ CPP_KEYWORDS = frozenset(
     }
 )
 _RESERVED_IDENTIFIER = re.compile(r"^_[A-Z]|__")
+_NODE_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 
 # Kinds of value expressions and what they may reference.
 COUNT = "count"  # occurs.count: earlier fields allowed, may be dynamic
@@ -283,6 +285,7 @@ class Validator:
     def run(self) -> list[Issue]:
         """Check every rule and return the issues found."""
         self._names()
+        self._nodes()
         self._enums()
         self._resolve_types()
         self._constants()
@@ -431,6 +434,82 @@ class Validator:
         for enum in project.enums.values():
             for member in enum.values:
                 self._check_identifier(member, enum.source, f"member of enum {enum.name}")
+
+    # --- nodes ------------------------------------------------------------------------------------
+
+    def warn(self, source: Source, rule: str, message: str, suffix: str = "") -> None:
+        """Record one warning at an element."""
+        text = f"[{rule}] {message}"
+        self.issues.append(
+            Issue(source.file, source.line, source.pointer + suffix, text, "warning")
+        )
+
+    def _nodes(self) -> None:
+        project = self.project
+        folded: dict[str, str] = {}
+        for node in project.nodes.values():
+            if not _NODE_NAME.match(node.name):
+                self.report(node.source, "SR-26", f"node name {node.name!r} is not a valid name")
+            elif node.name in CPP_KEYWORDS or node.name in C_KEYWORDS:
+                self.report(node.source, "SR-26", f"node name {node.name!r} is a C or C++ keyword")
+            elif node.name.lower() in folded:
+                other = folded[node.name.lower()]
+                text = f"node name {node.name!r} differs only in case from {other!r}"
+                self.report(node.source, "SR-26", text)
+            folded.setdefault(node.name.lower(), node.name)
+        for interface in project.interfaces.values():
+            self._interface_nodes(interface)
+        if not project.nodes:
+            return
+        used = {name for interface in project.interfaces.values() for name in interface.nodes}
+        for node in project.nodes.values():
+            if node.name not in used:
+                self.warn(node.source, "SR-28", f"node {node.name!r} takes part in no interface")
+        for interface in project.interfaces.values():
+            self._idle_nodes(interface)
+
+    def _interface_nodes(self, interface: Interface) -> None:
+        if self.project.nodes:
+            self._interface_with_nodes(interface)
+            return
+        if interface.nodes:
+            text = "`nodes` needs the project to define `nodes`"
+            self.report(interface.source, "SR-27", text, "/nodes")
+        if not interface.direction_given:
+            self.report(interface.source, "SR-27", "interface needs `direction`")
+        for entry in interface.messages:
+            if entry.senders:
+                text = "`from` needs the project to define `nodes`"
+                self.report(entry.source, "SR-27", text, "/from")
+
+    def _interface_with_nodes(self, interface: Interface) -> None:
+        if interface.direction_given:
+            text = "direction comes from `from` when the project has nodes"
+            self.report(interface.source, "SR-27", text, "/direction")
+        if not interface.nodes:
+            self.report(interface.source, "SR-27", f"interface {interface.name} needs `nodes`")
+        for name in interface.nodes:
+            if name not in self.project.nodes:
+                self.report(interface.source, "SR-27", f"unknown node {name!r}", "/nodes")
+        for entry in interface.messages:
+            if not entry.senders:
+                text = f"message {entry.name} on interface {interface.name} needs `from`"
+                self.report(entry.source, "SR-27", text)
+            for name in entry.senders:
+                if name not in interface.nodes:
+                    text = f"sender {name!r} of {entry.name} is not a node of {interface.name}"
+                    self.report(entry.source, "SR-27", text, "/from")
+
+    def _idle_nodes(self, interface: Interface) -> None:
+        for name in interface.nodes:
+            if name not in self.project.nodes:
+                continue
+            active = any(
+                name in entry.senders or set(entry.senders) - {name} for entry in interface.messages
+            )
+            if not active:
+                text = f"node {name!r} neither sends nor receives on interface {interface.name}"
+                self.warn(interface.source, "SR-28", text, "/nodes")
 
     # --- enums ------------------------------------------------------------------------------------
 

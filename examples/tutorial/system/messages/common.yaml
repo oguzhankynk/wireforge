@@ -1,0 +1,7 @@
+schema_version: 1
+messages:
+  VersionQuery:
+    id: 0x50
+    description: Asks a unit for its version.
+    fields:
+      - { name: wanted, type: u8 }

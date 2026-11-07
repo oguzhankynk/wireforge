@@ -201,9 +201,67 @@ class Relay final : public node_c::Handler {
     void onCommandReceived(const demo::avionics::Command& /*command*/) noexcept override {}
 };
 ```
-- Both directions are generated for every interface (`direction` is documentation), so any interface can be looped
-  back in tests. The golden tests encode every golden frame with `encode_frame`, compare it byte for byte and send it
+- Without `nodes` both directions are generated for every interface (`direction` is documentation), so any interface
+  can be looped back in tests; with `nodes` see [Units and system output](#units-and-system-output). The golden tests encode every golden frame with `encode_frame`, compare it byte for byte and send it
   through a loopback `Link` to the generated `Handler`.
+
+## Units and system output
+A project with `nodes` describes a system of units: programs that send and receive messages. Every interface lists its
+`nodes` and every message entry says who sends it with `from`; the other participants receive it. `wireforge generate`
+writes the code of every unit separately and `--node <unit>` only one unit, with the same bytes as in the full run:
+
+| Item | Without `nodes` | With `nodes` (unit `B`, project `avionics`, namespace `demo::avionics`) |
+|------|-----------------|---------------------------------------------------------------------|
+| C++ namespace | `demo::avionics` | `demo::avionics::B` |
+| C prefix | `demo_avionics_` | `demo_avionics_B_` |
+| Include root | `<out>/` with `avionics/` below | `<out>/nodes/B/` with `avionics_B/` below |
+| Generated tests | `<out>/avionics/generated_tests/` | `<out>/nodes/B/generated_tests/` |
+| Banner | model hash | unit name and unit hash |
+| System output | | `<out>/system/`: `system_icd.md` and, with `--tests`, the system test |
+
+The language of a unit is its `language` (`cpp` or `c`), else the one of the command (`--language`, default `cpp`).
+
+- **Only the messages of the unit.** The unit's model header holds the messages it sends or receives and the types they
+  use. The handler has a callback (`on<Name>Received`, `on<Name>Raw`) for every message the unit receives, and none for
+  the ones it only sends. `encode_frame`, `Endpoint::send` (C: `<ip>_encode_<Name>`, `<ip>_link_send_<Name>`) exist for
+  the messages it sends. A message the unit only sends is still known to its dispatcher: a valid frame of it is not for
+  this unit, so the receiver calls `onUnhandled` with `UnhandledReason::NotForThisNode` and returns
+  `Status::NotForThisNode` (C: `WF_NOT_FOR_THIS_NODE`). That is not an error: the poll result counts neither a frame nor an
+  error for it, and the link counts it in `rx_not_for_node`.
+- **`onUnhandled`.** Every `Handler` (also without `nodes`) has `virtual void onUnhandled(const wireforge::UnhandledFrame&)`;
+  the default does nothing (C: the `on_unhandled` member of the handler, `NULL` means "only count"). It gets a valid frame
+  that reaches no received callback: an unknown message id, a message that is not for this unit, or a payload the default
+  `on<Name>Raw` could not decode (`UnhandledReason::DecodeError`). Frames the frame decoder rejects (checksum, length,
+  lost sync) do not reach it; the link counts them in `rx_rejected`.
+- **`Endpoint::send`.** `endpoint.send(link, message, header)` encodes the message and sends it on a link; it exists for
+  every message that can be sent, in every project. The older `encode_frame` with `link.send(...)` still works.
+- **Link counters.** `LinkCounters` (C: `wf_link_counters`) has `rx_frames`, `rx_rejected`, `rx_unknown_id`,
+  `rx_not_for_node`, `rx_decode_errors`, `rx_bytes`, `tx_frames`, `tx_bytes`, `tx_errors`; `Link::reset_counters()`
+  (C: `wf_link_reset_counters`) sets them to zero.
+- **Counters per message.** With `message_counters: true` on an interface the generated code has a struct
+  `MessageCounters` with `rx_<Name>` for the messages the unit receives and `tx_<Name>` for the ones it sends (every
+  message twice without `nodes`). `Endpoint::message_counters()` and `reset_message_counters()` give access (C:
+  `<ip>_link_message_counters`, `<ip>_link_reset_message_counters`). `MessageCounters` is a struct of the interface
+  namespace, not nested in `Endpoint`, because the receiver is declared before the endpoint and needs it. `rx_<Name>`
+  counts a message when its raw callback returns `Ok`: the default decodes the payload, but an override that returns `Ok`
+  without decoding is counted too. `tx_<Name>` counts a message that `Endpoint::send` (C: `<ip>_link_send_<Name>`)
+  sent; a frame sent with `encode_frame` and `link.send` is not counted. Without the flag no counter exists, so no RAM
+  is used.
+- **The unit hash.** `wireforge.nodes.node_hash` is the sha256 of the canonical form of the unit's view: its interfaces,
+  the messages, types, enums and checksums they use, the units that take part, the requirements catalog, the defines,
+  the profiles and the user constants (so a change to one of these last four changes the hash of every unit). Where an
+  element was written is not part of it. A change that does not reach a unit leaves its hash unchanged.
+- **Source lines.** The generated comments say where each element is written (`/// Defined in messages/a_b.yaml:12`).
+  With the whole model in one file, a line inserted above shifts the line numbers of every later element, so those
+  comments change in the files of units the change did not concern, though their code and hash did not. Split the model
+  into files per unit or per interface with `include`, so that a change elsewhere does not move the source lines of your
+  unit's elements (`examples/08_system`).
+- **The system test.** `wireforge generate <project> -o <out> --tests` also writes `<out>/system/`, a GoogleTest project that
+  encodes every message with its sender's generated code, decodes it with the generated code of every other
+  participant and compares the result with the reference codec. All C++ units are built into one executable (the
+  namespaces keep them apart); a unit written in C is linked as a static library (its prefix keeps its names apart).
+  `wireforge test <project> -o <out> --system` builds and runs it; `wireforge test ... --node <unit>` runs the tests of
+  one unit. Messages with an opaque user type are left out.
 
 ## Quality
 Generated code compiles with the full warning set (`-Werror`), passes clang-tidy, cppcheck and the GCC analyzer and is

@@ -16,7 +16,7 @@ jobs:
           - { os: windows-2022, cc: cl, cxx: cl } # the name is a required check
           - { os: windows-2022, cc: cl, cxx: cl, arch: x86 }
           - { os: windows-2022, cc: clang-cl, cxx: clang-cl, arch: x64 }
-          - { os: macos-14, cc: clang, cxx: clang++ }
+          - { os: macos-15, cc: clang, cxx: clang++ }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022, macos-14]
+        os: [windows-2022, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -217,6 +217,7 @@ jobs:
       - run: pip install -e ".[mcp]" gcovr
       - run: quality/run_generated_tests.sh
       - run: quality/run_generated_tests_c.sh
+      - run: quality/run_system_tests.sh
       - run: python3 quality/random_models.py
       - run: WIREFORGE_RANDOM_LANGUAGE=c python3 quality/random_models.py
       - uses: actions/upload-artifact@v4

@@ -27,6 +27,7 @@ from wireforge.model import (
     Interface,
     InterfaceMessage,
     MessageInfo,
+    Node,
     Occurs,
     Profile,
     Project,
@@ -41,6 +42,7 @@ from wireforge.model import (
 from wireforge.plain import to_plain
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
 SECTIONS = (
@@ -52,6 +54,7 @@ SECTIONS = (
     "types",
     "user_types",
     "messages",
+    "nodes",
     "interfaces",
     "vectors",
 )
@@ -210,6 +213,13 @@ def _user_type(name: str, where: _Where, source: Source) -> UserType:
     )
 
 
+def _senders(raw: dict[str, Any]) -> tuple[str, ...]:
+    sender = raw.get("from")
+    if sender is None:
+        return ()
+    return (str(sender),) if isinstance(sender, str) else tuple(str(item) for item in sender)
+
+
 def _interface_messages(where: _Where) -> tuple[InterfaceMessage, ...]:
     entries = where.child("messages")
     result = []
@@ -226,6 +236,7 @@ def _interface_messages(where: _Where) -> tuple[InterfaceMessage, ...]:
                     id=raw.get("id"),
                     condition=raw.get("if"),
                     reqs=_reqs(raw),
+                    senders=_senders(raw),
                 )
             )
     return tuple(result)
@@ -248,7 +259,7 @@ def _interface(name: str, where: _Where, source: Source) -> Interface:
     return Interface(
         name=name,
         version=raw["version"],
-        direction=raw["direction"],
+        direction=raw.get("direction", "both"),
         source=source,
         messages=_interface_messages(where),
         header=header,
@@ -261,6 +272,9 @@ def _interface(name: str, where: _Where, source: Source) -> Interface:
         trim_trailing_zeros=bool(raw.get("trim_trailing_zeros", False)),
         description=raw.get("description"),
         reqs=_reqs(raw),
+        nodes=tuple(str(item) for item in raw.get("nodes", ())),
+        message_counters=bool(raw.get("message_counters", False)),
+        direction_given="direction" in raw,
     )
 
 
@@ -297,6 +311,16 @@ def _vector(name: str, raw: dict[str, Any], source: Source) -> Vector:
     )
 
 
+def _enum(name: str, where: _Where, source: Source) -> Enum:
+    raw = _mapping(where.node)
+    return Enum(name, raw["type"], raw["values"], source, reqs=_reqs(raw))
+
+
+def _node(name: str, where: _Where, source: Source) -> Node:
+    raw = _mapping(where.node)
+    return Node(name, source, raw.get("description"), raw.get("language"))
+
+
 def _add_entry(project: Project, section: str, name: str, where: _Where, source: Source) -> None:
     if section == "requirements":
         project.requirements[name] = _requirement(name, _mapping(where.node), source)
@@ -304,21 +328,20 @@ def _add_entry(project: Project, section: str, name: str, where: _Where, source:
         project.defines[name] = Define(name, int(where.node), source)
     elif section == "profiles":
         project.profiles[name] = Profile(name, _mapping(where.node)["defines"], source)
-    elif section == "checksums":
-        project.checksums[name] = _checksum(name, where, source)
-    elif section == "enums":
-        raw = _mapping(where.node)
-        project.enums[name] = Enum(name, raw["type"], raw["values"], source, reqs=_reqs(raw))
-    elif section == "types":
-        project.types[name] = _struct(name, where, source, message=False)
-    elif section == "user_types":
-        project.user_types[name] = _user_type(name, where, source)
-    elif section == "messages":
-        project.messages[name] = _struct(name, where, source, message=True)
     elif section == "vectors":
         project.vectors[name] = _vector(name, _mapping(where.node), source)
     else:
-        project.interfaces[name] = _interface(name, where, source)
+        builders: dict[str, tuple[dict[str, Any], Callable[[str, _Where, Source], Any]]] = {
+            "checksums": (project.checksums, _checksum),
+            "enums": (project.enums, _enum),
+            "types": (project.types, lambda n, w, s: _struct(n, w, s, message=False)),
+            "user_types": (project.user_types, _user_type),
+            "messages": (project.messages, lambda n, w, s: _struct(n, w, s, message=True)),
+            "nodes": (project.nodes, _node),
+            "interfaces": (project.interfaces, _interface),
+        }
+        target, build = builders[section]
+        target[name] = build(name, where, source)
 
 
 def _user_includes(project: Project, root: _Where) -> None:

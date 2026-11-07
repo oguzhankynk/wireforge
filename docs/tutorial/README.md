@@ -31,6 +31,7 @@ ones that need a GUI, Wireshark or an AI agent, so what you read here works with
 | [9. AI agents (MCP)](09_ai_agents_mcp.md) | let Claude or another agent edit the model safely | 10 min |
 | [10. Team server](10_team_server.md) | run the web UI for a team, with a token or in Docker | 10 min |
 | [11. Documents and evidence](11_documents_and_evidence.md) | generate requirements, design, test and traceability documents | 15 min |
+| [12. A system of units](12_a_system_of_units.md) | describe several programs in one model; each gets only its own code, tests and documents | 15 min |
 
 ## What you need
 - Python 3.10 to 3.13 and `pip`.

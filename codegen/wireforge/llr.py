@@ -677,6 +677,11 @@ class Verifier:
             "SkipsBytesBeforeSync": (key("FRAME_SYNC"),),
             "EncodeFrameNeedsRoom": (key("FRAME_ENCODE"),),
             "WireSize": (key("FRAME_MAX"),),
+            "UnhandledHook": (key("RAW"),),
+            "NotForThisUnit": (key("DISPATCH"), key("FRAME_ENCODE")),
+            "CountsMessages": (key("DISPATCH"), key("FRAME_ENCODE")),
+            "SendsThroughTheEndpoint": (key("FRAME_ENCODE"),),
+            "SendsThroughTheLink": (key("FRAME_ENCODE"),),
         }
         if test == "RejectsCorruptedFrame":
             checksums = [

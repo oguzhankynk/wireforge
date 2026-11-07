@@ -21,6 +21,7 @@ from wireforge.model import (
     Interface,
     Project,
 )
+from wireforge.nodes import entry_directions
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -155,6 +156,11 @@ class InterfaceHeader:
         self.trailer = self._place(interface.trailer, "trailer")
         self._check_trailer()
         self.entries = [self._entry(m.name, m.id, m.condition) for m in interface.messages]
+        way = entry_directions(project, interface)
+        self.sent = [e for e in self.entries if way[e.name] in ("send", "both")]
+        self.received = [e for e in self.entries if way[e.name] in ("receive", "both")]
+        self.passive = [e for e in self.entries if way[e.name] == "send"]
+        self.counters = interface.message_counters
 
     # --- layout ---------------------------------------------------------------------------------
 
@@ -231,6 +237,11 @@ class InterfaceHeader:
             "    wireforge::Span<const std::uint8_t>(buffer.subspan(kHeaderSize, payload_size)));",
         ]
 
+    def _id_expression(self, entry: _Entry) -> str:
+        if entry.identifier is None:
+            return "0U"
+        return f"static_cast<std::uint64_t>(k{entry.name}Id)"
+
     def _raw_trim_note(self) -> list[str]:
         if not self.interface.trim_trailing_zeros:
             return []
@@ -258,7 +269,8 @@ class InterfaceHeader:
         name_guard = guard(project.name, iface.name, "HPP")
         namespace = f"{project.namespace or project.name}::{iface.name}"
         version = version_namespace(iface.version)
-        headers: tuple[str, ...] = ("dispatcher", "frame_decoder", "link")
+        headers: tuple[str, ...] = ("dispatcher", "frame_decoder", "link", "unhandled")
+        headers += ("lock",) if iface.message_counters else ()
         headers += ("payload_trim",) if iface.trim_trailing_zeros else ()
         includes = [f"#include <wireforge/{h}.hpp>" for h in headers]
         self._lines(
@@ -299,6 +311,7 @@ class InterfaceHeader:
         self._header_decoder()
         self._frame_check()
         self._handler()
+        self._message_counters()
         self._receiver()
         self._endpoint()
         self._lines(
@@ -608,7 +621,7 @@ class InterfaceHeader:
         )
 
     def _frame_encoders(self) -> None:
-        for entry in self.entries:
+        for entry in self.sent:
             identifier = f"k{entry.name}Id" if entry.identifier is not None else "MessageId{}"
             doc = _doc(
                 [
@@ -707,7 +720,7 @@ class InterfaceHeader:
                 "public:",
             ]
         )
-        for entry in self.entries:
+        for entry in self.received:
             name = entry.name
             self._lines(
                 [
@@ -730,6 +743,10 @@ class InterfaceHeader:
                     *self._raw_decode_lines(name),
                     "        if (status == wireforge::Status::Ok) {",
                     f"            on{name}Received(message);",
+                    "        } else {",
+                    "            onUnhandled(wireforge::UnhandledFrame{",
+                    "                wireforge::UnhandledReason::DecodeError, status,",
+                    f"                {self._id_expression(entry)}, raw.frame}});",
                     "        }",
                     "        return status;",
                     "    }",
@@ -738,6 +755,18 @@ class InterfaceHeader:
             )
         self._lines(
             [
+                "",
+                "    /**",
+                "     * @brief Called for a frame that reaches no received callback.",
+                "     *",
+                "     * That is a frame with an unknown message id, or one whose payload the",
+                "     * default on<Name>Raw() could not decode. Frames the frame decoder rejects",
+                "     * do not come here. The default does nothing; the link counts the frame",
+                "     * either way.",
+                "     */",
+                "    virtual void onUnhandled(const wireforge::UnhandledFrame& frame) noexcept {",
+                "        static_cast<void>(frame);",
+                "    }",
                 "",
                 "protected:",
                 "    Handler() = default;                          ///< Constructed by subclasses.",
@@ -770,7 +799,8 @@ class InterfaceHeader:
             lines.append(f"            dispatcher.add(k{entry.name}Id, {handler}),")
             if entry.condition is not None:
                 lines.append("#endif")
-        return [*lines, "            wireforge::Status::Ok);"]
+        fallback = "wireforge::FallbackHandler::bind<&Receiver::receiveUnknown>(*this)"
+        return [*lines, f"            dispatcher.set_fallback({fallback}));"]
 
     # --- checks of the frame that the frame decoder does not make ------------------------------
 
@@ -865,8 +895,7 @@ class InterfaceHeader:
                 "/// @brief Forwards the messages of this interface to a Handler.",
                 "class Receiver {",
                 "public:",
-                "    /// @brief Forwards to @p handler, which must outlive the receiver.",
-                "    explicit Receiver(Handler& handler) noexcept : handler_(&handler) {}",
+                *self._receiver_constructor(),
                 "",
                 *[f"    {line}" for line in doc],
                 f"    [[nodiscard]] {STATUS} attach(Dispatcher& dispatcher) noexcept {{",
@@ -878,23 +907,145 @@ class InterfaceHeader:
         )
         for entry in self.entries:
             name = entry.name
+            body = self._passive_body(entry) if entry in self.passive else self._receive_body(name)
             self._lines(
                 [
                     f"    {STATUS} receive{name}(const wireforge::RawMessage& raw) noexcept {{",
-                    *self._receive_body(name),
+                    *body,
                     "    }",
                     "",
                 ],
                 entry.condition,
             )
-        self._lines(["    Handler* handler_;", "};", ""])
+        if self._role("message_id") is not None:
+            self._lines(
+                [
+                    f"    {STATUS} receiveUnknown(std::uint64_t message_id,",
+                    "                                 const wireforge::RawMessage& raw) noexcept {",
+                    "        handler_->onUnhandled(wireforge::UnhandledFrame{",
+                    "            wireforge::UnhandledReason::UnknownMessageId,",
+                    f"            {STATUS}::UnknownMessageId, message_id, raw.frame}});",
+                    f"        return {STATUS}::UnknownMessageId;",
+                    "    }",
+                    "",
+                ]
+            )
+        counters = ["    MessageCounters* counters_;"] if self.counters else []
+        self._lines(["    Handler* handler_;", *counters, "};", ""])
+
+    def _receiver_constructor(self) -> list[str]:
+        if not self.counters:
+            return [
+                "    /// @brief Forwards to @p handler, which must outlive the receiver.",
+                "    explicit Receiver(Handler& handler) noexcept : handler_(&handler) {}",
+            ]
+        return [
+            "    /// @brief Forwards to @p handler and counts in @p counters; both must outlive.",
+            "    Receiver(Handler& handler, MessageCounters& counters) noexcept",
+            "        : handler_(&handler), counters_(&counters) {}",
+        ]
 
     def _receive_body(self, name: str) -> list[str]:
+        counted = f"wireforge::count_if_ok(counters_->rx_{name}, @)" if self.counters else "@"
         if not self._frame_check_needed():
-            return [f"        return handler_->on{name}Raw(raw);"]
+            return [f"        return {counted.replace('@', f'handler_->on{name}Raw(raw)')};"]
+        result = f"checked == {STATUS}::Ok ? handler_->on{name}Raw(raw) : checked"
         return [
             f"        const {STATUS} checked = detail::check_frame(raw.frame);",
-            f"        return checked == {STATUS}::Ok ? handler_->on{name}Raw(raw) : checked;",
+            f"        return {counted.replace('@', result)};",
+        ]
+
+    def _passive_body(self, entry: _Entry) -> list[str]:
+        """Body for a message this unit only sends: its frame is valid but not for this unit."""
+        identifier = f"k{entry.name}Id" if entry.identifier is not None else "0U"
+        return [
+            "        handler_->onUnhandled(wireforge::UnhandledFrame{",
+            "            wireforge::UnhandledReason::NotForThisNode,",
+            f"            {STATUS}::NotForThisNode, {identifier}, raw.frame}});",
+            f"        return {STATUS}::NotForThisNode;",
+        ]
+
+    def _message_counters(self) -> None:
+        """Write the per-message counters (interfaces with `message_counters`)."""
+        if not self.counters:
+            return
+        self._lines(
+            [
+                "/// @brief Counters per message: `rx_` for received, `tx_` for sent messages.",
+                "struct MessageCounters {",
+            ]
+        )
+        for entry in self.entries:
+            lines = []
+            if entry in self.received:
+                lines.append(f"    wireforge::RelaxedCounter rx_{entry.name}; ///< Received.")
+            if entry in self.sent:
+                lines.append(f"    wireforge::RelaxedCounter tx_{entry.name}; ///< Sent.")
+            self._lines(lines, entry.condition)
+        self._lines(["    /// @brief Sets every counter to zero.", "    void reset() noexcept {"])
+        for entry in self.entries:
+            lines = []
+            if entry in self.received:
+                lines.append(f"        rx_{entry.name}.reset();")
+            if entry in self.sent:
+                lines.append(f"        tx_{entry.name}.reset();")
+            self._lines(lines, entry.condition)
+        self._lines(["    }", "};", ""])
+
+    def _endpoint_send(self) -> list[str]:
+        """Return the `Endpoint::send` overloads: encode a message and send it on a link."""
+        lines: list[str] = []
+        for entry in self.sent:
+            name = entry.name
+            send = (
+                "link.send([&message, &header](" + SPAN + " buffer, std::size_t& size) noexcept {"
+            )
+            body = [
+                f"        return {send}",
+                "            return encode_frame(message, buffer, size, header);",
+                "        })",
+            ]
+            if self.counters:
+                body = [
+                    f"        return wireforge::count_if_ok(counters_.tx_{name},",
+                    f"                                      {send}",
+                    (
+                        "                                          return encode_frame(message, "
+                        "buffer, size, header);"
+                    ),
+                    "                                      }));",
+                ]
+            else:
+                body[-1] += ";"
+            static = "" if self.counters else "static "
+            entry_lines = [
+                f"    /// @brief Encodes a {name} frame and sends it on @p link.",
+                "    template <typename L>",
+                f"    [[nodiscard]] {static}{STATUS} send(L& link, const {name}& message,",
+                "        const Header& header = Header{}) noexcept {",
+                *body,
+                "    }",
+                "",
+            ]
+            if entry.condition is not None:
+                entry_lines = [
+                    f"#if {self.names.condition(entry.condition)}",
+                    *entry_lines,
+                    "#endif",
+                ]
+            lines += entry_lines
+        return lines
+
+    def _endpoint_counter_access(self) -> list[str]:
+        if not self.counters:
+            return []
+        return [
+            "    /// @brief Counters per message (received and sent through send()).",
+            "    [[nodiscard]] const MessageCounters& message_counters() const noexcept {",
+            "        return counters_;",
+            "    }",
+            "    /// @brief Sets every message counter to zero.",
+            "    void reset_message_counters() noexcept { counters_.reset(); }",
         ]
 
     def _endpoint(self) -> None:
@@ -922,7 +1073,8 @@ class InterfaceHeader:
                 "public:",
                 "    /// @brief Wires a receiver for @p handler and starts the dispatcher.",
                 "    explicit Endpoint(Handler& handler) noexcept",
-                "        : receiver_(handler), status_(wire(receiver_, dispatcher_)) {}",
+                f"        : receiver_(handler{', counters_' if self.counters else ''}),",
+                "          status_(wire(receiver_, dispatcher_)) {}",
                 "",
                 "    /// @brief Result of the registration; must be Ok before use.",
                 f"    [[nodiscard]] {STATUS} status() const noexcept {{ return status_; }}",
@@ -932,6 +1084,8 @@ class InterfaceHeader:
                 "    [[nodiscard]] const Dispatcher& dispatcher() const noexcept {",
                 "        return dispatcher_;",
                 "    }",
+                *self._endpoint_counter_access(),
+                *self._endpoint_send(),
                 "",
                 "private:",
                 f"    static {STATUS} wire(Receiver& receiver, Dispatcher& dispatcher) noexcept {{",
@@ -941,6 +1095,7 @@ class InterfaceHeader:
                 "",
                 f"    {decoder}",
                 f"    {dispatcher}",
+                *(["    MessageCounters counters_{};"] if self.counters else []),
                 "    Receiver receiver_;",
                 f"    {STATUS} status_;",
                 "};",

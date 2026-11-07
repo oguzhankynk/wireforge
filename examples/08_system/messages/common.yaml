@@ -1,0 +1,12 @@
+schema_version: 1
+messages:
+  Heartbeat:
+    id: 0x40
+    description: Sent by every unit on the bus.
+    fields:
+      - { name: counter, type: u8 }
+  VersionQuery:
+    id: 0x50
+    description: Asks a unit for its version; on every interface A uses.
+    fields:
+      - { name: wanted, type: u8 }

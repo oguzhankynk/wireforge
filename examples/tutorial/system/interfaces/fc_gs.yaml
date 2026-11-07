@@ -1,0 +1,15 @@
+schema_version: 1
+interfaces:
+  fc_gs:
+    version: "1.0.0"
+    nodes: [fc, gs]
+    description: Radio link between the flight computer and the ground station.
+    header:
+      fields:
+        - { name: msgId, type: u8, role: message_id }
+        - { name: length, type: u8, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 32 }
+    messages:
+      - { name: Attitude, from: fc }
+      - { name: SetMode, from: gs }
+      - { name: VersionQuery, from: fc }

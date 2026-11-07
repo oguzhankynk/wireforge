@@ -43,6 +43,7 @@ Every fallible call returns `wireforge::Status`.
 | `InvalidLength` | A length field is inconsistent with the frame or buffer |
 | `TrailingBytes` | The payload was not fully consumed |
 | `InvalidState` | The API was misused (invalid argument or call sequence) |
+| `NotForThisNode` | A valid frame that this unit does not receive; not an error (not counted in `PollResult.errors`) |
 
 ## Byte and bit IO
 - Integers are written byte by byte with shifts; widths 1..8 bytes; signed values as two's complement, decoded with
@@ -111,6 +112,18 @@ complete frame and returns counts plus the last error. `Link::send(encode)` runs
 buffer under the tx lock and hands the frame to the transport; a transport that stops accepting bytes mid-frame gives
 `BufferTooSmall` (the receiver resynchronises). With `Unframed` each transport read is one frame; a read longer than `MaxFrame` is rejected as `InvalidLength` and
 whatever the transport still holds is dropped.
+
+`Link::record` sorts every received frame into one counter of `LinkCounters` by its status: `rx_frames` (`Ok`),
+`rx_rejected` (the frame decoder refused it), `rx_unknown_id`, `rx_not_for_node` (`NotForThisNode`: a valid frame this
+unit does not receive; it is neither a frame nor an error of the poll result) and `rx_decode_errors` (any other
+status). `reset_counters()` (C: `wf_link_reset_counters`) sets every counter to zero.
+
+## Unhandled frames
+A valid frame that reaches no received callback is handed to the generated handler's `onUnhandled(const
+UnhandledFrame&)` (C: `on_unhandled`, `wf_unhandled_frame`) with its reason: `UnknownMessageId`, `NotForThisNode` or
+`DecodeError` (the default raw callback could not decode it). The default only lets the link count the frame. Frames
+the frame decoder rejects do not reach the hook, because no whole frame is at hand. `count_if_ok` (C:
+`wf_count_if_ok`) is the branch-free helper generated code counts messages with.
 
 ## Tests
 `tests/io_test.cpp`, `containers_test.cpp`, `ring_buffer_test.cpp` (model fuzz, SPSC and MPMC stress under TSan),

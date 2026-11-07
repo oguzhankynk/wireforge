@@ -49,10 +49,13 @@ from wireforge import (
     llr,
     llr_ids,
     mavlink_xml,
+    nodes,
     reqif,
     resources,
     runtime_reqs,
     schema,
+    system_docs,
+    system_tests,
     test_project,
     trace,
     vcs,
@@ -124,6 +127,24 @@ def _load_valid(location: Path) -> tuple[Project | None, list[Issue]]:
         plugins = load_plugins(find_plugins(location))
         issues += vectors.check(result.project, plugins)
     return (None if errors_only(issues) else result.project), issues
+
+
+def _unit(project: Project, node: str | None) -> Project:
+    """Return the view of a unit, or the project itself without `node`."""
+    if node is None:
+        return project
+    if not project.nodes:
+        message = "--node needs a project that defines `nodes`"
+        raise ServiceError(message)
+    try:
+        return nodes.node_view(project, node)
+    except nodes.NodeError as error:
+        raise ServiceError(str(error)) from error
+
+
+def _unit_hash(project: Project, content_hash: str, node: str | None) -> str:
+    _unit(project, node)
+    return content_hash if node is None else nodes.node_hash(project, node)
 
 
 # --- init ---------------------------------------------------------------------------------------
@@ -313,9 +334,13 @@ def generate_code(
     tests: test_project.TestOptions | None = None,
     *,
     language: str | None = None,
+    node: str | None = None,
 ) -> Result:
-    """Generate the C++ or C code (and with `tests` the GoogleTest project) below `output`."""
-    issues = generate.generate(location, output, tests, language=language)
+    """Generate the C++ or C code (and with `tests` the GoogleTest project) below `output`.
+
+    A project with `nodes` is generated unit by unit (`node` limits it to one unit).
+    """
+    issues = generate.generate(location, output, tests, language=language, node=node)
     result = load_project(location)
     name = result.project.name if result.project is not None else ""
     data = {"output": str(output), "project": name, "tests": tests is not None}
@@ -323,23 +348,48 @@ def generate_code(
     return Result(not issues, issues, data, text)
 
 
-def analyze(location: Path, profile: str | None = None, export: str = "markdown") -> Result:
-    """Layout report of a valid project (`export`: markdown, csv or json)."""
+def analyze(
+    location: Path,
+    profile: str | None = None,
+    export: str = "markdown",
+    node: str | None = None,
+) -> Result:
+    """Layout report of a valid project (`export`: markdown, csv or json); `node`: of one unit."""
     project, issues = _load_valid(location)
     if project is None:
         return Result(ok=False, issues=issues, text=_issues_text(issues))
     try:
-        report = layout.analyze(project, profile)
+        report = layout.analyze(_unit(project, node), profile)
     except layout.LayoutError as error:
         raise ServiceError(str(error)) from error
     text = layout.EXPORTERS[export](report)
     return Result(ok=True, issues=issues, data=report.to_dict(), text=text)
 
 
-def compatibility(old: Path, new: Path, interfaces: list[str] | None = None) -> Result:
-    """Compare two versions of a project; fails when a version bump is insufficient."""
+def compatibility(
+    old: Path, new: Path, interfaces: list[str] | None = None, node: str | None = None
+) -> Result:
+    """Compare two versions of a project; fails when a version bump is insufficient.
+
+    With `node` only the interfaces of that unit are compared and the first line says whether the
+    unit is affected. A project with units ends the report with the affected units.
+    """
     reports, issues = compat.compare_paths(old, new, interfaces)
+    known = {name for report in reports for name in report.nodes}
+    affected = compat.affected_nodes(reports)
     lines = [_issues_text(issues)]
+    if node is not None and reports:
+        if node not in known:
+            message = f"node {node!r} takes part in no interface of either version"
+            raise ServiceError(message)
+        reports = [report for report in reports if node in report.nodes]
+        touched = [report for report in reports if report.changes]
+        yes = "yes" if touched else "no"
+        lines.insert(0, f"affects {node}: {yes}\n")
+        if touched:
+            lines.insert(1, f"  interfaces: {', '.join(report.name for report in touched)}\n")
+            names = sorted({name for report in touched for name in report.messages})
+            lines.insert(2, f"  messages: {', '.join(names) or '-'}\n")
     data = []
     for report in reports:
         lines.append(f"{report.summary()}\n")
@@ -355,8 +405,13 @@ def compatibility(old: Path, new: Path, interfaces: list[str] | None = None) -> 
                 "changes": [str(change) for change in report.changes],
             }
         )
+    if node is None and known:
+        lines.append(f"affected nodes: {', '.join(affected) or 'none'}\n")
     ok = not errors_only(issues) and all(report.version_ok for report in reports)
-    return Result(ok, issues, {"interfaces": data}, "".join(lines))
+    extra: dict[str, object] = {"interfaces": data, "affected_nodes": affected}
+    if node is not None:
+        extra |= {"node": node, "affects": any(report.changes for report in reports)}
+    return Result(ok, issues, extra, "".join(lines))
 
 
 # --- test ---------------------------------------------------------------------------------------
@@ -371,10 +426,44 @@ class BuildOptions:
     coverage_runtime: bool = False
     generator: str | None = None
     extra_cmake_args: tuple[str, ...] = ()
+    node: str | None = None
+    system: bool = False
 
 
 def _run(command: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, cwd=cwd, capture_output=True, text=True, check=False)
+
+
+def _test_project_directory(output: Path, name: str, build: BuildOptions) -> Path:
+    if build.system:
+        return output / system_tests.DIRECTORY
+    if build.node is None:
+        return output / name / test_project.DIRECTORY
+    return output / "nodes" / build.node / test_project.DIRECTORY
+
+
+def _build_steps(
+    cmake: str, project: Path, build_dir: Path, build: BuildOptions
+) -> list[list[str]]:
+    """Return the configure, build and run commands of a generated test project."""
+    # The configuration is named for multi-config generators (Visual Studio); others ignore it.
+    configure = [cmake, "-S", str(project), "-B", str(build_dir), "-DCMAKE_BUILD_TYPE=Debug"]
+    if build.generator:
+        configure += ["-G", build.generator]
+    if build.coverage:
+        configure.append("-DWIREFORGE_COVERAGE=ON")
+    if build.coverage_runtime:
+        configure.append("-DWIREFORGE_COVERAGE_RUNTIME=ON")
+    configure += list(build.extra_cmake_args)
+    steps = [configure, [cmake, "--build", str(build_dir), "--config", "Debug"]]
+    if build.coverage:
+        steps.append(
+            [cmake, "--build", str(build_dir), "--config", "Debug", "--target", "coverage"]
+        )
+    else:
+        ctest = shutil.which("ctest") or "ctest"
+        steps.append([ctest, "--test-dir", str(build_dir), "-C", "Debug", "--output-on-failure"])
+    return steps
 
 
 def run_tests(
@@ -385,6 +474,9 @@ def run_tests(
 ) -> Result:
     """Generate the code and the test project, build it with CMake and run its tests.
 
+    A project with `nodes` needs `node` (the tests of that unit are built and run) or `system`
+    (the test of every sender's encoder against every receiver's decoder).
+
     With `build.coverage` the coverage target runs instead (tests plus the coverage threshold);
     `build.coverage_runtime` adds the runtime headers to the coverage report. The machine-readable
     results are written to `<build_dir>/results` (`wireforge docs --results <build_dir>`).
@@ -394,25 +486,18 @@ def run_tests(
     if cmake is None:
         message = "cmake is not installed"
         raise ServiceError(message)
-    generated = generate_code(location, output, tests or test_project.TestOptions())
+    if build.system and build.node is not None:
+        message = "give --node or --system, not both"
+        raise ServiceError(message)
+    if build.system:
+        build = dataclasses.replace(build, coverage=False, coverage_runtime=False)
+    options = tests or test_project.TestOptions()
+    generated = generate_code(location, output, options, node=build.node)
     if not generated.ok:
         return generated
-    project = output / generated.data["project"] / test_project.DIRECTORY
+    project = _test_project_directory(output, generated.data["project"], build)
     build_dir = build.build_dir or project / "build" / ("coverage" if build.coverage else "test")
-    configure = [cmake, "-S", str(project), "-B", str(build_dir), "-DCMAKE_BUILD_TYPE=Debug"]
-    if build.generator:
-        configure += ["-G", build.generator]
-    if build.coverage:
-        configure.append("-DWIREFORGE_COVERAGE=ON")
-    if build.coverage_runtime:
-        configure.append("-DWIREFORGE_COVERAGE_RUNTIME=ON")
-    configure += list(build.extra_cmake_args)
-    steps = [configure, [cmake, "--build", str(build_dir)]]
-    if build.coverage:
-        steps.append([cmake, "--build", str(build_dir), "--target", "coverage"])
-    else:
-        ctest = shutil.which("ctest") or "ctest"
-        steps.append([ctest, "--test-dir", str(build_dir), "--output-on-failure"])
+    steps = _build_steps(cmake, project, build_dir, build)
     log = []
     for command in steps:
         completed = _run(command)
@@ -609,9 +694,32 @@ def _resolve(document: object, segments: list[str]) -> object:
     return node
 
 
+def _section(location: Path, name: str) -> Result | None:
+    """Return a whole section merged from every file of the project, None when none has it."""
+    merged: dict[str, object] = {}
+    for path in project_files(location):
+        document = fmt.load(path.read_text(encoding="utf-8"))
+        entries = document.get(name) if isinstance(document, CommentedMap) else None
+        if isinstance(entries, CommentedMap):
+            plain = to_plain(entries)
+            if isinstance(plain, dict):
+                merged.update(plain)
+    if not merged:
+        return None
+    data = {"file": str(project_files(location)[0]), "value": merged}
+    return Result(ok=True, data=data, text=json.dumps(merged) + "\n")
+
+
 def get(location: Path, pointer: str) -> Result:
-    """Return the value at `pointer` as written in the project files."""
+    """Return the value at `pointer` as written in the project files.
+
+    A whole section (`/nodes`, `/messages`, ...) is merged from every file that holds a part of it.
+    """
     segments = _segments(pointer)
+    if len(segments) == 1 and segments[0] in SECTIONS:
+        merged = _section(location, segments[0])
+        if merged is not None:
+            return merged
     path = _owner(location, segments)
     document = fmt.load(path.read_text(encoding="utf-8"))
     try:
@@ -854,9 +962,13 @@ ARCHIVE_CODE = {"cpp": "C++17 headers", "c": "C99 sources and headers"}
 
 
 def generate_archive(
-    location: Path, *, tests: bool = True, language: str = "cpp"
+    location: Path, *, tests: bool = True, language: str = "cpp", node: str | None = None
 ) -> tuple[Result, bytes]:
-    """Return the zip of generated C++ or C code, test project, runtime and model."""
+    """Return the zip of generated C++ or C code, test project, runtime and model.
+
+    With `node` the archive holds that unit only and is named `<project>-<node>-generated.zip`;
+    the file name is in `data["archive"]`.
+    """
     with tempfile.TemporaryDirectory(prefix="wireforge-") as temporary:
         root = Path(temporary)
         model = root / "model"
@@ -867,11 +979,15 @@ def generate_archive(
             plugins=find_plugins(model), runtime=runtime, language=language
         )
         result = generate_code(
-            model, root / "include", options if tests else None, language=language
+            model, root / "include", options if tests else None, language=language, node=node
         )
         if not result.ok:
             return result, b""
         name = str(result.data["project"])
+        suffix = "-c" if language == "c" else ""
+        result.data["archive"] = (
+            f"{name}-{node}-generated.zip" if node else f"{name}{suffix}-generated.zip"
+        )
         (root / "README.md").write_text(
             ARCHIVE_README.format(
                 name=name, version=versioning.TOOL_VERSION, code=ARCHIVE_CODE[language]
@@ -888,14 +1004,21 @@ def generate_archive(
     return result, data
 
 
-def preview(location: Path, language: str = "cpp") -> Result:
-    """Return the generated C++ or C files of a valid project (path -> text), writing nothing."""
+def preview(location: Path, language: str = "cpp", node: str | None = None) -> Result:
+    """Return the generated C++ or C files of a valid project (path -> text), writing nothing.
+
+    A project with `nodes` needs `node`: the files are those of that unit.
+    """
     project, issues = _load_valid(location)
     if project is None:
         return Result(ok=False, issues=issues, text=_issues_text(issues))
+    if project.nodes and node is None:
+        message = "the project has nodes: name a unit with `node`"
+        raise ServiceError(message)
+    _unit(project, node)
     try:
         content_hash = bundle.build_bundle(location)["bundle"]["content_hash"]
-        files = generate.render(project, content_hash, language)
+        files = generate.render(project, content_hash, language, node)
     except (bundle.BundleError, InterfaceError, CGenerationError) as error:
         return Result(ok=False, issues=issues, text=f"{error}\n")
     return Result(ok=True, issues=issues, data={"files": files}, text="".join(files))
@@ -975,12 +1098,12 @@ def _checkout_revision(location: Path, revision: str) -> Iterator[Path]:
 
 
 def compatibility_with_revision(
-    location: Path, revision: str, interfaces: list[str] | None = None
+    location: Path, revision: str, interfaces: list[str] | None = None, node: str | None = None
 ) -> Result:
     """Compare the project at a git revision (old) with the working copy (new)."""
     directory = (location if location.is_dir() else location.parent).resolve()
     with _checkout_revision(location, revision) as old:
-        result = compatibility(old, directory, interfaces)
+        result = compatibility(old, directory, interfaces, node)
     result.data["revision"] = revision
     return result
 
@@ -1121,12 +1244,17 @@ def import_mavlink(
 # --- traceability -------------------------------------------------------------------------------
 
 
-def trace_report(location: Path, export: str = "markdown") -> Result:
-    """Trace every model element to its source line, generated symbol and tests."""
+def trace_report(location: Path, export: str = "markdown", node: str | None = None) -> Result:
+    """Trace every model element to its source line, generated symbol and tests.
+
+    With `node` the trace is that of the unit's view.
+    """
     project, issues = _load_valid(location)
     if project is None:
         return Result(ok=False, issues=issues, text=_issues_text(issues))
     content_hash = bundle.build_bundle(location)["bundle"]["content_hash"]
+    content_hash = _unit_hash(project, content_hash, node)
+    project = _unit(project, node)
     traced = trace.report(project, content_hash, load_plugins(find_plugins(location)))
     if export == "csv":
         text = trace.to_csv(traced.rows)
@@ -1161,6 +1289,7 @@ class DocsOptions:
     allow_dirty: bool = False
     since: str | None = None
     rule_findings: tuple[Path, ...] = ()
+    node: str | None = None
 
 
 def _baseline(
@@ -1222,6 +1351,12 @@ def _lifecycle(
     if project is None:
         return Result(ok=False, issues=issues, text=_issues_text(issues)), {}, None
     content_hash = bundle.build_bundle(location)["bundle"]["content_hash"]
+    whole = project
+    content_hash = _unit_hash(whole, content_hash, options.node)
+    project = _unit(whole, options.node)
+    if options.node is not None and options.since:
+        message = "--since compares the whole project; leave out --node"
+        raise ServiceError(message)
     context = lifecycle.context(project, content_hash, load_plugins(find_plugins(location)))
     directory = _directory(location)
     try:
@@ -1244,6 +1379,10 @@ def _lifecycle(
     baseline = _baseline(project, directory, context, dirty=vcs.dirty(directory))
     context = dataclasses.replace(context, links=links, baseline=baseline)
     files = lifecycle.render(context)
+    if options.node is not None:
+        files["unit_icd.md"] = system_docs.unit_icd(whole, options.node, content_hash)
+    elif whole.nodes:
+        files["system_icd.md"] = system_docs.system_icd(whole, content_hash)
     findings = lifecycle.strict_findings(context)
     found = [
         Issue(project.source.file, None, item.pointer, f"[{item.rule}] {item.message}")
@@ -1353,9 +1492,11 @@ def runtime_docs(output: Path, *, strict: bool = False, results: Path | None = N
     return Result(ok=not (strict and findings), data=data, text="".join(lines))
 
 
-def lifecycle_archive(location: Path, *, strict: bool = False) -> tuple[Result, bytes]:
-    """Return the documents of a project as a zip (empty bytes when the project is invalid)."""
-    result, files, _ = _lifecycle(location, strict=strict)
+def lifecycle_archive(
+    location: Path, *, strict: bool = False, node: str | None = None
+) -> tuple[Result, bytes]:
+    """Return the documents of a project (or of one unit) as a zip; empty when it is invalid."""
+    result, files, _ = _lifecycle(location, strict=strict, options=DocsOptions(node=node))
     if not files:
         return result, b""
     buffer = io.BytesIO()

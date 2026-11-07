@@ -48,7 +48,7 @@ def test_rows_point_at_source_and_code() -> None:
     assert "(wire only)" in str(count["symbol"])
     assert (
         rows["/interfaces/sensor_to_us"]["generated"]
-        == "basic_telemetry/interfaces/sensor_to_us.hpp:29"
+        == "basic_telemetry/interfaces/sensor_to_us.hpp:30"
     )
 
 

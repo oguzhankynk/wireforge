@@ -39,16 +39,21 @@ typedef wf_status (*wf_dispatch_fn)(const void* context, const uint8_t* frame, s
 /// What one poll found.
 typedef struct wf_poll_result {
     size_t frames;        ///< Frames dispatched successfully.
-    size_t errors;        ///< Frames rejected by the decoder or the dispatcher.
+    size_t errors;        ///< Frames rejected; WF_NOT_FOR_THIS_NODE does not count.
     wf_status last_error; ///< The most recent error, WF_OK when none.
 } wf_poll_result;
 
 /// Statistics of a link.
 typedef struct wf_link_counters {
-    size_t rx_bytes;  ///< Bytes received from the transport.
-    size_t tx_bytes;  ///< Bytes accepted by the transport.
-    size_t tx_frames; ///< Frames sent completely.
-    size_t tx_errors; ///< Frames not sent (encoder error or transport full).
+    size_t rx_bytes;         ///< Bytes received from the transport.
+    size_t tx_bytes;         ///< Bytes accepted by the transport.
+    size_t tx_frames;        ///< Frames sent completely.
+    size_t tx_errors;        ///< Frames not sent (encoder error or transport full).
+    size_t rx_frames;        ///< Frames that went to a received-message callback.
+    size_t rx_rejected;      ///< Frames the decoder rejected (checksum, length, sync).
+    size_t rx_unknown_id;    ///< Frames with a message id the interface does not know.
+    size_t rx_not_for_node;  ///< Frames of a message this unit does not receive.
+    size_t rx_decode_errors; ///< Frames whose payload could not be decoded.
 } wf_link_counters;
 
 #define WF_LINK_CHUNK 64U
@@ -67,6 +72,12 @@ typedef struct wf_link {
     wf_link_counters counters;     ///< Statistics.
 } wf_link;
 
+/// Sets every statistic to zero.
+static inline void wf_link_reset_counters(wf_link* link) {
+    const wf_link_counters zero = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+    link->counters = zero;
+}
+
 /// Sets up a link; the buffers must outlive it and the ring storage holds a whole frame at least.
 static inline void wf_link_init(wf_link* link, const wf_transport* transport, bool framed,
                                 const wf_frame_decoder* decoder, uint8_t* rx_storage,
@@ -82,18 +93,32 @@ static inline void wf_link_init(wf_link* link, const wf_transport* transport, bo
     link->frame_capacity = frame_capacity;
     link->dispatch = dispatch;
     link->dispatch_context = dispatch_context;
-    link->counters.rx_bytes = 0U;
-    link->counters.tx_bytes = 0U;
-    link->counters.tx_frames = 0U;
-    link->counters.tx_errors = 0U;
+    wf_link_reset_counters(link);
 }
 
-static inline void wf_link_record(wf_poll_result* result, wf_status status) {
+/*
+ * Counts one received frame by its status. from_decoder is true for a status of the frame
+ * decoder (no whole frame in hand); the dispatcher's statuses are sorted by cause.
+ */
+static inline void wf_link_record(wf_link* link, wf_poll_result* result, wf_status status,
+                                  bool from_decoder) {
     if (status == WF_OK) {
         ++result->frames;
+        ++link->counters.rx_frames;
+        return;
+    }
+    if (status == WF_NOT_FOR_THIS_NODE) {
+        ++link->counters.rx_not_for_node;
+        return;
+    }
+    ++result->errors;
+    result->last_error = status;
+    if (from_decoder) {
+        ++link->counters.rx_rejected;
+    } else if (status == WF_UNKNOWN_MESSAGE_ID) {
+        ++link->counters.rx_unknown_id;
     } else {
-        ++result->errors;
-        result->last_error = status;
+        ++link->counters.rx_decode_errors;
     }
 }
 
@@ -139,10 +164,11 @@ static inline void wf_link_drain_ring(wf_link* link, wf_poll_result* result) {
             return;
         }
         if (status != WF_OK) {
-            wf_link_record(result, status);
+            wf_link_record(link, result, status, true);
             continue;
         }
-        wf_link_record(result, link->dispatch(link->dispatch_context, link->rx_frame, size));
+        wf_link_record(link, result, link->dispatch(link->dispatch_context, link->rx_frame, size),
+                       false);
     }
 }
 
@@ -160,10 +186,10 @@ static inline wf_poll_result wf_link_poll(wf_link* link) {
                                                          link->frame_capacity);
         link->counters.rx_bytes += received;
         if (received == link->frame_capacity && wf_link_discard_excess(link) > 0U) {
-            wf_link_record(&result, WF_INVALID_LENGTH);
+            wf_link_record(link, &result, WF_INVALID_LENGTH, true);
         } else if (received > 0U) {
-            wf_link_record(&result,
-                           link->dispatch(link->dispatch_context, link->rx_frame, received));
+            wf_link_record(link, &result,
+                           link->dispatch(link->dispatch_context, link->rx_frame, received), false);
         }
         return result;
     }
@@ -205,7 +231,7 @@ static inline wf_status wf_link_send_frame(wf_link* link, const uint8_t* frame, 
 static inline wf_status wf_link_send_encoded(wf_link* link, wf_status status, size_t size) {
     if (status != WF_OK || size > link->frame_capacity) {
         ++link->counters.tx_errors;
-        return status != WF_OK ? status : WF_BUFFER_TOO_SMALL;
+        return status != WF_OK ? status : (wf_status)WF_BUFFER_TOO_SMALL;
     }
     return wf_link_send_frame(link, link->tx_frame, size);
 }

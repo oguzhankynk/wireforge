@@ -112,3 +112,9 @@ def test_fragment_without_version_is_rejected(tmp_path: Path) -> None:
     issues = schema.validate_project(tmp_path)
     assert len(issues) == 1
     assert "schema_version" in issues[0].message
+
+
+def test_files_of_every_older_minor_are_still_read() -> None:
+    assert versioning.FORMAT_MINOR == 3
+    for minor in range(versioning.FORMAT_MINOR + 1):
+        assert versioning.check_document(_doc(schema_minor=minor), file="f") == []

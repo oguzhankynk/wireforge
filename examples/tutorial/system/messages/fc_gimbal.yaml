@@ -1,0 +1,7 @@
+schema_version: 1
+messages:
+  GimbalCommand:
+    id: 0x10
+    fields:
+      - { name: pitch, type: i16, default: 0 }
+      - { name: yaw, type: i16, default: 0 }

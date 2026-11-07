@@ -1,0 +1,11 @@
+schema_version: 1
+messages:
+  Attitude:
+    id: 0x20
+    fields:
+      - { name: roll, type: f32, default: 0.0 }
+      - { name: pitch, type: f32, default: 0.0 }
+  SetMode:
+    id: 0x21
+    fields:
+      - { name: mode, type: u8 }
