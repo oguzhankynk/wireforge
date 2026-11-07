@@ -25,17 +25,66 @@ struct Unframed {};
 /// @brief Outcome of one Link::poll() call.
 struct PollResult {
     std::size_t frames = 0U;        ///< Frames dispatched successfully.
-    std::size_t errors = 0U;        ///< Frames rejected by the decoder or the dispatcher.
+    std::size_t errors = 0U;        ///< Frames rejected; Status::NotForThisNode does not count.
     Status last_error = Status::Ok; ///< The most recent error, Status::Ok when none.
 };
 
 /// @brief Statistics of a link; readable from any thread.
 struct LinkCounters {
-    RelaxedCounter rx_bytes;  ///< Bytes received from the transport.
-    RelaxedCounter tx_bytes;  ///< Bytes accepted by the transport.
-    RelaxedCounter tx_frames; ///< Frames sent completely.
-    RelaxedCounter tx_errors; ///< Frames not sent (encoder error or transport full).
+    RelaxedCounter rx_bytes;         ///< Bytes received from the transport.
+    RelaxedCounter tx_bytes;         ///< Bytes accepted by the transport.
+    RelaxedCounter tx_frames;        ///< Frames sent completely.
+    RelaxedCounter tx_errors;        ///< Frames not sent (encoder error or transport full).
+    RelaxedCounter rx_frames;        ///< Frames that went to a received-message callback.
+    RelaxedCounter rx_rejected;      ///< Frames the decoder rejected (checksum, length, sync).
+    RelaxedCounter rx_unknown_id;    ///< Frames with a message id the interface does not know.
+    RelaxedCounter rx_not_for_node;  ///< Frames of a message this unit does not receive.
+    RelaxedCounter rx_decode_errors; ///< Frames whose payload could not be decoded.
 };
+
+/// @cond
+namespace detail {
+
+// Counts one received frame by its status. @p from_decoder is true for a status of the frame
+// decoder (no whole frame in hand); the dispatcher's statuses are sorted by cause. Not a member of
+// the Link template, so the code exists once however many links a program has.
+inline void count_received(LinkCounters& counters, PollResult& result, Status status,
+                           bool from_decoder) noexcept {
+    if (status == Status::Ok) {
+        ++result.frames;
+        counters.rx_frames.increment();
+        return;
+    }
+    if (status == Status::NotForThisNode) {
+        counters.rx_not_for_node.increment();
+        return;
+    }
+    ++result.errors;
+    result.last_error = status;
+    if (from_decoder) {
+        counters.rx_rejected.increment();
+    } else if (status == Status::UnknownMessageId) {
+        counters.rx_unknown_id.increment();
+    } else {
+        counters.rx_decode_errors.increment();
+    }
+}
+
+// Sets every counter to zero.
+inline void reset_counters(LinkCounters& counters) noexcept {
+    counters.rx_bytes.reset();
+    counters.tx_bytes.reset();
+    counters.tx_frames.reset();
+    counters.tx_errors.reset();
+    counters.rx_frames.reset();
+    counters.rx_rejected.reset();
+    counters.rx_unknown_id.reset();
+    counters.rx_not_for_node.reset();
+    counters.rx_decode_errors.reset();
+}
+
+} // namespace detail
+/// @endcond
 
 /**
  * @brief One communication link: receive path transport -> ring -> decoder -> dispatcher, and a
@@ -81,7 +130,7 @@ public:
             const std::size_t received = transport_->receive(Span<std::uint8_t>(rx_frame_));
             counters_.rx_bytes.add(received);
             if (received == MaxFrame && discard_excess() > 0U) {
-                record(result, Status::InvalidLength);
+                record(result, Status::InvalidLength, true);
             } else if (received > 0U) {
                 record(result, dispatcher_->dispatch_frame(
                                    Span<const std::uint8_t>(rx_frame_.data(), received)));
@@ -125,17 +174,15 @@ public:
         return transmit(frame);
     }
 
-    /// @brief Statistics since construction.
+    /// @brief Statistics since construction or the last reset_counters().
     [[nodiscard]] const LinkCounters& counters() const noexcept { return counters_; }
 
+    /// @brief Sets every statistic to zero.
+    void reset_counters() noexcept { detail::reset_counters(counters_); }
+
 private:
-    static void record(PollResult& result, Status status) noexcept {
-        if (status == Status::Ok) {
-            ++result.frames;
-        } else {
-            ++result.errors;
-            result.last_error = status;
-        }
+    void record(PollResult& result, Status status, bool from_decoder = false) noexcept {
+        detail::count_received(counters_, result, status, from_decoder);
     }
 
     // Drops what the transport still holds after a read that filled the frame buffer: an
@@ -180,7 +227,7 @@ private:
                 return;
             }
             if (status != Status::Ok) {
-                record(result, status);
+                record(result, status, true);
                 continue;
             }
             record(result,

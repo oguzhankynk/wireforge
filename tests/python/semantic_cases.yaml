@@ -407,7 +407,7 @@
 # SR-19 version stamps (checked before the semantic stage)
 - name: newer_format_minor
   rule: SR-19
-  expect: supports 1.2
+  expect: supports 1.3
   patch: [{ set: [schema_minor], value: 99 }]
 - name: fragment_from_newer_format
   rule: SR-19
@@ -538,3 +538,79 @@
   expect: "vector blob_nominal: unknown requirement 'HLR-X'"
   patch: [{ set: [vectors, blob_nominal, reqs], value: [HLR-X] }]
 
+
+# SR-26 node names
+- name: node_name_not_an_identifier
+  rule: SR-26
+  expect: "node name 'a-b' is not a valid name"
+  nodes: true
+  patch: [{ set: [nodes, a-b], value: {} }]
+- name: node_name_is_a_keyword
+  rule: SR-26
+  expect: "node name 'class' is a C or C++ keyword"
+  nodes: true
+  patch: [{ set: [nodes, class], value: {} }]
+- name: node_name_c_keyword
+  rule: SR-26
+  expect: "node name 'register' is a C or C++ keyword"
+  nodes: true
+  patch: [{ set: [nodes, register], value: {} }]
+- name: node_names_differ_only_in_case
+  rule: SR-26
+  expect: "differs only in case from 'A'"
+  nodes: true
+  patch: [{ set: [nodes, a], value: {} }]
+
+# SR-27 nodes, from and direction agree
+- name: interface_without_nodes
+  rule: SR-27
+  expect: "interface main needs `nodes`"
+  nodes: true
+  patch: [{ del: [interfaces, main, nodes] }]
+- name: interface_unknown_node
+  rule: SR-27
+  expect: "unknown node 'Z'"
+  nodes: true
+  patch: [{ set: [interfaces, main, nodes], value: [A, Z] }]
+- name: message_without_sender
+  rule: SR-27
+  expect: "message Status on interface main needs `from`"
+  nodes: true
+  patch: [{ set: [interfaces, main, messages, 0], value: Status }]
+- name: sender_not_a_participant
+  rule: SR-27
+  expect: "sender 'C' of Status is not a node of main"
+  nodes: true
+  patch:
+    - { set: [nodes, C], value: {} }
+    - { set: [interfaces, main, messages, 0, from], value: C }
+- name: direction_with_nodes
+  rule: SR-27
+  expect: direction comes from `from` when the project has nodes
+  nodes: true
+  patch: [{ set: [interfaces, main, direction], value: both }]
+- name: nodes_without_project_nodes
+  rule: SR-27
+  expect: "`nodes` needs the project to define `nodes`"
+  patch: [{ set: [interfaces, main, nodes], value: [A, B] }]
+- name: from_without_project_nodes
+  rule: SR-27
+  expect: "`from` needs the project to define `nodes`"
+  patch: [{ set: [interfaces, main, messages, 0], value: { name: Status, from: A } }]
+- name: direction_missing_without_nodes
+  rule: SR-27
+  expect: interface needs `direction`
+  patch: [{ del: [interfaces, main, direction] }]
+
+# SR-28 idle units (warnings)
+- name: node_in_no_interface
+  rule: SR-28
+  expect: "node 'C' takes part in no interface"
+  nodes: true
+  patch: [{ set: [nodes, C], value: {} }]
+- name: node_neither_sends_nor_receives
+  rule: SR-28
+  expect: "node 'B' neither sends nor receives on interface main"
+  nodes: true
+  patch:
+    - { set: [interfaces, main, messages], value: [] }

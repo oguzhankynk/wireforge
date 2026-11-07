@@ -1,4 +1,5 @@
-# wireforge_generate(<target> PROJECT <dir> [OUTPUT <dir>] [PLUGINS <file>] [LANGUAGE cpp|c] [TESTS])
+# wireforge_generate(<target> PROJECT <dir> [OUTPUT <dir>] [PLUGINS <file>] [LANGUAGE cpp|c] [TESTS]
+#                    [NODE <unit>])
 #
 # Runs `wireforge generate` at configure time (again whenever a model file changes) and creates
 # the INTERFACE library <target> with the generated headers, the project's user include
@@ -6,6 +7,10 @@
 # library of the generated sources with the C runtime headers; the project needs only C. With TESTS the GoogleTest project is generated too
 # (<OUTPUT>/<project>/generated_tests). The generator is the `wireforge` command, or
 # `python -m wireforge.cli` when only the Python package is found (WIREFORGE_COMMAND overrides).
+#
+# A project that defines `nodes` needs NODE: the code of that unit is generated (below
+# <OUTPUT>/nodes/<unit>) and its language is the unit's own; LANGUAGE is the language of a unit
+# that has none. NODE is an error for a project without nodes.
 include_guard(GLOBAL)
 
 function(_wireforge_command result)
@@ -23,7 +28,7 @@ function(_wireforge_command result)
 endfunction()
 
 function(wireforge_generate target)
-  cmake_parse_arguments(PARSE_ARGV 1 arg "TESTS" "PROJECT;OUTPUT;PLUGINS;LANGUAGE" "")
+  cmake_parse_arguments(PARSE_ARGV 1 arg "TESTS" "PROJECT;OUTPUT;PLUGINS;LANGUAGE;NODE" "")
   if(NOT arg_PROJECT)
     message(FATAL_ERROR "wireforge_generate(${target}): PROJECT is required")
   endif()
@@ -33,7 +38,24 @@ function(wireforge_generate target)
     get_filename_component(output "${arg_OUTPUT}" ABSOLUTE)
   endif()
   _wireforge_command(command)
+  execute_process(COMMAND ${command} get "${project}" /nodes --json
+                  RESULT_VARIABLE no_nodes OUTPUT_QUIET ERROR_QUIET)
+  if(NOT no_nodes AND NOT arg_NODE)
+    message(FATAL_ERROR "wireforge_generate(${target}): the project has nodes; give NODE <unit>")
+  endif()
+  if(no_nodes AND arg_NODE)
+    message(FATAL_ERROR "wireforge_generate(${target}): NODE needs a project that defines nodes")
+  endif()
   set(arguments generate "${project}" -o "${output}")
+  if(arg_NODE)
+    list(APPEND arguments --node "${arg_NODE}")
+    execute_process(COMMAND ${command} get "${project}" /nodes/${arg_NODE}/language --json
+                    RESULT_VARIABLE no_language OUTPUT_VARIABLE answer ERROR_QUIET)
+    if(NOT no_language)
+      string(JSON unit_language GET "${answer}" data value)
+      set(arg_LANGUAGE "${unit_language}")
+    endif()
+  endif()
   if(arg_TESTS)
     list(APPEND arguments --tests)
   endif()
@@ -48,6 +70,9 @@ function(wireforge_generate target)
   endif()
   list(APPEND arguments --language "${arg_LANGUAGE}")
   execute_process(COMMAND ${command} ${arguments} RESULT_VARIABLE failed OUTPUT_VARIABLE log ERROR_VARIABLE log)
+  if(arg_NODE)
+    set(output "${output}/nodes/${arg_NODE}")
+  endif()
   if(failed)
     message(FATAL_ERROR "wireforge_generate(${target}) failed:\n${log}")
   endif()

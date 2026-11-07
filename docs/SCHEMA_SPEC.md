@@ -119,7 +119,7 @@ width (SR-12). Checksums are optional everywhere.
 ## 10. Interfaces
 An interface is one communication endpoint with a remote party (`our_to_nodeA`, `nodeB_to_our`, ...).
 - `version` (semver, required): ICD version; may be carried on the wire by a `role: protocol_version` header field.
-- `direction`: `tx`, `rx`, `both`. `endian`, `bit_order`, `range_check`: defaults for its messages.
+- `direction`: `tx`, `rx`, `both` (not allowed when the project defines `nodes`; see below). `endian`, `bit_order`, `range_check`: defaults for its messages.
 - `header`: `none` or `{fields}`. Header field roles: `sync` (const marker), `message_id`, `payload_length`,
   `protocol_version`, `sequence`. A header with `message_id` enables header-based dispatch.
 - `header: none` means raw dispatch: the interface carries exactly one message type, or none (raw bytes) (SR-14).
@@ -128,18 +128,25 @@ An interface is one communication endpoint with a remote party (`our_to_nodeA`, 
   `payload_length`), `length_prefixed` (header has `payload_length`). Non-`none` kinds need `max_frame_size`
   (drives static buffer sizes). `length_counts` says what the length field covers (default `payload`).
   `resync: true` rescans after garbage or bad frames.
-- `messages`: names or `{name, id?, if?, since?}`; `id` overrides the message id on this interface.
+- `messages`: names or `{name, from?, id?, if?, since?}`; `id` overrides the message id on this interface.
 - `buffers.rx_bytes/tx_bytes`: optional circular/linear buffer sizes; default derived from `max_frame_size`.
 - `allow_trailing_bytes`: default false; leftover payload bytes give `TrailingBytes`.
 - `trim_trailing_zeros`: default false; every payload is sent without its trailing zero bytes (the first byte always
   stays) and the receiver reads the bytes it did not get as zeros (MAVLink 2). Needs messages of fixed size (SR-25);
   changing it is a breaking change.
+- `nodes` (interface): the units that take part, at least two without repeats (a shared line has more).
+  `message_counters`: default false; asks for a counter per message and direction in the generated code.
+
+A project may define `nodes`, a map of unit name to `{description?, language?}` (`language` is `cpp` or `c`). The direction
+of a message then belongs to the message: every interface lists its `nodes`, every message entry gives `from` (a unit or a
+list of units) and the other participants receive it. Without `nodes`, `direction` stays the only direction information
+and `nodes`/`from` are not allowed. Units that share no interface do not talk to each other.
 
 ## 11. Versioning and file identity
 | Key | Meaning | Written by |
 |-----|---------|------------|
 | `schema_version` (int) | file-format **major**; any incompatible change bumps it | tool, required in every file |
-| `schema_minor` (int, default 0) | additive format changes inside a major (minor 1: `requirements`, `reqs`; minor 2: `vectors`) | tool |
+| `schema_minor` (int, default 0) | additive format changes inside a major (minor 1: `requirements`, `reqs`; minor 2: `vectors`; minor 3: `nodes`, `from`, `message_counters`) | tool |
 | `generator {name, version}` | WireForge release that wrote the file (informational) | tool on save/export |
 | `version` (semver, root) | the user's project / ICD set | user |
 | `interface.version` (semver) | one interface's ICD version, may travel on the wire | user |
@@ -169,7 +176,8 @@ The report fails when the new `interface.version` is not at least the required s
 
 ## 12. Error model
 Codec calls return `Status` values (docs/contracts/runtime-error-codes.md). Validation messages produced by tools
-carry file, line and JSON pointer.
+carry file, line and JSON pointer. `NotForThisNode` is a status of the generated receivers of a project with `nodes`: a
+valid frame of a message that the unit only sends is not for it, and is not an error (the reference codec never returns it).
 
 ## 13. Semantic rules (beyond JSON Schema)
 - SR-1 No duplicate names within a section across root and fragments.
@@ -206,6 +214,11 @@ carry file, line and JSON pointer.
 - SR-25 An interface with `trim_trailing_zeros` does not use `fixed` framing, and every message it carries has a fixed
   wire size in every profile (no dynamic arrays or optional fields), because the receiver restores the trimmed zeros up
   to that size.
+- SR-26 Node names are identifiers that are not C or C++ keywords and are unique when case is ignored.
+- SR-27 With `nodes` in the project, every interface lists known `nodes`, every message entry has a `from` naming
+  participants of that interface, and `direction` is not given. Without `nodes`, an interface has `direction` and uses
+  neither `nodes` nor `from`.
+- SR-28 (warning) A node that takes part in no interface, or neither sends nor receives on an interface it lists.
 - SR-21 Every id in a `reqs` list names an entry of the `requirements` catalog (section 17). An unused catalog entry is
   not an error.
 

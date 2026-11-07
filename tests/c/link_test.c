@@ -373,6 +373,7 @@ static void test_framed_link(void) {
     answer_with(&target, WF_UNKNOWN_MESSAGE_ID);
     result = wf_link_poll(&link);
     CHECK(result.frames == 0U && result.errors == 3U && result.last_error == WF_UNKNOWN_MESSAGE_ID);
+    CHECK(link.counters.rx_frames == 3U && link.counters.rx_unknown_id == 3U);
 
     /* a rejected frame is an error of the poll too */
     stream[used - 1U] ^= 0xFFU;
@@ -380,6 +381,32 @@ static void test_framed_link(void) {
     answer_with(&target, WF_OK);
     result = wf_link_poll(&link);
     CHECK(result.errors >= 1U && result.last_error == WF_CHECKSUM_MISMATCH);
+    CHECK(link.counters.rx_rejected == result.errors && link.counters.rx_frames == 3U + 2U);
+    CHECK(link.counters.rx_decode_errors == 0U);
+
+    /* a frame this unit does not receive is neither a frame nor an error */
+    stream[used - 1U] ^= 0xFFU;
+    load(&driver, stream, used);
+    answer_with(&target, WF_NOT_FOR_THIS_NODE);
+    result = wf_link_poll(&link);
+    CHECK(result.frames == 0U && result.errors == 0U && result.last_error == WF_OK);
+    CHECK(link.counters.rx_not_for_node == 3U && link.counters.rx_frames == 3U + 2U);
+
+    /* any other error of the dispatcher is a decode error */
+    load(&driver, stream, used);
+    answer_with(&target, WF_OUT_OF_RANGE);
+    result = wf_link_poll(&link);
+    CHECK(result.errors == 3U && result.last_error == WF_OUT_OF_RANGE);
+    CHECK(link.counters.rx_decode_errors == 3U);
+    answer_with(&target, WF_OK);
+    stream[used - 1U] ^= 0xFFU;
+    load(&driver, stream, 0U);
+    wf_link_reset_counters(&link);
+    CHECK(link.counters.rx_bytes == 0U && link.counters.tx_bytes == 0U &&
+          link.counters.tx_frames == 0U && link.counters.tx_errors == 0U &&
+          link.counters.rx_frames == 0U && link.counters.rx_rejected == 0U &&
+          link.counters.rx_unknown_id == 0U && link.counters.rx_not_for_node == 0U &&
+          link.counters.rx_decode_errors == 0U);
 
     /* send an encoded frame */
     load(&driver, stream, 0U);
@@ -433,6 +460,7 @@ static void test_unframed_link(void) {
     result = wf_link_poll(&link);
     CHECK(result.frames == 0U && result.errors == 1U && result.last_error == WF_INVALID_LENGTH);
     CHECK(link.counters.rx_bytes == 5U + 16U + 40U);
+    CHECK(link.counters.rx_frames == 2U && link.counters.rx_rejected == 1U);
     CHECK(driver.incoming_at == 40U);
 }
 

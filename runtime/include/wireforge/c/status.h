@@ -25,7 +25,8 @@ enum {
     WF_UNKNOWN_MESSAGE_ID = 7, ///< A message id is not known on this interface.
     WF_INVALID_LENGTH = 8,     ///< A length field is inconsistent with the frame or buffer.
     WF_TRAILING_BYTES = 9,     ///< The payload was not fully consumed.
-    WF_INVALID_STATE = 10      ///< The API was misused (invalid argument or call sequence).
+    WF_INVALID_STATE = 10,     ///< The API was misused (invalid argument or call sequence).
+    WF_NOT_FOR_THIS_NODE = 11  ///< A valid frame that this unit does not receive; not an error.
 };
 
 /**
@@ -46,9 +47,19 @@ static inline const char* wf_status_name(wf_status status) {
         "InvalidLength",
         "TrailingBytes",
         "InvalidState",
+        "NotForThisNode",
     };
     const size_t count = sizeof(names) / sizeof(names[0]);
     return (size_t)status < count ? names[status] : "Unknown";
+}
+
+/**
+ * Adds one to @p counter when @p status is WF_OK and returns @p status unchanged.
+ * Generated code counts a received or sent message through this, without a condition of its own.
+ */
+static inline wf_status wf_count_if_ok(uint32_t* counter, wf_status status) {
+    *counter += (uint32_t)(status == WF_OK);
+    return status;
 }
 
 #endif /* WIREFORGE_C_STATUS_H */

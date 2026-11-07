@@ -205,6 +205,20 @@ TEST(Dispatcher, FallbackReceivesUnknownIds) {
     EXPECT_EQ(dispatcher.dispatch(77U, Payload()), Status::Ok);
     EXPECT_EQ(seen, 77U);
     EXPECT_EQ(dispatcher.counters().fallback.load(), 1U);
+    EXPECT_EQ(dispatcher.counters().unknown_ids.load(), 0U);
+}
+
+TEST(Dispatcher, FallbackThatReportsUnknownIdsStillCountsThem) {
+    ::testing::Test::RecordProperty("requirements", "RTR-dispatcher-003");
+    auto observer = [](std::uint64_t /*message_id*/, const wireforge::RawMessage& /*message*/) {
+        return Status::UnknownMessageId;
+    };
+    Dispatcher<1> dispatcher(kLayout);
+    ASSERT_EQ(dispatcher.set_fallback(FallbackHandler::from_callable(observer)), Status::Ok);
+    ASSERT_EQ(dispatcher.start(), Status::Ok);
+    EXPECT_EQ(dispatcher.dispatch(77U, Payload()), Status::UnknownMessageId);
+    EXPECT_EQ(dispatcher.counters().fallback.load(), 1U);
+    EXPECT_EQ(dispatcher.counters().unknown_ids.load(), 1U);
 }
 
 TEST(Dispatcher, DispatchFrameExtractsIdAndPayload) {

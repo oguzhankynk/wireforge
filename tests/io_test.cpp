@@ -415,6 +415,7 @@ TEST(StatusNames, EveryCodeHasAName) {
     EXPECT_STREQ(wireforge::to_string(Status::InvalidLength), "InvalidLength");
     EXPECT_STREQ(wireforge::to_string(Status::TrailingBytes), "TrailingBytes");
     EXPECT_STREQ(wireforge::to_string(Status::InvalidState), "InvalidState");
+    EXPECT_STREQ(wireforge::to_string(Status::NotForThisNode), "NotForThisNode");
     EXPECT_STREQ(wireforge::to_string(static_cast<Status>(200U)), "Unknown");
     EXPECT_TRUE(wireforge::is_ok(Status::Ok));
     EXPECT_FALSE(wireforge::is_ok(Status::Truncated));

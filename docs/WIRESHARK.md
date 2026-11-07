@@ -23,6 +23,8 @@ The plugin is tested with Wireshark 3.6, 4.2 and 4.6, on Lua 5.2 and Lua 5.4.
   (`-o <protocol>.profile:platformB`).
 
 ## What is shown
+- **Sender:** in a project with `nodes` the message item names its senders, e.g. `Heartbeat (from A, B, D)`. The
+  dissector is made from the whole system, not from the view of one unit.
 - **Field tree:** one tree per frame, with Header, the message and Trailer. Structs and arrays become subtrees; array
   elements are labelled `[i]`. Bit-fields show their bit mask; enums show the member name. Units are added to the
   label (`temperature [degC]`) and descriptions become the field's blurb.

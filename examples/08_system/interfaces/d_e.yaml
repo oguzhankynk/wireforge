@@ -1,0 +1,13 @@
+schema_version: 1
+interfaces:
+  d_e:
+    version: "1.0.0"
+    nodes: [D, E]
+    header:
+      fields:
+        - { name: msgId, type: u8, role: message_id }
+        - { name: length, type: u8, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 32 }
+    messages:
+      - { name: Packet, from: D }
+      - { name: Ack, from: E }

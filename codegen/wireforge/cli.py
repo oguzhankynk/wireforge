@@ -135,7 +135,11 @@ def _ci(args: argparse.Namespace) -> Result:
 
 def _generate(args: argparse.Namespace) -> Result:
     return service.generate_code(
-        args.project, args.output, _tests(args) if args.tests else None, language=args.language
+        args.project,
+        args.output,
+        _tests(args) if args.tests else None,
+        language=args.language,
+        node=args.node,
     )
 
 
@@ -158,6 +162,7 @@ def _docs(args: argparse.Namespace) -> Result:
         args.allow_dirty,
         args.since,
         tuple(args.rule_findings or ()),
+        args.node,
     )
     return service.lifecycle_docs(
         args.project, args.output, strict=args.strict, results=args.results, options=options
@@ -190,11 +195,11 @@ def _reqs_list(args: argparse.Namespace) -> Result:
 
 
 def _analyze(args: argparse.Namespace) -> Result:
-    return service.analyze(args.project, args.profile, args.format)
+    return service.analyze(args.project, args.profile, args.format, args.node)
 
 
 def _compat(args: argparse.Namespace) -> Result:
-    return service.compatibility(args.old, args.new, args.interfaces)
+    return service.compatibility(args.old, args.new, args.interfaces, args.node)
 
 
 def _test(args: argparse.Namespace) -> Result:
@@ -204,6 +209,8 @@ def _test(args: argparse.Namespace) -> Result:
         coverage_runtime=args.coverage_runtime,
         generator=args.generator,
         extra_cmake_args=tuple(args.cmake_args or ()),
+        node=args.node,
+        system=args.system,
     )
     return service.run_tests(args.project, args.output, _tests(args), build)
 
@@ -311,7 +318,7 @@ def _mcp(args: argparse.Namespace) -> Result:
 
 
 def _trace(args: argparse.Namespace) -> Result:
-    result = service.trace_report(args.project, args.format)
+    result = service.trace_report(args.project, args.format, args.node)
     if args.output is not None and result.ok:
         args.output.write_text(result.text, encoding="utf-8")
         result.text = f"wrote {args.output}\n"
@@ -353,7 +360,9 @@ def _project(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("project", type=Path, help="project directory or root file")
 
 
-def _test_options(parser: argparse.ArgumentParser) -> None:
+def _test_options(
+    parser: argparse.ArgumentParser, *, node: bool = False, system: bool = False
+) -> None:
     parser.add_argument(
         "--plugins",
         type=Path,
@@ -371,6 +380,12 @@ def _test_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--language", choices=("cpp", "c"), default="cpp", help="generate C++17 (default) or C99"
     )
+    if node:
+        parser.add_argument("--node", help="only this unit of a project with `nodes`")
+    if system:
+        parser.add_argument(
+            "--system", action="store_true", help="run the system test of a project with `nodes`"
+        )
 
 
 def _edit(parser: argparse.ArgumentParser) -> None:
@@ -429,7 +444,7 @@ def _commands(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     _project(parser)
     parser.add_argument("-o", "--output", type=Path, required=True)
     parser.add_argument("--tests", action="store_true", help="also write generated_tests/")
-    _test_options(parser)
+    _test_options(parser, node=True)
     parser = add("wireshark", _wireshark, "Generate a Wireshark Lua dissector plugin.")
     _project(parser)
     parser.add_argument("-o", "--output", type=Path, required=True, help="the .lua file to write")
@@ -439,7 +454,7 @@ def _commands(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser.add_argument("-o", "--output", type=Path, required=True)
     parser.add_argument("--build-dir", type=Path)
     _build_options(parser)
-    _test_options(parser)
+    _test_options(parser, node=True, system=True)
     parser = add("export", _export, "Write the single-file bundle of a project.")
     _project(parser)
     parser.add_argument("-o", "--output", type=Path, required=True)
@@ -503,15 +518,21 @@ def _oidc_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--oidc-jwks-cache-seconds", type=int, default=3600)
 
 
+def _unit_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--node", help="only this unit of a project with `nodes`")
+
+
 def _report_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]) -> None:
     parser = add("analyze", _analyze, "Layout report (ICD) per profile.")
     _project(parser)
     parser.add_argument("--profile")
     parser.add_argument("--format", choices=("markdown", "csv", "json"), default="markdown")
+    _unit_option(parser)
     parser = add("trace", _trace, "Trace model elements to generated code and tests.")
     _project(parser)
     parser.add_argument("--format", choices=("markdown", "csv"), default="markdown")
     parser.add_argument("-o", "--output", type=Path)
+    _unit_option(parser)
     parser = add("docs", _docs, "Write requirements, design, test and traceability documents.")
     parser.add_argument("project", type=Path, nargs="?", help="project directory or root file")
     parser.add_argument(
@@ -531,6 +552,7 @@ def _report_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]
         help="SARIF or cppcheck XML report of your coding-rule checker (repeatable)",
     )
     parser.add_argument("--allow-dirty", action="store_true", help="link even with local changes")
+    _unit_option(parser)
     parser.add_argument("--since", metavar="REV", help="also write impact.md for a git revision")
     parser = add(
         "reqs-import", _reqs_import, "Import the high-level requirements of a ReqIF or CSV file."
@@ -559,6 +581,7 @@ def _report_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]
     parser.add_argument("old", type=Path)
     parser.add_argument("new", type=Path)
     parser.add_argument("--interface", action="append", dest="interfaces")
+    _unit_option(parser)
 
 
 def _import_commands(add: Callable[[str, Handler, str], argparse.ArgumentParser]) -> None:

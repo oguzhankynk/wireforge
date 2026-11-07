@@ -18,16 +18,19 @@ Example client configuration:
 | `upsert_struct(project, section, name, definition, dry_run?)` | create/update a type or message | `wireforge upsert` |
 | `upsert_entry(project, section, name, definition, dry_run?)` | create/update a checksum, enum, interface, profile, define | `wireforge set` |
 | `validate_project(project)` | issues with file, line and JSON pointer | `wireforge validate` |
-| `generate_code(project, tests?)` | C++ code and the GoogleTest project; lists the files | `wireforge generate --tests` |
+| `generate_code(project, tests?, node?)` | C++ code and the GoogleTest project; lists the files | `wireforge generate --tests` |
 | `run_tests(project, coverage?, coverage_runtime?)` | build and run the generated tests (or the coverage target) | `wireforge test` |
-| `analyze_layout(project, profile?, export?)` | sizes, offsets, bit maps, frames, link RAM | `wireforge analyze` |
+| `analyze_layout(project, profile?, export?, node?)` | sizes, offsets, bit maps, frames, link RAM | `wireforge analyze` |
 | `requirements_import(project, path, baseline, tool?)` | take a baseline of high-level requirements from a file inside the workspace | `wireforge reqs-import` |
 | `requirements_lock(project)` | number the low-level requirements in `llr_ids.lock` | `wireforge reqs-lock` |
-| `lifecycle_docs(project, strict, results_dir?, rule_findings?)` | requirements, design, test and traceability documents in `<workspace>/.wireforge/docs/<project>/` | `wireforge docs` |
+| `lifecycle_docs(project, strict, results_dir?, rule_findings?, node?)` | requirements, design, test and traceability documents in `<workspace>/.wireforge/docs/<project>/` | `wireforge docs` |
 | `wireshark_dissector(project)` | Wireshark Lua plugin in `<workspace>/.wireforge/generated/wireshark/<project>.lua` | `wireforge wireshark` |
-| `compat_check(project, old_project? \| revision?)` | compatibility with another project or a git revision | `wireforge compat` |
+| `compat_check(project, old_project? \| revision?, node?)` | compatibility with another project or a git revision | `wireforge compat` |
 | `encode_sample(project, message, value?, interface?, profile?)` | payload/frame hex; without `value` a sample with every field set | `wireforge encode` |
 | `decode_hex(project, hex_bytes, message? \| interface, profile?)` | decoded payload or frame | `wireforge decode` |
+
+`node` limits a tool to one unit of a project with `nodes` (an error for other projects): `compat_check` then starts with
+`affects <node>: yes|no`. A project with units is generated below `nodes/<unit>`.
 
 Every result has `ok`, `issues`, `data` and `text`; writes with `dry_run: true` return the unified diff and change
 nothing. Bad arguments (unknown project, section or message, malformed hex) are tool errors. Custom checksum plugins

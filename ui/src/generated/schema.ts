@@ -91,6 +91,10 @@ export type InterfaceMessage =
       if?: Expression;
       since?: Semver;
       reqs?: Reqs;
+      /**
+       * Unit that sends this message on the interface, or a list of units; the other participants receive it.
+       */
+      from?: Identifier | [Identifier, ...Identifier[]];
     };
 /**
  * File-format minor version (additive changes only).
@@ -128,6 +132,7 @@ export interface WireForgeProjectRootFileSchemaVersion1 {
   bundle?: BundleInfo;
   requirements?: Requirements;
   vectors?: Vectors;
+  nodes?: Nodes;
 }
 export interface Defaults {
   endian?: Endian;
@@ -262,7 +267,7 @@ export interface InterfaceDef {
    */
   version: string;
   description?: string;
-  direction: "tx" | "rx" | "both";
+  direction?: "tx" | "rx" | "both";
   endian?: Endian;
   bit_order?: BitOrder;
   range_check?: RangeCheck;
@@ -280,6 +285,16 @@ export interface InterfaceDef {
    */
   trim_trailing_zeros?: boolean;
   reqs?: Reqs;
+  /**
+   * Units that take part in this interface (a shared line has more than two).
+   *
+   * @minItems 2
+   */
+  nodes?: [Identifier, Identifier, ...Identifier[]];
+  /**
+   * Generate a counter per message and direction (default false).
+   */
+  message_counters?: boolean;
 }
 export interface TrailerDef {
   fields: FieldList;
@@ -400,4 +415,14 @@ export interface VectorDef {
           | "InvalidState";
       };
   reqs: Reqs;
+}
+export interface Nodes {
+  [k: string]: NodeDef;
+}
+export interface NodeDef {
+  description?: string;
+  /**
+   * Language of the unit's generated code; the generate command's language when absent.
+   */
+  language?: "cpp" | "c";
 }

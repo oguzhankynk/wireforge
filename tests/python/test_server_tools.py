@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from wireforge.server.app import create_app
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
+FIXTURE = Path(__file__).parent / "system_fixture"
 
 
 @pytest.fixture
@@ -22,6 +23,8 @@ def client(tmp_path: Path) -> TestClient:
     shutil.copytree(EXAMPLES / "02_multi_interface_avionics", root / "avionics")
     shutil.copytree(EXAMPLES / "02_multi_interface_avionics", root / "avionics_next")
     shutil.copytree(EXAMPLES / "03_edge_cases", root / "edge")
+    shutil.copytree(FIXTURE, root / "system")
+    shutil.copytree(FIXTURE, root / "system_next")
     (root / "broken").mkdir()
     (root / "broken" / "project.yaml").write_text(
         "schema_version: 1\nproject: p\nmessages:\n  M:\n    fields:\n"
@@ -291,3 +294,48 @@ def test_requirements_import_and_lock(client: TestClient, tmp_path: Path) -> Non
         headers=etag(),
     )
     assert bad_name.status_code == 422
+
+
+def test_generate_zip_of_a_unit(client: TestClient) -> None:
+    response = client.get("/api/projects/system/generate", params={"node": "A"})
+    assert response.status_code == 200
+    assert 'filename="fixture-A-generated.zip"' in response.headers["content-disposition"]
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        names = set(archive.namelist())
+    assert "fixture/include/nodes/A/fixture_A/model.hpp" in names
+    assert "fixture/include/nodes/A/generated_tests/CMakeLists.txt" in names
+    assert not any("/nodes/B/" in name for name in names)
+    unknown = client.get("/api/projects/system/generate", params={"node": "Z"})
+    assert unknown.status_code == 422
+    assert client.get("/api/projects/avionics/generate", params={"node": "A"}).status_code == 422
+
+
+def test_preview_analyze_and_docs_of_a_unit(client: TestClient) -> None:
+    preview = client.get("/api/projects/system/preview", params={"node": "C"}).json()
+    assert "fixture_C/model.hpp" in preview["data"]["files"]
+    assert client.get("/api/projects/system/preview").status_code == 400
+    report = client.get("/api/projects/system/analyze", params={"node": "C"}).json()
+    assert "ICD fixture_C" in report["text"]
+    docs = client.get("/api/projects/system/docs", params={"node": "B"})
+    assert 'filename="system-B-docs.zip"' in docs.headers["content-disposition"]
+    with zipfile.ZipFile(io.BytesIO(docs.content)) as archive:
+        assert "unit_icd.md" in archive.namelist()
+    whole = client.get("/api/projects/system/docs")
+    with zipfile.ZipFile(io.BytesIO(whole.content)) as archive:
+        assert "system_icd.md" in archive.namelist()
+
+
+def test_compat_by_node(client: TestClient) -> None:
+    path = "/api/projects/system_next/value"
+    etag = client.get("/api/projects/system_next/state").json()["etag"]
+    changed = client.put(
+        path,
+        params={"pointer": "/interfaces/a_c/messages/0/from"},
+        json={"value": "C"},
+        headers={"If-Match": etag},
+    )
+    assert changed.status_code == 200, changed.text
+    body = {"old": "system", "new": "system_next", "node": "B"}
+    assert client.post("/api/compat", json=body).json()["text"].startswith("affects B: no")
+    body["node"] = "A"
+    assert client.post("/api/compat", json=body).json()["text"].startswith("affects A: yes")

@@ -158,13 +158,23 @@ class Tools:
         """Validate a project; issues carry file, line and JSON pointer."""
         return service.validate(self.project_dir(project)).to_dict()
 
-    def generate_code(self, project: str, *, tests: bool = True) -> dict[str, Any]:
-        """Generate the C++ code (and the GoogleTest project) below the workspace output."""
+    def generate_code(
+        self, project: str, *, tests: bool = True, node: str | None = None
+    ) -> dict[str, Any]:
+        """Generate the C++ code (and the GoogleTest project) below the workspace output.
+
+        A project with `nodes` is generated unit by unit below `nodes/<unit>`; `node` limits it
+        to one unit.
+        """
         directory = self.project_dir(project)
         options = test_project.TestOptions(plugins=service.find_plugins(directory))
-        result = service.generate_code(directory, self.output, options if tests else None)
+        result = service.generate_code(
+            directory, self.output, options if tests else None, node=node
+        )
         name = str(result.data.get("project", ""))
         target = self.output / name
+        if not target.is_dir():  # a project with units is written below nodes/
+            target = self.output / "nodes" / node if node else self.output / "nodes"
         files = sorted(
             path.relative_to(target).as_posix() for path in target.rglob("*") if path.is_file()
         )
@@ -199,8 +209,12 @@ class Tools:
         strict: bool = False,
         results_dir: str | None = None,
         rule_findings: list[str] | None = None,
+        node: str | None = None,
     ) -> dict[str, Any]:
         """Write the requirements, design, test and traceability documents of a project.
+
+        With `node` they are those of one unit, with its interface description; a project with
+        units otherwise gets the system interface description too.
 
         `results_dir` is the `build_dir` that `run_tests` returned; it must lie below the workspace
         output, so a tool call cannot read other places. `rule_findings` lists SARIF or cppcheck
@@ -220,7 +234,7 @@ class Tools:
             if self.output.resolve() not in results.parents:
                 message = "results_dir must be a build directory below the workspace output"
                 raise ServiceError(message)
-        options = service.DocsOptions(rule_findings=tuple(reports))
+        options = service.DocsOptions(rule_findings=tuple(reports), node=node)
         return service.lifecycle_docs(
             self.project_dir(project), target, strict=strict, results=results, options=options
         ).to_dict()
@@ -242,25 +256,38 @@ class Tools:
         return service.requirements_lock(self.project_dir(project)).to_dict()
 
     def analyze_layout(
-        self, project: str, profile: str | None = None, export: str = "markdown"
+        self,
+        project: str,
+        profile: str | None = None,
+        export: str = "markdown",
+        node: str | None = None,
     ) -> dict[str, Any]:
         """Return the layout report: sizes, offsets, bit maps, frame sizes and link RAM."""
         if export not in {"markdown", "csv", "json"}:
             message = "export must be markdown, csv or json"
             raise ServiceError(message)
-        return service.analyze(self.project_dir(project), profile, export).to_dict()
+        return service.analyze(self.project_dir(project), profile, export, node).to_dict()
 
     def compat_check(
-        self, project: str, old_project: str | None = None, revision: str | None = None
+        self,
+        project: str,
+        old_project: str | None = None,
+        revision: str | None = None,
+        node: str | None = None,
     ) -> dict[str, Any]:
-        """Compare an older version (another project or a git revision) with the project."""
+        """Compare an older version (another project or a git revision) with the project.
+
+        With `node` only the interfaces of that unit are compared and the text starts with
+        `affects <node>: yes/no`.
+        """
         directory = self.project_dir(project)
         if old_project is not None:
-            return service.compatibility(self.project_dir(old_project), directory).to_dict()
+            old = self.project_dir(old_project)
+            return service.compatibility(old, directory, node=node).to_dict()
         if revision is None or revision.startswith("-"):
             message = "give old_project or a git revision"
             raise ServiceError(message)
-        return service.compatibility_with_revision(directory, revision).to_dict()
+        return service.compatibility_with_revision(directory, revision, node=node).to_dict()
 
     def _target(
         self, directory: Path, message: str | None, interface: str | None, profile: str | None

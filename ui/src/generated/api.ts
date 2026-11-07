@@ -291,6 +291,8 @@ export interface paths {
         /**
          * Generate Zip
          * @description Download the generated C++ or C code as a self-contained zip (with the test project).
+         *
+         *     With `node` the zip is that unit's: `<project>-<node>-generated.zip`.
          */
         get: operations["generate_zip_api_projects__project__generate_get"];
         put?: never;
@@ -330,7 +332,7 @@ export interface paths {
         };
         /**
          * Preview
-         * @description Return the generated C++ or C files without writing them.
+         * @description Return the generated C++ or C files (of one unit with `node`) without writing them.
          */
         get: operations["preview_api_projects__project__preview_get"];
         put?: never;
@@ -496,6 +498,8 @@ export interface components {
             new: string;
             /** Interfaces */
             interfaces?: string[] | null;
+            /** Node */
+            node?: string | null;
         };
         /**
          * DecodeRequest
@@ -711,6 +715,8 @@ export interface components {
             revision: string;
             /** Interfaces */
             interfaces?: string[] | null;
+            /** Node */
+            node?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -1427,6 +1433,7 @@ export interface operations {
             query?: {
                 tests?: boolean;
                 language?: "cpp" | "c";
+                node?: string | null;
             };
             header?: {
                 authorization?: string | null;
@@ -1462,6 +1469,7 @@ export interface operations {
         parameters: {
             query?: {
                 strict?: boolean;
+                node?: string | null;
             };
             header?: {
                 authorization?: string | null;
@@ -1497,6 +1505,7 @@ export interface operations {
         parameters: {
             query?: {
                 language?: "cpp" | "c";
+                node?: string | null;
             };
             header?: {
                 authorization?: string | null;
@@ -1566,6 +1575,7 @@ export interface operations {
             query?: {
                 profile?: string | null;
                 export?: string;
+                node?: string | null;
             };
             header?: {
                 authorization?: string | null;

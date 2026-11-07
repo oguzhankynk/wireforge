@@ -271,3 +271,26 @@ def test_create_project_from_a_template(workspace: Path) -> None:
     )
     assert result["ok"]
     assert "Packet" in (workspace / "first" / "project.yaml").read_text(encoding="utf-8")
+
+
+def test_tools_take_a_node(tmp_path: Path) -> None:
+    root = tmp_path / "workspace"
+    root.mkdir()
+    fixture = Path(__file__).parent / "system_fixture"
+    shutil.copytree(fixture, root / "system")
+    shutil.copytree(fixture, root / "system_next")
+    generated = _call(root, "generate_code", {"project": "system", "node": "B", "tests": False})
+    assert generated["ok"]
+    files = generated["data"]["files"]
+    assert "fixture_B/model.hpp" in files
+    assert not any(name.startswith("fixture_A/") for name in files)
+    report = _call(root, "analyze_layout", {"project": "system", "node": "C"})
+    assert "ICD fixture_C" in report["text"]
+    docs = _call(root, "lifecycle_docs", {"project": "system", "node": "A"})
+    assert docs["ok"]
+    assert "unit_icd.md" in docs["data"]["files"]
+    arguments = {"project": "system_next", "old_project": "system", "node": "A"}
+    compared = _call(root, "compat_check", arguments)
+    assert compared["text"].startswith("affects A: no")
+    with pytest.raises(ToolError):
+        _call(root, "analyze_layout", {"project": "system", "node": "Z"})

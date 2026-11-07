@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Api, ServiceResult } from "../api";
-import { fromProject, PROJECT_KEYS, toProject, type ProjectForm } from "../model";
+import { fromProject, PROJECT_KEYS, toProject, type NodeRow, type ProjectForm } from "../model";
 import { SettingsFields } from "./SettingsFields";
 
 /** Editor of the project root: name, version, description, namespace, defaults and defines. */
@@ -34,6 +34,9 @@ export function ProjectSettings(props: {
   };
   const changeDefine = (index: number, update: Partial<ProjectForm["defines"][number]>) => {
     set({ defines: form.defines.map((row, at) => (at === index ? { ...row, ...update } : row)) });
+  };
+  const changeNode = (index: number, update: Partial<NodeRow>) => {
+    set({ nodes: form.nodes.map((row, at) => (at === index ? { ...row, ...update } : row)) });
   };
   const nameValid = /^[A-Za-z_][A-Za-z0-9_]*$/.test(form.name.trim());
 
@@ -108,6 +111,46 @@ export function ProjectSettings(props: {
         ))}
         <button type="button" onClick={() => { set({ defines: [...form.defines, { name: "", value: "0" }] }); }}>
           Add project define
+        </button>
+      </fieldset>
+      <fieldset>
+        <legend>Units</legend>
+        {form.nodes.map((row, index) => (
+          <div key={index}>
+            <input
+              aria-label={`Unit ${String(index + 1)} name`}
+              value={row.name}
+              onChange={(event) => { changeNode(index, { name: event.target.value }); }}
+            />
+            <input
+              aria-label={`Unit ${String(index + 1)} description`}
+              placeholder="description"
+              value={row.description}
+              onChange={(event) => { changeNode(index, { description: event.target.value }); }}
+            />
+            <select
+              aria-label={`Unit ${String(index + 1)} language`}
+              value={row.language}
+              onChange={(event) => { changeNode(index, { language: event.target.value as NodeRow["language"] }); }}
+            >
+              <option value="">(per command)</option>
+              <option value="cpp">C++17</option>
+              <option value="c">C99</option>
+            </select>
+            <button
+              type="button"
+              aria-label={`Unit ${String(index + 1)} remove`}
+              onClick={() => { set({ nodes: form.nodes.filter((_, at) => at !== index) }); }}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => { set({ nodes: [...form.nodes, { name: "", description: "", language: "" }] }); }}
+        >
+          Add unit
         </button>
       </fieldset>
       <button type="button" className="primary" disabled={!nameValid} onClick={() => void save()}>

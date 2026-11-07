@@ -17,12 +17,12 @@ from wireforge.coverage_points import CoveragePointError
 from wireforge.issues import Issue
 from wireforge.test_project import (
     CMAKE_MODEL_DIR,
-    DIRECTORY,
     TestOptions,
     fill_template,
     presets_text,
     profiles_of,
     relative_path,
+    test_directory,
 )
 
 if TYPE_CHECKING:
@@ -58,7 +58,7 @@ set(WIREFORGE_COVERAGE_MIN_FUNCTION "100" CACHE STRING
     "Minimum function coverage of the generated code in percent")
 set(WIREFORGE_RUNTIME_INCLUDE_DIR "@RUNTIME@" CACHE PATH
     "Directory holding the WireForge runtime headers (wireforge/c/*.h)")
-get_filename_component(WIREFORGE_GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+get_filename_component(WIREFORGE_GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/@ROOT@" ABSOLUTE)
 if(NOT EXISTS "${WIREFORGE_RUNTIME_INCLUDE_DIR}/wireforge/c/status.h")
   message(FATAL_ERROR "Set WIREFORGE_RUNTIME_INCLUDE_DIR to the WireForge runtime/include dir")
 endif()
@@ -218,6 +218,7 @@ def _cmake(project: Project, directory: Path, location: Path, options: TestOptio
     values = {
         "TOOL": f"WireForge {versioning.TOOL_VERSION}",
         "NAME": project.name,
+        "ROOT": options.include_root,
         "THRESHOLD": str(options.threshold),
         "RUNTIME": relative_path(options.runtime, directory),
         "MODEL": relative_path(location, directory),
@@ -279,8 +280,12 @@ def render(
 def write_test_project(
     project: Project, location: Path, output: Path, options: TestOptions | None = None
 ) -> list[Issue]:
-    """Write `<output>/<project>/generated_tests/`; unchanged files are not rewritten."""
-    directory = output / project.name / DIRECTORY
+    """Write `<output>/<project>/generated_tests/`; unchanged files are not rewritten.
+
+    A test project whose `include_root` is `..` sits directly in `output` (the layout of a unit).
+    """
+    options = options or TestOptions()
+    directory = test_directory(project, output, options)
     try:
         files = render(project, location, directory, options)
     except CodecError as error:

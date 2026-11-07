@@ -35,7 +35,8 @@ static void test_status(void) {
     CHECK(strcmp(wf_status_name(WF_INVALID_LENGTH), "InvalidLength") == 0);
     CHECK(strcmp(wf_status_name(WF_TRAILING_BYTES), "TrailingBytes") == 0);
     CHECK(strcmp(wf_status_name(WF_INVALID_STATE), "InvalidState") == 0);
-    CHECK(strcmp(wf_status_name(11U), "Unknown") == 0);
+    CHECK(strcmp(wf_status_name(WF_NOT_FOR_THIS_NODE), "NotForThisNode") == 0);
+    CHECK(strcmp(wf_status_name(12U), "Unknown") == 0);
     CHECK(strcmp(wf_status_name(255U), "Unknown") == 0);
 }
 
@@ -640,8 +641,47 @@ static void test_trim(void) {
     CHECK(full == some && size == 5U);
 }
 
+typedef struct {
+    int calls;
+    wf_unhandled_frame last;
+    int context;
+} unhandled_log;
+
+static void remember_unhandled(void* context, const wf_unhandled_frame* frame) {
+    unhandled_log* log = (unhandled_log*)context;
+    ++log->calls;
+    log->last = *frame;
+}
+
+static void test_unhandled(void) {
+    const uint8_t frame[3] = {1U, 2U, 3U};
+    unhandled_log log;
+    (void)memset(&log, 0, sizeof(log));
+    /* a null callback only lets the link count the frame */
+    wf_report_unhandled(NULL, &log, WF_UNHANDLED_UNKNOWN_MESSAGE_ID, WF_UNKNOWN_MESSAGE_ID, 7U,
+                        frame, sizeof(frame));
+    CHECK(log.calls == 0);
+    wf_report_unhandled(remember_unhandled, &log, WF_UNHANDLED_DECODE_ERROR, WF_OUT_OF_RANGE, 9U,
+                        frame, sizeof(frame));
+    CHECK(log.calls == 1 && log.last.reason == WF_UNHANDLED_DECODE_ERROR);
+    CHECK(log.last.status == WF_OUT_OF_RANGE && log.last.message_id == 9U);
+    CHECK(log.last.frame == frame && log.last.frame_size == sizeof(frame));
+    wf_report_unhandled(remember_unhandled, &log, WF_UNHANDLED_NOT_FOR_THIS_NODE,
+                        WF_NOT_FOR_THIS_NODE, 0U, frame, 0U);
+    CHECK(log.calls == 2 && log.last.reason == WF_UNHANDLED_NOT_FOR_THIS_NODE);
+}
+
+static void test_count_if_ok(void) {
+    uint32_t counter = 0U;
+    CHECK(wf_count_if_ok(&counter, WF_OK) == WF_OK && counter == 1U);
+    CHECK(wf_count_if_ok(&counter, WF_OUT_OF_RANGE) == WF_OUT_OF_RANGE && counter == 1U);
+    CHECK(wf_count_if_ok(&counter, WF_NOT_FOR_THIS_NODE) == WF_NOT_FOR_THIS_NODE && counter == 1U);
+}
+
 int main(void) {
     test_status();
+    test_count_if_ok();
+    test_unhandled();
     test_masks_and_fits();
     test_packer();
     test_unpacker();

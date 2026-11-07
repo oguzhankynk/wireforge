@@ -30,6 +30,7 @@ from wireforge.cpp_codec import encoding_literal
 from wireforge.cpp_interface import header_is_written, is_checked_constant, needs_frame_check
 from wireforge.llr import Verifier
 from wireforge.model import BUILTIN_BITS, Field
+from wireforge.nodes import entry_directions, message_way
 from wireforge.scaling import (
     function_names,
     is_float,
@@ -63,13 +64,13 @@ SUPPORT = "wireforge::testing::"
 FLOAT_LITERAL = re.compile(r"^-?(?=[\d.eE+-]*[.eEFf])\d+(\.\d*)?([eE][-+]?\d+)?[Ff]?$")
 
 
-def _has_user_type(project: Project, fields: tuple[Field, ...]) -> bool:
+def has_user_type(project: Project, fields: tuple[Field, ...]) -> bool:
     """Whether any field (recursively, through nested structs) is an opaque user type."""
     for field in fields:
         if field.type in project.user_types:
             return True
         inner = project.types.get(field.type)
-        if inner is not None and _has_user_type(project, inner.fields):
+        if inner is not None and has_user_type(project, inner.fields):
             return True
     return False
 
@@ -455,10 +456,13 @@ def _recorder(out: Writer, project: Project, interface: Interface) -> None:
     ns = f"{model}::{interface.name}"
     identifier = _identifier(interface.name)
     names = Names(project)
+    way = entry_directions(project, interface)
     out.line(f"/// @brief Records the messages received on interface {interface.name}.")
     out.line(f"class Recorder_{identifier} final : public {ns}::Handler {{")
     out.line("public:")
     for index, entry in enumerate(interface.messages):
+        if way[entry.name] == "send":
+            continue
         if entry.condition is not None:
             out.line(f"#if {names.condition(entry.condition)}")
         out.line("/// @brief Counts and re-encodes the message.")
@@ -496,8 +500,31 @@ RAW_RECORDER_TAIL = """\
 [[nodiscard]] std::size_t raw_count() const noexcept { return raw_count_; }
 /// @brief Number of messages the default implementation decoded.
 [[nodiscard]] std::size_t decoded_count() const noexcept { return decoded_count_; }
+/// @brief Remembers the frame handed to the hook.
+void onUnhandled(const wireforge::UnhandledFrame& frame) noexcept override {
+    ++unhandled_count_;
+    unhandled_ = Unhandled{frame.reason, frame.status, frame.message_id, frame.frame.size()};
+}
+/// @brief Number of frames handed to the hook.
+[[nodiscard]] std::size_t unhandled_count() const noexcept { return unhandled_count_; }
+/// @brief Reason of the last frame handed to the hook.
+[[nodiscard]] wireforge::UnhandledReason unhandled_reason() const noexcept {
+    return unhandled_.reason;
+}
+/// @brief Status of the last frame handed to the hook.
+[[nodiscard]] wireforge::Status unhandled_status() const noexcept { return unhandled_.status; }
+/// @brief Message id of the last frame handed to the hook.
+[[nodiscard]] std::uint64_t unhandled_id() const noexcept { return unhandled_.message_id; }
+/// @brief Size of the last frame handed to the hook.
+[[nodiscard]] std::size_t unhandled_size() const noexcept { return unhandled_.size; }
 
 private:
+struct Unhandled {
+    wireforge::UnhandledReason reason;
+    wireforge::Status status;
+    std::uint64_t message_id;
+    std::size_t size;
+};
 using Bytes = std::array<std::uint8_t, @NS@::kMaxFrameSize>;
 static std::size_t copy(wireforge::Span<const std::uint8_t> bytes, Bytes& target) noexcept {
     const std::size_t size = std::min(bytes.size(), target.size());
@@ -516,6 +543,8 @@ std::size_t payload_size_ = 0U;
 std::size_t frame_size_ = 0U;
 std::size_t raw_count_ = 0U;
 std::size_t decoded_count_ = 0U;
+std::size_t unhandled_count_ = 0U;
+Unhandled unhandled_{wireforge::UnhandledReason::UnknownMessageId, wireforge::Status::Ok, 0U, 0U};
 };
 
 /// @brief Raw recorder, endpoint and loopback link of interface @INTERFACE@.
@@ -544,7 +573,13 @@ def _raw_recorder(out: Writer, project: Project, interface: Interface) -> None:
     out.line("public:")
     out.line("/// @brief With @p decode the default implementation decodes the messages as well.")
     out.line(f"explicit RawRecorder_{identifier}(bool decode) noexcept : decode_(decode) {{}}")
+    # Also where a unit receives nothing on this interface, so that the field is always used.
+    out.line("/// @brief Whether the default implementation decodes the messages as well.")
+    out.line("[[nodiscard]] bool decodes() const noexcept { return decode_; }")
+    way = entry_directions(project, interface)
     for entry in interface.messages:
+        if way[entry.name] == "send":
+            continue
         if entry.condition is not None:
             out.line(f"#if {names.condition(entry.condition)}")
         out.line("/// @brief Keeps the bytes; decodes them as well when asked to.")
@@ -609,39 +644,43 @@ def _golden_test(
     # A user-type field is opaque: the value built from the golden pattern leaves it
     # default-constructed, so its encoded bytes cannot be compared against the reference codec's
     # bytes for that field.
-    opaque = _has_user_type(project, message.fields)
+    opaque = has_user_type(project, message.fields)
     if not opaque:
         statements = assignments.struct(message, vector["value"], "expected")
         out.line(f"{'' if statements else 'const '}model::{message.name} expected{{}};")
         for statement in statements:
             out.line(statement)
     encoding = encoding_literal(project, message, interface)
-    mutable = header_is_written(interface.header or ())
     ns = f"model::{interface.name}"
+    way = message_way(project, interface.name, message.name)
+    sends = way != "receive"
     opaque_lines = (
         [
             (
                 f"EXPECT_EQ({SUPPORT}decode_status<model::{message.name}>({CSPAN}(kPayload), "
                 f"{encoding}), {STATUS}Ok);"
             ),
-            # The opaque field's own bytes can't be predicted, but a default-constructed value
-            # must still encode successfully: exercises the encode_frame() success path.
-            f"std::array<std::uint8_t, {ns}::kMaxFrameSize> default_buffer{{}};",
-            "std::size_t default_size = 0U;",
-            (
-                f"EXPECT_EQ({ns}::encode_frame(model::{message.name}{{}}, "
-                f"{SPAN}(default_buffer), default_size), {STATUS}Ok);"
+            *(
+                [
+                    # The opaque field's own bytes can't be predicted, but a default-constructed
+                    # value must still encode successfully: exercises the encode_frame() success
+                    # path.
+                    f"std::array<std::uint8_t, {ns}::kMaxFrameSize> default_buffer{{}};",
+                    "std::size_t default_size = 0U;",
+                    (
+                        f"EXPECT_EQ({ns}::encode_frame(model::{message.name}{{}}, "
+                        f"{SPAN}(default_buffer), default_size), {STATUS}Ok);"
+                    ),
+                ]
+                if sends
+                else []
             ),
         ]
         if opaque
         else None
     )
     for text in _golden_checks(
-        interface.name,
-        encoding,
-        len(frame) - len(payload),
-        mutable=mutable,
-        opaque_lines=opaque_lines,
+        interface, encoding, len(frame) - len(payload), opaque_lines=opaque_lines, way=way
     ):
         out.line(text)
     out.dedent()
@@ -650,9 +689,16 @@ def _golden_test(
 
 
 def _golden_checks(
-    interface: str, encoding: str, overhead: int, *, mutable: bool, opaque_lines: list[str] | None
+    interface: Interface,
+    encoding: str,
+    overhead: int,
+    *,
+    opaque_lines: list[str] | None,
+    way: str,
 ) -> list[str]:
-    ns = f"model::{interface}"
+    sends, receives = way != "receive", way != "send"
+    mutable = header_is_written(interface.header or ())
+    ns = f"model::{interface.name}"
     if opaque_lines is not None:
         lines = [
             *opaque_lines,
@@ -665,10 +711,18 @@ def _golden_checks(
             f"EXPECT_TRUE({SUPPORT}golden_round_trip(",
             f"    expected, {CSPAN}(kPayload), {encoding}));",
             f"const {CSPAN} golden_frame(kFrame);",
-            f"std::array<std::uint8_t, {ns}::kMaxFrameSize> buffer{{}};",
-            "std::size_t size = 0U;",
-            f"ASSERT_EQ({ns}::encode_frame(expected, {SPAN}(buffer), size), {STATUS}Ok);",
-            f"EXPECT_TRUE({SUPPORT}same_bytes({CSPAN}(buffer.data(), size), golden_frame));",
+            *(
+                [
+                    f"std::array<std::uint8_t, {ns}::kMaxFrameSize> buffer{{}};",
+                    "std::size_t size = 0U;",
+                    f"ASSERT_EQ({ns}::encode_frame(expected, {SPAN}(buffer), size),",
+                    f"          {STATUS}Ok);",
+                    f"EXPECT_TRUE({SUPPORT}same_bytes({CSPAN}(buffer.data(), size),",
+                    "                                golden_frame));",
+                ]
+                if sends
+                else []
+            ),
             f"{'' if mutable else 'const '}{ns}::Header header{{}};",
             f"EXPECT_EQ({ns}::decode_header(golden_frame, header), {STATUS}Ok);",
         ]
@@ -677,14 +731,15 @@ def _golden_checks(
             f"EXPECT_EQ({ns}::decode_header(golden_frame.first({overhead - 1}U), header), "
             f"{STATUS}Truncated);"
         )
-    lines += [
-        f"generated_tests::Loop_{_identifier(interface)}<{ns}::kMaxFrameSize> loop;",
-        f"ASSERT_EQ(loop.endpoint.status(), {STATUS}Ok);",
-        f"ASSERT_EQ(loop.link.send_frame(golden_frame), {STATUS}Ok);",
-        "EXPECT_EQ(loop.link.poll().frames, 1U);",
-        "EXPECT_EQ(loop.recorder.count(), 1U);",
-        f"EXPECT_TRUE({SUPPORT}same_bytes(loop.recorder.last(), {CSPAN}(kPayload)));",
-    ]
+    if receives:
+        lines += [
+            f"generated_tests::Loop_{_identifier(interface.name)}<{ns}::kMaxFrameSize> loop;",
+            f"ASSERT_EQ(loop.endpoint.status(), {STATUS}Ok);",
+            f"ASSERT_EQ(loop.link.send_frame(golden_frame), {STATUS}Ok);",
+            "EXPECT_EQ(loop.link.poll().frames, 1U);",
+            "EXPECT_EQ(loop.recorder.count(), 1U);",
+            f"EXPECT_TRUE({SUPPORT}same_bytes(loop.recorder.last(), {CSPAN}(kPayload)));",
+        ]
     return lines
 
 
@@ -766,25 +821,52 @@ def _no_allocation_test(out: Writer, project: Project, vector: dict[str, Any]) -
     out.line(f"TEST(NoAllocation, {_identifier(f'{interface.name}_{message.name}')}) {{")
     out.indent()
     _byte_array(out, "kPayload", bytes.fromhex(vector["payload"]))
-    _byte_array(out, "kFrame", bytes.fromhex(vector["frame"]))
     encoding = encoding_literal(project, message, interface)
-    for text in (
-        f"generated_tests::Loop_{_identifier(interface.name)}<{ns}::kMaxFrameSize> loop;",
-        f"ASSERT_EQ(loop.endpoint.status(), {STATUS}Ok);",
-        f"model::{message.name} value{{}};",
-        f"std::array<std::uint8_t, {ns}::kMaxFrameSize> buffer{{}};",
-        "std::size_t size = 0U;",
-        "const std::size_t before = wireforge::testing::allocation_count();",
+    way = message_way(project, interface.name, message.name)
+    sends, receives = way != "receive", way != "send"
+    if receives:
+        _byte_array(out, "kFrame", bytes.fromhex(vector["frame"]))
+    work = [
         f"const wireforge::Status decoded = deserialize({CSPAN}(kPayload), value, {encoding});",
-        f"const wireforge::Status encoded = {ns}::encode_frame(value, {SPAN}(buffer), size);",
-        f"const wireforge::Status sent = loop.link.send_frame({CSPAN}(kFrame));",
-        "const wireforge::PollResult polled = loop.link.poll();",
+        *(
+            [f"const wireforge::Status encoded = {ns}::encode_frame(value, {SPAN}(buffer), size);"]
+            if sends
+            else []
+        ),
+        *(
+            [
+                f"const wireforge::Status sent = loop.link.send_frame({CSPAN}(kFrame));",
+                "const wireforge::PollResult polled = loop.link.poll();",
+            ]
+            if receives
+            else []
+        ),
+    ]
+    checks = [
+        f"EXPECT_EQ(decoded, {STATUS}Ok);",
+        *([f"EXPECT_EQ(encoded, {STATUS}Ok);"] if sends else []),
+        *([f"EXPECT_EQ(sent, {STATUS}Ok);", "EXPECT_EQ(polled.frames, 1U);"] if receives else []),
+    ]
+    for text in (
+        *(
+            [
+                f"generated_tests::Loop_{_identifier(interface.name)}<{ns}::kMaxFrameSize> loop;",
+                f"ASSERT_EQ(loop.endpoint.status(), {STATUS}Ok);",
+            ]
+            if receives
+            else []
+        ),
+        f"model::{message.name} value{{}};",
+        *(
+            [f"std::array<std::uint8_t, {ns}::kMaxFrameSize> buffer{{}};", "std::size_t size = 0U;"]
+            if sends
+            else []
+        ),
+        "const std::size_t before = wireforge::testing::allocation_count();",
+        *work,
         "const std::size_t after = wireforge::testing::allocation_count();",
         "EXPECT_EQ(after - before, 0U);",
-        f"EXPECT_EQ(decoded, {STATUS}Ok);",
-        f"EXPECT_EQ(encoded, {STATUS}Ok);",
-        f"EXPECT_EQ(sent, {STATUS}Ok);",
-        "EXPECT_EQ(polled.frames, 1U);",
+        *checks,
     ):
         out.line(text)
     out.dedent()
@@ -937,7 +1019,7 @@ class _MessageTests:
         self.points.require("defaults", profile, name)
         if isinstance(cases.default_encoded, bytes) and cases.default_encoded:
             self.points.require("serialize_room", profile, name)
-        if isinstance(cases.pattern_encoded, bytes) and not _has_user_type(
+        if isinstance(cases.pattern_encoded, bytes) and not has_user_type(
             self.project, cases.message.fields
         ):
             self.points.require("round_trip", profile, name)
@@ -964,7 +1046,7 @@ class _MessageTests:
         # A user-type field is opaque: the value built from the golden pattern leaves it
         # default-constructed, so its encoded bytes cannot be compared against the reference
         # codec's bytes for that field.
-        opaque = _has_user_type(self.project, cases.message.fields)
+        opaque = has_user_type(self.project, cases.message.fields)
         round_trip = isinstance(cases.pattern_encoded, bytes) and not opaque
         if cases.encodes or round_trip:  # the edits and the round trip use the pattern value
             statements = self.assignments.struct(cases.message, cases.pattern, "value")
@@ -1136,13 +1218,20 @@ class _InterfaceTests:
         """Declare what the tests of an interface must exercise, from the cases of the model."""
         interface = cases.interface
         profile, name = self.profile_name, interface.name
-        self.points.require("corrupt", profile, name)
         if cases.frames:
+            self.points.require("corrupt", profile, name)
             self.points.require("raw_forward", profile, name)
-        if interface.framing.kind != "none":
+        if interface.framing.kind != "none" and cases.frames:
             self.points.require("byte_by_byte", profile, name)
-        if cases.sync:
+        if cases.sync and cases.frames:
             self.points.require("garbage", profile, name)
+        self.points.require("unhandled", profile, name)
+        if cases.passive:
+            self.points.require("not_for_node", profile, name)
+        if cases.defaults:
+            self.points.require("endpoint_send", profile, name)
+        if interface.message_counters:
+            self.points.require("message_counters", profile, name)
         self.require_messages(cases, messages)
 
     def require_messages(self, cases: InterfaceCases, messages: dict[str, MessageCases]) -> None:
@@ -1169,19 +1258,76 @@ class _InterfaceTests:
         interface = cases.interface
         suite = f"Interface_{_identifier(interface.name)}"
         framed = interface.framing.kind != "none"
-        self.dispatch(cases, suite, framed=framed)
-        if framed:
-            self.bytewise(cases, suite)
-        if cases.sync:
-            self.garbage(cases, suite)
-        self.corrupt(cases, suite)
-        self.broken_frames(cases, suite, framed=framed)
+        if cases.frames:
+            self.dispatch(cases, suite, framed=framed)
+            if framed:
+                self.bytewise(cases, suite)
+            if cases.sync:
+                self.garbage(cases, suite)
+            self.corrupt(cases, suite)
+            self.broken_frames(cases, suite, framed=framed)
         self.too_small(cases, suite)
         self.trims(cases, suite)
         if cases.frames:
             self.raw(cases, suite)
             self.raw_and_decoded(cases, suite)
             self.raw_decode_errors(cases, messages, suite)
+        self.unhandled(cases, suite)
+        self.not_for_this_unit(cases, suite, framed=framed)
+        self.endpoint_send(cases, suite)
+        self.message_counters(cases, suite, framed=framed)
+
+    def has_id(self, cases: InterfaceCases) -> bool:
+        return any(item.role == "message_id" for item in cases.interface.header or ())
+
+    def unknown_identifier(self, cases: InterfaceCases) -> int:
+        """Return an id that no message of the interface has."""
+        known = [0]
+        for entry in cases.interface.messages:
+            info = self.project.messages[entry.name].message
+            number = entry.id if entry.id is not None else (info.id if info else None)
+            known.append(number or 0)
+        return max(known) + 1
+
+    def unhandled(self, cases: InterfaceCases, suite: str) -> None:
+        """Check that the hook gets a frame of an unknown id, and that its default is quiet."""
+        self.exercise("unhandled", cases)
+        interface = cases.interface
+        identifier = _identifier(interface.name)
+        ns = f"model::{interface.name}"
+        lines = Writer()
+        lines.line(f"generated_tests::Recorder_{identifier} plain;")
+        lines.line(
+            f"plain.onUnhandled({{wireforge::UnhandledReason::NotForThisNode, "
+            f"{STATUS}NotForThisNode, 0U, {CSPAN}()}});"
+        )
+        lines.line('EXPECT_EQ(plain.count(), 0U) << "the default does nothing";')
+        if self.has_id(cases):
+            unknown = self.unknown_identifier(cases)
+            lines.line(f"constexpr std::uint64_t kUnknown = {unknown}U;")
+            lines.line(f"const wireforge::RawMessage raw{{{CSPAN}(), {CSPAN}()}};")
+            for kind in ("plain", "watcher"):
+                if kind == "watcher":
+                    lines.line(f"generated_tests::RawRecorder_{identifier} watcher(false);")
+                lines.line(f"const {ns}::Endpoint {kind}Endpoint{{{kind}}};")
+                lines.line(f"ASSERT_EQ({kind}Endpoint.status(), {STATUS}Ok);")
+                lines.line(
+                    f"EXPECT_EQ({kind}Endpoint.dispatcher().dispatch(kUnknown, raw), "
+                    f"{STATUS}UnknownMessageId);"
+                )
+                lines.line(
+                    f"EXPECT_EQ({kind}Endpoint.dispatcher().counters().unknown_ids.load(), 1U);"
+                )
+            lines.line("EXPECT_EQ(watcher.unhandled_count(), 1U);")
+            lines.line(
+                "EXPECT_EQ(watcher.unhandled_reason(), "
+                "wireforge::UnhandledReason::UnknownMessageId);"
+            )
+            lines.line(f"EXPECT_EQ(watcher.unhandled_status(), {STATUS}UnknownMessageId);")
+            lines.line("EXPECT_EQ(watcher.unhandled_id(), kUnknown);")
+            lines.line("EXPECT_EQ(watcher.unhandled_size(), 0U);")
+        name = "UnhandledHook"
+        _test(self.out, suite, name, lines.lines, self.requirements(cases, name))
 
     def requirements(
         self,
@@ -1374,11 +1520,114 @@ class _InterfaceTests:
             lines.line(f"const wireforge::RawMessage raw{{{CSPAN}(kPayload), {CSPAN}(kPayload)}};")
             lines.line(f"EXPECT_EQ(recorder.on{entry.name}Raw(raw), {STATUS}{failing.status});")
             lines.line("EXPECT_EQ(recorder.decoded_count(), 0U);")
+            lines.line("EXPECT_EQ(recorder.unhandled_count(), 1U);")
+            lines.line(
+                "EXPECT_EQ(recorder.unhandled_reason(), wireforge::UnhandledReason::DecodeError);"
+            )
+            lines.line(f"EXPECT_EQ(recorder.unhandled_status(), {STATUS}{failing.status});")
+            lines.line("EXPECT_EQ(recorder.unhandled_size(), kPayload.size());")
+            lines.line(f"generated_tests::Recorder_{identifier} plain;")
+            lines.line(f"EXPECT_EQ(plain.on{entry.name}Raw(raw), {STATUS}{failing.status});")
             keys = self.verifier.decode_case(self.project.messages[entry.name], failing)
             name = f"RawDecodeErrorOf{entry.name}"
             _test(
                 self.out, suite, name, lines.lines, self.requirements(cases, name, decode_keys=keys)
             )
+
+    def not_for_this_unit(self, cases: InterfaceCases, suite: str, *, framed: bool) -> None:
+        """Check that a valid frame of a message the unit only sends is not for this unit."""
+        if not cases.passive:
+            return
+        self.exercise("not_for_node", cases)
+        lines = Writer()
+        for position, (_, frame) in enumerate(cases.passive):
+            _byte_array(lines, f"kFrame{position}", frame)
+        capacity = sum(len(frame) for _, frame in cases.passive)
+        lines.line(self.raw_loop(cases, capacity, decode=False))
+        lines.line(f"ASSERT_EQ(loop.endpoint.status(), {STATUS}Ok);")
+        for position in range(len(cases.passive)):
+            lines.line(f"ASSERT_EQ(loop.link.send_frame({CSPAN}(kFrame{position})), {STATUS}Ok);")
+            if not framed:
+                lines.line("EXPECT_EQ(loop.link.poll().errors, 0U);")
+        if framed:
+            lines.line("const wireforge::PollResult polled = loop.link.poll();")
+            lines.line("EXPECT_EQ(polled.frames, 0U);")
+            lines.line("EXPECT_EQ(polled.errors, 0U);")
+            lines.line(f"EXPECT_EQ(polled.last_error, {STATUS}Ok);")
+        count = len(cases.passive)
+        lines.line(f"EXPECT_EQ(loop.recorder.unhandled_count(), {count}U);")
+        lines.line(
+            "EXPECT_EQ(loop.recorder.unhandled_reason(), "
+            "wireforge::UnhandledReason::NotForThisNode);"
+        )
+        lines.line(f"EXPECT_EQ(loop.recorder.unhandled_status(), {STATUS}NotForThisNode);")
+        lines.line("EXPECT_EQ(loop.recorder.raw_count(), 0U);")
+        lines.line(f"EXPECT_EQ(loop.link.counters().rx_not_for_node.load(), {count}U);")
+        lines.line("EXPECT_EQ(loop.link.counters().rx_frames.load(), 0U);")
+        lines.line("EXPECT_EQ(loop.link.counters().rx_decode_errors.load(), 0U);")
+        name = "NotForThisUnit"
+        _test(self.out, suite, name, lines.lines, self.requirements(cases, name))
+
+    def sent_sizes(self, cases: InterfaceCases) -> list[tuple[str, int]]:
+        """Return the name and the default frame size of every message the unit sends."""
+        return [(cases.interface.messages[index].name, size) for index, size, _ in cases.defaults]
+
+    def endpoint_send(self, cases: InterfaceCases, suite: str) -> None:
+        """Check `Endpoint::send` of every message the unit sends."""
+        sent = self.sent_sizes(cases)
+        if not sent:
+            return
+        for name, _ in sent:
+            self.exercise("endpoint_send", cases, name)
+        self.exercise("endpoint_send", cases)
+        lines = Writer()
+        lines.line(self.loop(cases, sum(size for _, size in sent)))
+        lines.line(f"ASSERT_EQ(loop.endpoint.status(), {STATUS}Ok);")
+        for name, size in sent:
+            call = f"loop.endpoint.send(loop.link, model::{name}{{}})"
+            if size > 0:
+                lines.line(f"EXPECT_EQ({call}, {STATUS}Ok);")
+            else:
+                lines.line(f"EXPECT_NE({call}, {STATUS}Ok);")
+        frames = sum(1 for _, size in sent if size > 0)
+        lines.line(f"EXPECT_EQ(loop.link.counters().tx_frames.load(), {frames}U);")
+        name = "SendsThroughTheEndpoint"
+        _test(self.out, suite, name, lines.lines, self.requirements(cases, name))
+
+    def message_counters(self, cases: InterfaceCases, suite: str, *, framed: bool) -> None:
+        """Check every counter of an interface with `message_counters`, and their reset."""
+        interface = cases.interface
+        if not interface.message_counters:
+            return
+        self.exercise("message_counters", cases)
+        sent = self.sent_sizes(cases)
+        lines = Writer()
+        for position, (_, frame) in enumerate(cases.frames):
+            _byte_array(lines, f"kFrame{position}", frame)
+        capacity = sum(len(frame) for _, frame in cases.frames) + sum(size for _, size in sent)
+        lines.line(self.loop(cases, capacity))
+        lines.line(f"ASSERT_EQ(loop.endpoint.status(), {STATUS}Ok);")
+        lines.line("const auto& counters = loop.endpoint.message_counters();")
+        for position in range(len(cases.frames)):
+            lines.line(f"ASSERT_EQ(loop.link.send_frame({CSPAN}(kFrame{position})), {STATUS}Ok);")
+            if not framed:
+                lines.line("EXPECT_EQ(loop.link.poll().frames, 1U);")
+        if framed and cases.frames:
+            lines.line(f"EXPECT_EQ(loop.link.poll().frames, {len(cases.frames)}U);")
+        names = [interface.messages[index].name for index, _ in cases.frames]
+        for name in names:
+            lines.line(f"EXPECT_EQ(counters.rx_{name}.load(), 1U);")
+        for name, size in sent:
+            call = f"loop.endpoint.send(loop.link, model::{name}{{}})"
+            lines.line(f"{'EXPECT_EQ' if size else 'EXPECT_NE'}({call}, {STATUS}Ok);")
+            lines.line(f"EXPECT_EQ(counters.tx_{name}.load(), {1 if size else 0}U);")
+        lines.line("loop.endpoint.reset_message_counters();")
+        for name in names:
+            lines.line(f"EXPECT_EQ(counters.rx_{name}.load(), 0U);")
+        for name, _ in sent:
+            lines.line(f"EXPECT_EQ(counters.tx_{name}.load(), 0U);")
+        name = "CountsMessages"
+        _test(self.out, suite, name, lines.lines, self.requirements(cases, name))
 
     def broken_frames(self, cases: InterfaceCases, suite: str, *, framed: bool) -> None:
         """Check that a header constant or a checksum that the receiver checks is enforced.
@@ -1559,7 +1808,7 @@ class _VectorCode:
         if vector.direction in {"decode", "both"}:
             for text in self.decode(vector, message, interface, encoding):
                 out.line(text)
-        if vector.direction in {"encode", "both"} and not _has_user_type(project, message.fields):
+        if vector.direction in {"encode", "both"} and not has_user_type(project, message.fields):
             for text in self.encode(vector, message, interface, encoding):
                 out.line(text)
         return out.lines
@@ -2105,13 +2354,14 @@ class _SelfTest:
         message = project.messages[vector["message"]]
         interface = project.interfaces[vector["interface"]]
         label = f"{vector['interface']}/{vector['message']}/{vector['sample']}"
+        way = message_way(project, interface.name, message.name)
         self.function(vector["profile"], f"golden_{index}")
         _byte_array(out, "kPayload", bytes.fromhex(vector["payload"]))
         _byte_array(out, "kFrame", bytes.fromhex(vector["frame"]))
         # A user-type field is opaque: the value built from the golden pattern leaves it
         # default-constructed, so its encoded bytes cannot be compared against the reference
         # codec's bytes for that field.
-        opaque = _has_user_type(project, message.fields)
+        opaque = has_user_type(project, message.fields)
         ns = f"model::{interface.name}"
         encoding = encoding_literal(project, message, interface)
         lines: list[str] = []
@@ -2125,19 +2375,24 @@ class _SelfTest:
             out.line(f"{'' if statements else 'const '}model::{message.name} expected{{}};")
             for statement in statements:
                 out.line(statement)
+            lines.append(f'round_trip(checks, "{label}", expected, Bytes(kPayload), {encoding});')
+            if way != "receive":
+                lines += [
+                    f"std::array<std::uint8_t, {ns}::kMaxFrameSize> buffer{{}};",
+                    "std::size_t size = 0U;",
+                    f"const Status framed = {ns}::encode_frame(",
+                    "    expected, Span<std::uint8_t>(buffer), size);",
+                    "const bool same_frame = same(Bytes(buffer.data(), size), Bytes(kFrame));",
+                    (
+                        f'checks.expect(framed == Status::Ok && same_frame, "{label}", '
+                        '"encode_frame");'
+                    ),
+                ]
+        if way != "send":
             lines += [
-                f'round_trip(checks, "{label}", expected, Bytes(kPayload), {encoding});',
-                f"std::array<std::uint8_t, {ns}::kMaxFrameSize> buffer{{}};",
-                "std::size_t size = 0U;",
-                f"const Status framed = {ns}::encode_frame(",
-                "    expected, Span<std::uint8_t>(buffer), size);",
-                "const bool same_frame = same(Bytes(buffer.data(), size), Bytes(kFrame));",
-                f'checks.expect(framed == Status::Ok && same_frame, "{label}", "encode_frame");',
+                f"generated_tests::Loop_{_identifier(interface.name)}<{ns}::kMaxFrameSize> loop;",
+                f'loopback(checks, "{label}", loop, Bytes(kFrame), Bytes(kPayload));',
             ]
-        lines += [
-            f"generated_tests::Loop_{_identifier(interface.name)}<{ns}::kMaxFrameSize> loop;",
-            f'loopback(checks, "{label}", loop, Bytes(kFrame), Bytes(kPayload));',
-        ]
         for text in lines:
             out.line(text)
         self.end()

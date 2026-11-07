@@ -11,7 +11,7 @@ if(NOT ARDUPILOT_PROJECT)
   message(FATAL_ERROR "Set ARDUPILOT_PROJECT to the import, for example -DARDUPILOT_PROJECT=$PWD/ardupilot")
 endif()
 
-find_package(WireForge 0.4 REQUIRED)
+find_package(WireForge 0.5 REQUIRED)
 wireforge_generate(ardupilot_model PROJECT "${ARDUPILOT_PROJECT}" LANGUAGE c)
 
 add_executable(ardupilot_gcs main.c)

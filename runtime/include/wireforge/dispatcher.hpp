@@ -52,7 +52,7 @@ struct HeaderLayout {
 struct DispatchCounters {
     RelaxedCounter dispatched;  ///< Payloads passed to a registered handler.
     RelaxedCounter fallback;    ///< Payloads passed to the fallback handler.
-    RelaxedCounter unknown_ids; ///< Payloads dropped because no handler matched.
+    RelaxedCounter unknown_ids; ///< Payloads no handler took (a fallback may report them too).
 };
 
 /**
@@ -152,7 +152,11 @@ public:
         }
         if (fallback_) {
             counters_.fallback.increment();
-            return fallback_(message_id, message);
+            const Status status = fallback_(message_id, message);
+            if (status == Status::UnknownMessageId) {
+                counters_.unknown_ids.increment(); // a fallback that only observes still drops it
+            }
+            return status;
         }
         counters_.unknown_ids.increment();
         return Status::UnknownMessageId;

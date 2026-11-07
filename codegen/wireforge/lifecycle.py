@@ -99,6 +99,30 @@ INTERFACE_TESTS = {
         "Compile-time assertion of header, trailer, payload, frame and buffer sizes.",
         "sizes equal the layout analysis",
     ),
+    "UnhandledHook": (
+        "Hand the dispatcher an id of no message, and call the unhandled hook directly.",
+        "the hook gets the frame with reason UnknownMessageId; the default hook does nothing",
+    ),
+    "RejectsUnknownMessageId": (
+        "Dispatch a pattern frame whose id is of no message of the interface.",
+        "UnknownMessageId, the hook gets the frame, nothing delivered",
+    ),
+    "NotForThisUnit": (
+        "Send the pattern frames of the messages the unit only sends to the unit itself.",
+        "the hook gets every frame with reason NotForThisNode, no frame and no error counted",
+    ),
+    "SendsThroughTheEndpoint": (
+        "Send the default value of every message the unit sends through Endpoint::send.",
+        "Ok (or the encoder's error) and one frame sent per message",
+    ),
+    "SendsThroughTheLink": (
+        "Send the default value of every message the unit sends through the link.",
+        "Ok (or the encoder's error) and one frame sent per message",
+    ),
+    "CountsMessages": (
+        "Receive every received message once, send every sent message once, then reset.",
+        "each per-message counter is 1, then 0 after the reset",
+    ),
 }
 STATUS_KINDS = (
     ("OutOfRange", ("RANGE", "ENUM", "BITS")),

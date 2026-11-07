@@ -231,13 +231,18 @@ export const ROLES = ["", "sync", "message_id", "payload_length", "protocol_vers
 export interface InterfaceMessageRow {
   name: string;
   id: string;
+  /** Units that send the message (a project with nodes). */
+  from: string[];
 }
 
 /** The editable form of an interface. */
 export interface InterfaceForm {
   version: string;
   description: string;
-  direction: InterfaceDef["direction"];
+  direction: NonNullable<InterfaceDef["direction"]>;
+  /** Units that take part in the interface (a project with nodes). */
+  nodes: string[];
+  messageCounters: boolean;
   endian: "" | "big" | "little";
   rawHeader: boolean;
   header: FieldRow[];
@@ -260,6 +265,8 @@ export function emptyInterface(): InterfaceForm {
     version: "1.0.0",
     description: "",
     direction: "tx",
+    nodes: [],
+    messageCounters: false,
     endian: "",
     rawHeader: true,
     header: [],
@@ -286,19 +293,30 @@ function framingOf(form: InterfaceForm): Framing {
   return framing;
 }
 
-function messageOf(row: InterfaceMessageRow): InterfaceMessage {
-  return row.id.trim() === ""
-    ? row.name.trim()
-    : { name: row.name.trim(), id: Number(numberOrExpression(row.id)) };
+function messageOf(row: InterfaceMessageRow, withNodes: boolean): InterfaceMessage {
+  const sent = withNodes && row.from.length > 0;
+  if (row.id.trim() === "" && !sent) return row.name.trim();
+  const entry: { name: string; id?: number; from?: string | string[] } = { name: row.name.trim() };
+  if (sent) entry.from = row.from.length === 1 ? (row.from[0] ?? "") : row.from;
+  if (row.id.trim() !== "") entry.id = Number(numberOrExpression(row.id));
+  return entry as InterfaceMessage;
 }
 
-/** The schema interface of a form; empty optional parts are left out. */
-export function toInterface(form: InterfaceForm): InterfaceDef {
+/**
+ * The schema interface of a form; empty optional parts are left out. In a project with nodes
+ * (`withNodes`) the direction comes from the senders of the messages, so it is not written.
+ */
+export function toInterface(form: InterfaceForm, withNodes = false): InterfaceDef {
   const result: InterfaceDef = {
     version: form.version.trim(),
-    direction: form.direction,
-    messages: form.messages.filter((row) => row.name.trim() !== "").map(messageOf),
+    messages: form.messages.filter((row) => row.name.trim() !== "").map((row) => messageOf(row, withNodes)),
   };
+  if (withNodes) {
+    if (form.nodes.length > 0) result.nodes = form.nodes as [string, string, ...string[]];
+  } else {
+    result.direction = form.direction;
+  }
+  if (form.messageCounters) result.message_counters = true;
   if (form.description.trim() !== "") result.description = form.description.trim();
   if (form.endian !== "") result.endian = form.endian;
   result.header = form.rawHeader
@@ -324,7 +342,9 @@ export function fromInterface(value: InterfaceDef): InterfaceForm {
   return {
     version: value.version,
     description: value.description ?? "",
-    direction: value.direction,
+    direction: value.direction ?? "both",
+    nodes: value.nodes ?? [],
+    messageCounters: value.message_counters === true,
     endian: value.endian ?? "",
     rawHeader: header === undefined || header === "none",
     header: typeof header === "object" ? header.fields.map(fromField) : [],
@@ -336,8 +356,12 @@ export function fromInterface(value: InterfaceDef): InterfaceForm {
     resync: framing?.resync === true,
     messages: value.messages.map((entry) =>
       typeof entry === "string"
-        ? { name: entry, id: "" }
-        : { name: entry.name, id: entry.id === undefined ? "" : `0x${entry.id.toString(16)}` },
+        ? { name: entry, id: "", from: [] }
+        : {
+            name: entry.name,
+            id: entry.id === undefined ? "" : `0x${entry.id.toString(16)}`,
+            from: entry.from === undefined ? [] : typeof entry.from === "string" ? [entry.from] : [...entry.from],
+          },
     ),
     rxBytes: text(value.buffers?.rx_bytes),
     txBytes: text(value.buffers?.tx_bytes),
@@ -379,6 +403,7 @@ export const INTERFACE_KEYS = [
   "version",
   "description",
   "direction",
+  "nodes",
   "endian",
   "header",
   "trailer",
@@ -387,6 +412,7 @@ export const INTERFACE_KEYS = [
   "buffers",
   "allow_trailing_bytes",
   "trim_trailing_zeros",
+  "message_counters",
 ] as const;
 
 /**
@@ -518,7 +544,22 @@ export function enumProblems(form: EnumForm): string[] {
 // --- project settings -------------------------------------------------------------------------
 
 /** Root keys the project settings editor writes, in file order. */
-export const PROJECT_KEYS = ["project", "version", "description", "namespace", "defaults", "defines"] as const;
+export const PROJECT_KEYS = [
+  "project",
+  "version",
+  "description",
+  "namespace",
+  "defaults",
+  "defines",
+  "nodes",
+] as const;
+
+/** One unit of the system as edited. */
+export interface NodeRow {
+  name: string;
+  description: string;
+  language: "" | "cpp" | "c";
+}
 
 /** The editable project settings. */
 export interface ProjectForm {
@@ -528,6 +569,7 @@ export interface ProjectForm {
   namespace: string;
   defaults: MessageSettings;
   defines: DefineRow[];
+  nodes: NodeRow[];
 }
 
 /** The settings form of a loaded root document. */
@@ -544,6 +586,9 @@ export function fromProject(value: Readonly<Record<string, unknown>>): ProjectFo
     namespace: text("namespace"),
     defaults: fromSettings((value.defaults ?? {}) as Record<string, unknown>),
     defines: Object.entries(defines).map(([name, number]) => ({ name, value: String(number) })),
+    nodes: Object.entries((value.nodes ?? {}) as Record<string, { description?: string; language?: "cpp" | "c" }>).map(
+      ([name, node]) => ({ name, description: node.description ?? "", language: node.language ?? "" }),
+    ),
   };
 }
 
@@ -552,6 +597,14 @@ export function toProject(form: ProjectForm): Record<(typeof PROJECT_KEYS)[numbe
   const defines: Record<string, number> = {};
   for (const row of form.defines) {
     if (row.name.trim() !== "") defines[row.name.trim()] = Number(numberOrExpression(row.value));
+  }
+  const nodes: Record<string, { description?: string; language?: "cpp" | "c" }> = {};
+  for (const row of form.nodes) {
+    if (row.name.trim() === "") continue;
+    const node: { description?: string; language?: "cpp" | "c" } = {};
+    if (row.description.trim() !== "") node.description = row.description.trim();
+    if (row.language !== "") node.language = row.language;
+    nodes[row.name.trim()] = node;
   }
   const defaults = toSettings(form.defaults);
   const optional = (text: string) => (text.trim() === "" ? undefined : text.trim());
@@ -562,5 +615,6 @@ export function toProject(form: ProjectForm): Record<(typeof PROJECT_KEYS)[numbe
     namespace: optional(form.namespace),
     defaults: Object.keys(defaults).length > 0 ? defaults : undefined,
     defines: Object.keys(defines).length > 0 ? defines : undefined,
+    nodes: Object.keys(nodes).length > 0 ? nodes : undefined,
   };
 }

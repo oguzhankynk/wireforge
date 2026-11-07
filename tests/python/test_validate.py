@@ -16,7 +16,10 @@ EXAMPLES = sorted(
 )
 BASE = YAML(typ="safe").load((HERE / "semantic_base.yaml").read_text(encoding="utf-8"))
 CASES = YAML(typ="safe").load((HERE / "semantic_cases.yaml").read_text(encoding="utf-8"))
-RULES = [f"SR-{number}" for number in range(1, 26)]
+NODES_PATCH = YAML(typ="safe").load(
+    (HERE / "semantic_nodes_patch.yaml").read_text(encoding="utf-8")
+)
+RULES = [f"SR-{number}" for number in range(1, 29)]
 
 
 def _apply(document: dict[str, Any], operation: dict[str, Any]) -> None:
@@ -27,16 +30,16 @@ def _apply(document: dict[str, Any], operation: dict[str, Any]) -> None:
         parent = parent[part]
     last = path[-1]
     if key == "set":
-        parent[last] = operation["value"]
+        parent[last] = copy.deepcopy(operation["value"])
     elif key == "del":
         del parent[last]
     else:
-        parent[last].append(operation["value"])
+        parent[last].append(copy.deepcopy(operation["value"]))
 
 
 def _write_case(tmp_path: Path, case: dict[str, Any]) -> Path:
     document: dict[str, Any] = copy.deepcopy(BASE)
-    for operation in case.get("patch", []):
+    for operation in [*(NODES_PATCH if case.get("nodes") else []), *case.get("patch", [])]:
         _apply(document, operation)
     yaml = YAML(typ="safe")
     yaml.default_flow_style = False
@@ -51,6 +54,11 @@ def _write_case(tmp_path: Path, case: dict[str, Any]) -> Path:
 
 def test_base_project_is_valid() -> None:
     issues = vectors.validate_project(HERE / "semantic_base.yaml")
+    assert [str(issue) for issue in issues] == []
+
+
+def test_nodes_base_is_valid(tmp_path: Path) -> None:
+    issues = vectors.validate_project(_write_case(tmp_path, {"nodes": True}))
     assert [str(issue) for issue in issues] == []
 
 

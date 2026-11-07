@@ -65,6 +65,10 @@ int main(int argc, char** argv) {
     }
     (void)printf("vehicle (C): done, %lu frames sent, ground station %s\n",
                  (unsigned long)drone.frames_sent, drone.ground_station_seen ? "seen" : "not seen");
+    (void)printf("vehicle (C): link sent %lu, received %lu, unknown id %lu\n",
+                 (unsigned long)drone.link.link.counters.tx_frames,
+                 (unsigned long)drone.link.link.counters.rx_frames,
+                 (unsigned long)drone.link.link.counters.rx_unknown_id);
     (void)close(udp);
     return 0;
 }

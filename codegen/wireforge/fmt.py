@@ -50,6 +50,7 @@ ROOT = (
     "types",
     "user_types",
     "messages",
+    "nodes",
     "interfaces",
     "vectors",
     "bundle",
@@ -90,6 +91,7 @@ MESSAGE = (
 )
 INTERFACE = (
     "version",
+    "nodes",
     "description",
     "reqs",
     "direction",
@@ -102,6 +104,7 @@ INTERFACE = (
     "buffers",
     "allow_trailing_bytes",
     "trim_trailing_zeros",
+    "message_counters",
     "messages",
 )
 ORDERS: dict[str, tuple[str, ...]] = {
@@ -137,7 +140,8 @@ ORDERS: dict[str, tuple[str, ...]] = {
     "part": ("fields",),
     "framing": ("kind", "frame_size", "max_frame_size", "length_counts", "resync", "reqs"),
     "buffers": ("rx_bytes", "tx_bytes"),
-    "interface_message": ("name", "id", "if", "reqs"),
+    "interface_message": ("name", "from", "id", "if", "reqs"),
+    "node": ("description", "language"),
     "generator": ("name", "version"),
     "bundle": ("content_hash", "source_files"),
     "user_includes": ("include_dirs", "headers", "constants", "prelude"),
@@ -184,6 +188,7 @@ SECTIONS = {
     "types": "struct",
     "user_types": "user_type",
     "messages": "message",
+    "nodes": "node",
     "interfaces": "interface",
     "vectors": "vector",
 }

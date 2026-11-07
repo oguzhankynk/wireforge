@@ -118,12 +118,12 @@ describe("interfaces and profiles", () => {
       trim_trailing_zeros: true,
     };
     const form = fromInterface(value);
-    expect(form.messages[1]).toEqual({ name: "Command", id: "0x30" });
+    expect(form.messages[1]).toEqual({ name: "Command", id: "0x30", from: [] });
     expect(toInterface(form)).toEqual(value);
   });
 
   it("writes a raw interface without optional parts", () => {
-    const form = { ...emptyInterface(), messages: [{ name: "M", id: "" }, { name: " ", id: "" }] };
+    const form = { ...emptyInterface(), messages: [{ name: "M", id: "", from: [] }, { name: " ", id: "", from: [] }] };
     expect(toInterface(form)).toEqual({
       version: "1.0.0",
       direction: "tx",
@@ -132,6 +132,46 @@ describe("interfaces and profiles", () => {
       messages: ["M"],
     });
     expect(fromInterface({ version: "1.0.0", direction: "rx", messages: ["M"] }).rawHeader).toBe(true);
+  });
+
+  it("round-trips an interface of a project with units", () => {
+    const value = {
+      version: "1.0.0",
+      nodes: ["A", "B", "C"],
+      message_counters: true,
+      messages: [{ name: "Command", from: "A" }, { name: "Heartbeat", id: 64, from: ["A", "B"] }, "Plain"],
+    };
+    const form = fromInterface(value as unknown as Parameters<typeof fromInterface>[0]);
+    expect(form.nodes).toEqual(["A", "B", "C"]);
+    expect(form.messageCounters).toBe(true);
+    expect(form.messages[1]).toEqual({ name: "Heartbeat", id: "0x40", from: ["A", "B"] });
+    const written = toInterface(form, true);
+    expect(written.direction).toBeUndefined();
+    expect(written.nodes).toEqual(["A", "B", "C"]);
+    expect(written.message_counters).toBe(true);
+    expect(written.messages).toEqual([
+      { name: "Command", from: "A" },
+      { name: "Heartbeat", from: ["A", "B"], id: 64 },
+      "Plain",
+    ]);
+    // Without units the direction is written and the units are not.
+    const plain = toInterface(form);
+    expect(plain.direction).toBe("both");
+    expect(plain.nodes).toBeUndefined();
+    expect(plain.messages).toEqual(["Command", { name: "Heartbeat", id: 64 }, "Plain"]);
+  });
+
+  it("round-trips the units of the project settings", () => {
+    const form = fromProject({
+      project: "p",
+      nodes: { A: { description: "Flight computer", language: "cpp" }, B: {} },
+    });
+    expect(form.nodes).toEqual([
+      { name: "A", description: "Flight computer", language: "cpp" },
+      { name: "B", description: "", language: "" },
+    ]);
+    expect(toProject(form).nodes).toEqual({ A: { description: "Flight computer", language: "cpp" }, B: {} });
+    expect(toProject({ ...form, nodes: [] }).nodes).toBeUndefined();
   });
 
   it("round-trips a profile", () => {

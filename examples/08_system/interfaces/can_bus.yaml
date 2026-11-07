@@ -1,0 +1,14 @@
+schema_version: 1
+interfaces:
+  can_bus:
+    version: "1.0.0"
+    nodes: [A, B, D]
+    description: A line shared by A, B and D.
+    header:
+      fields:
+        - { name: msgId, type: u8, role: message_id }
+        - { name: length, type: u8, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 32 }
+    messages:
+      - { name: Heartbeat, from: [A, B, D] }
+      - { name: VersionQuery, from: A }

@@ -1,0 +1,17 @@
+# A system of five units: one model, one place for every message, and each unit gets only its own
+# code, tests and documents (`wireforge generate examples/08_system -o build/system`).
+#
+# The model is split so that a change reaches only the units it concerns: one file per interface
+# for its messages, so editing a message of `a_c` does not move a line of the elements B uses.
+schema_version: 1
+project: system
+version: "1.0.0"
+description: Five units that talk over four interfaces.
+namespace: demo::system
+defaults: { endian: big, bit_order: msb_first }
+include:
+  - nodes.yaml
+  - checksums.yaml
+  - types/*.yaml
+  - messages/*.yaml
+  - interfaces/*.yaml

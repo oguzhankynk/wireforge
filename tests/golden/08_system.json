@@ -1,0 +1,219 @@
+[
+  {
+    "frame": "a55a100005000000000067f1c293",
+    "interface": "a_b",
+    "message": "Command",
+    "payload": "0000000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "mode": "idle",
+      "speed": 0,
+      "target": {
+        "x": 0,
+        "y": 0
+      }
+    }
+  },
+  {
+    "frame": "a55a10000502aaaa0d052ecc3ae6",
+    "interface": "a_b",
+    "message": "Command",
+    "payload": "02aaaa0d05",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "mode": "stop",
+      "speed": 3333,
+      "target": {
+        "x": 170,
+        "y": 170
+      }
+    }
+  },
+  {
+    "frame": "a55a20000300000015332aa0",
+    "interface": "a_b",
+    "message": "Status",
+    "payload": "000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "ok": false,
+      "rpm": 0
+    }
+  },
+  {
+    "frame": "a55a20000301aaaa761a5e02",
+    "interface": "a_b",
+    "message": "Status",
+    "payload": "01aaaa",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "ok": true,
+      "rpm": 43690
+    }
+  },
+  {
+    "frame": "a55a5000010058a6c877",
+    "interface": "a_b",
+    "message": "VersionQuery",
+    "payload": "00",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "wanted": 0
+    }
+  },
+  {
+    "frame": "a55a500001aa6ea58281",
+    "interface": "a_b",
+    "message": "VersionQuery",
+    "payload": "aa",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "wanted": 170
+    }
+  },
+  {
+    "frame": "306869000000000000",
+    "interface": "a_c",
+    "message": "Note",
+    "payload": "6869000000000000",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "text": "hi"
+    }
+  },
+  {
+    "frame": "3057697265466f7267",
+    "interface": "a_c",
+    "message": "Note",
+    "payload": "57697265466f7267",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "text": "WireForg"
+    }
+  },
+  {
+    "frame": "5000",
+    "interface": "a_c",
+    "message": "VersionQuery",
+    "payload": "00",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "wanted": 0
+    }
+  },
+  {
+    "frame": "50aa",
+    "interface": "a_c",
+    "message": "VersionQuery",
+    "payload": "aa",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "wanted": 170
+    }
+  },
+  {
+    "frame": "400100",
+    "interface": "can_bus",
+    "message": "Heartbeat",
+    "payload": "00",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "counter": 0
+    }
+  },
+  {
+    "frame": "4001aa",
+    "interface": "can_bus",
+    "message": "Heartbeat",
+    "payload": "aa",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "counter": 170
+    }
+  },
+  {
+    "frame": "500100",
+    "interface": "can_bus",
+    "message": "VersionQuery",
+    "payload": "00",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "wanted": 0
+    }
+  },
+  {
+    "frame": "5001aa",
+    "interface": "can_bus",
+    "message": "VersionQuery",
+    "payload": "aa",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "wanted": 170
+    }
+  },
+  {
+    "frame": "600100",
+    "interface": "d_e",
+    "message": "Packet",
+    "payload": "00",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "data": [],
+      "size": 0
+    }
+  },
+  {
+    "frame": "600504aaa9a8a7",
+    "interface": "d_e",
+    "message": "Packet",
+    "payload": "04aaa9a8a7",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "data": [
+        170,
+        169,
+        168,
+        167
+      ],
+      "size": 4
+    }
+  },
+  {
+    "frame": "610100",
+    "interface": "d_e",
+    "message": "Ack",
+    "payload": "00",
+    "profile": null,
+    "sample": "default",
+    "value": {
+      "sequence": 0
+    }
+  },
+  {
+    "frame": "6101aa",
+    "interface": "d_e",
+    "message": "Ack",
+    "payload": "aa",
+    "profile": null,
+    "sample": "pattern",
+    "value": {
+      "sequence": 170
+    }
+  }
+]

@@ -29,8 +29,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from wireforge import generate, golden, test_project
+from wireforge import generate, golden, nodes, test_project
 from wireforge.loader import load_project
+from wireforge.model import Project
 
 if TYPE_CHECKING:
     from wireforge.model import Project
@@ -170,30 +171,70 @@ def _units(work: Path) -> list[Unit]:
         if untested:
             message = f"{example}: no self-test for {', '.join(untested)}"
             raise RuntimeError(message)
+        if project.nodes:
+            units += _node_units(example, project, generated, checks)
+            continue
         units += _c_units(example, project, work, plugins)
-        includes = (
-            generated,
-            RUNTIME,
-            generated / project.name / "generated_tests",
-            *(example / path for path, _ in project.include_dirs),
+        units += _cpp_units(project, example, generated, generated, checks)
+    return units
+
+
+def _cpp_units(
+    project: Project, example: Path, root: Path, generated: Path, checks: Path
+) -> list[Unit]:
+    """Return the header units and the self-tests of the C++ code below `root`."""
+    units = []
+    tests = (
+        root / "generated_tests" if root != generated else root / project.name / "generated_tests"
+    )
+    includes = (root, RUNTIME, tests, *(example / path for path, _ in project.include_dirs))
+    files = ["model.hpp", *(f"interfaces/{name}.hpp" for name in sorted(project.interfaces))]
+    for suffix, defines in _profiles(project):
+        for relative in files:
+            stem = f"{project.name}_{relative.replace('/', '_')}{suffix.strip(' ()')}"
+            source = checks / f"{stem}.cpp"
+            source.write_text(f'#include "{project.name}/{relative}"\n', encoding="utf-8")
+            units.append(Unit(f"{project.name}/{relative}{suffix}", source, includes, defines))
+        units.append(
+            Unit(
+                f"{project.name} selftest{suffix}",
+                tests / "selftest.cpp",
+                includes,
+                defines,
+                test=True,
+            )
         )
-        profiles = _profiles(project)
-        files = ["model.hpp", *(f"interfaces/{name}.hpp" for name in sorted(project.interfaces))]
-        for suffix, defines in profiles:
-            for relative in files:
-                stem = f"{project.name}_{relative.replace('/', '_')}{suffix.strip(' ()')}"
-                source = checks / f"{stem}.cpp"
-                source.write_text(f'#include "{project.name}/{relative}"\n', encoding="utf-8")
-                units.append(Unit(f"{project.name}/{relative}{suffix}", source, includes, defines))
-            units.append(
+    return units
+
+
+def _node_units(example: Path, project: Project, generated: Path, checks: Path) -> list[Unit]:
+    """Return the units of every unit (node) of a project with `nodes`, in its own language."""
+    units = []
+    for name, node in project.nodes.items():
+        view = nodes.node_view(project, name)
+        root = generated / "nodes" / name
+        if node.language == "c":
+            sources = (
+                root / view.name / "model.c",
+                *(
+                    root / view.name / "interfaces" / f"{item}.c"
+                    for item in sorted(view.interfaces)
+                ),
+            )
+            includes = (root, RUNTIME, *(example / path for path, _ in project.include_dirs))
+            units += [
                 Unit(
-                    f"{project.name} selftest{suffix}",
-                    generated / project.name / "generated_tests" / "selftest.cpp",
+                    f"C {view.name}{suffix}",
+                    sources[0],
                     includes,
                     defines,
-                    test=True,
+                    c=True,
+                    more=sources[1:],
                 )
-            )
+                for suffix, defines in _profiles(project)
+            ]
+        else:
+            units += _cpp_units(view, example, root, generated, checks)
     return units
 
 

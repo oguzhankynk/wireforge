@@ -13,15 +13,15 @@ equivalent.
 | `wireforge validate <project>` | structural and semantic validation (file, line, JSON pointer per issue) |
 | `wireforge fmt <project> [--check]` | canonical layout of every project file (comments kept) |
 | `wireforge migrate <project> [--check]` | upgrade the file format and refresh the version stamps |
-| `wireforge generate <project> -o <dir> [--tests] [--plugins F] [--language cpp\|c]` | C++17 code (or C99 with `--language c`, docs/CODEGEN.md), with `--tests` the GoogleTest project; custom checksums use `--plugins F` or else the project's `plugins/*.py` |
+| `wireforge generate <project> -o <dir> [--tests] [--plugins F] [--language cpp\|c] [--node UNIT]` | C++17 code (or C99 with `--language c`, docs/CODEGEN.md), with `--tests` the GoogleTest project; custom checksums use `--plugins F` or else the project's `plugins/*.py` |
 | `wireforge wireshark <project> -o <file>.lua` | Wireshark Lua dissector plugin (docs/WIRESHARK.md) |
-| `wireforge analyze <project> [--profile P] [--format markdown\|csv\|json]` | layout report / ICD (docs/LAYOUT.md) |
-| `wireforge compat <old> <new> [--interface I]` | interface compatibility and version bump check |
+| `wireforge analyze <project> [--profile P] [--format markdown\|csv\|json] [--node UNIT]` | layout report / ICD (docs/LAYOUT.md) |
+| `wireforge compat <old> <new> [--interface I] [--node UNIT]` | interface compatibility and version bump check; with `--node` only the unit's interfaces and a first line `affects UNIT: yes\|no`; in a project with units the report ends with `affected nodes: ...` |
 | `wireforge reqs-import <project> <file> --baseline B` | take a baseline of high-level requirements (ReqIF or CSV) as `requirements/hlr_snapshot.yaml` |
 | `wireforge reqs-lock <project>`, `reqs-rename-key`, `reqs-list` | number the low-level requirements in `llr_ids.lock`, keep a number across a rename, list them (docs/DO178C.md) |
 | `wireforge docs <project> -o <dir> [--strict] [--results <build>] [--export reqif,csv] [--source-url T] [--since REV] [--rule-findings FILE]` | requirements, design, test and traceability documents (docs/LIFECYCLE.md) |
-| `wireforge trace <project> [--format markdown\|csv] [-o file]` | requirements, model elements, generated code and tests (docs/SAFETY.md) |
-| `wireforge test <project> -o <dir> [--language cpp\|c] [--coverage] [--coverage-runtime] [--generator Ninja]` | generate, build and run the generated tests; the coverage build writes `results/` for `docs --results` |
+| `wireforge trace <project> [--format markdown\|csv] [-o file] [--node UNIT]` | requirements, model elements, generated code and tests (docs/SAFETY.md) |
+| `wireforge test <project> -o <dir> [--language cpp\|c] [--node UNIT \| --system] [--coverage] [--coverage-runtime] [--generator Ninja]` | generate, build and run the generated tests; the coverage build writes `results/` for `docs --results` |
 | `wireforge export <project> -o bundle.yaml` / `wireforge import <bundle> <dir>` | single-file bundles |
 | `wireforge get <project> <pointer>` | value at a JSON pointer, e.g. `/messages/NavSolution/fields/2` |
 | `wireforge set <project> <pointer> <value> [--dry-run] [--strict]` | set a value (`-` as last index appends) |
@@ -29,6 +29,12 @@ equivalent.
 | `wireforge remove <project> <pointer>` | delete an element |
 | `wireforge encode <project> <message> <value> [--interface I] [--profile P]` | payload (and frame) as hex |
 | `wireforge decode <project> <hex> (--message M \| --interface I)` | decoded value (payload or frame), with the physical values of fields that have `scale` or `offset` |
+
+`--node UNIT` needs a project with `nodes` (an error otherwise) and works on the view of that unit: its interfaces,
+the messages it sends or receives, its documents (`docs --node` adds `unit_icd.md`; without `--node` a project with
+units gets `system_icd.md`). `wireforge test --system` builds and runs the system test (docs/CODEGEN.md). In CMake,
+`wireforge_generate(<target> PROJECT <dir> NODE <unit>)` takes the code and the language of one unit; a project with
+`nodes` needs `NODE`.
 
 Values are YAML flow syntax (`85`, `deg`, `'{ name: age, type: u8 }'`) or a YAML file (`--file`). `--json` prints
 `{"ok", "issues", "data", "text"}`. Exit codes: `0` success, `1` the project or check failed (validation errors,

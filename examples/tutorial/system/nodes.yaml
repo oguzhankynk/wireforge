@@ -1,0 +1,5 @@
+schema_version: 1
+nodes:
+  fc: { description: Flight computer, language: cpp }
+  gs: { description: Ground station, language: cpp }
+  gimbal: { description: Camera gimbal, language: c }

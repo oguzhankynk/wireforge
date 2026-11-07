@@ -1,0 +1,13 @@
+schema_version: 1
+interfaces:
+  a_c:
+    version: "1.0.0"
+    nodes: [A, C]
+    description: One way, A to C.
+    header:
+      fields:
+        - { name: msgId, type: u8, role: message_id }
+    framing: { kind: none }
+    messages:
+      - { name: Note, from: A }
+      - { name: VersionQuery, from: A }

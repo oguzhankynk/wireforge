@@ -186,6 +186,117 @@ TEST_F(LinkTest, GarbageAndUnknownIdsAreReported) {
     EXPECT_EQ(decoder().counters().discarded_bytes.load(), 3U);
 }
 
+constexpr std::uint16_t kForOthersId = 0x0301U;
+constexpr std::uint16_t kBrokenId = 0x0401U;
+
+// Handlers that report the two ways a frame can be valid and still not be delivered.
+struct Verdicts {
+    static Status not_mine(const wireforge::RawMessage& /*message*/) {
+        return Status::NotForThisNode;
+    }
+    static Status broken(const wireforge::RawMessage& /*message*/) { return Status::OutOfRange; }
+    static Status fine(const wireforge::RawMessage& /*message*/) { return Status::Ok; }
+};
+
+// A link whose dispatcher answers with every verdict a frame can get; one test per counter.
+class LinkCountersTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        ASSERT_EQ(dispatcher_.add(kStatusId, MessageHandler::from_function(&Verdicts::fine)),
+                  Status::Ok);
+        ASSERT_EQ(dispatcher_.add(kForOthersId, MessageHandler::from_function(&Verdicts::not_mine)),
+                  Status::Ok);
+        ASSERT_EQ(dispatcher_.add(kBrokenId, MessageHandler::from_function(&Verdicts::broken)),
+                  Status::Ok);
+        ASSERT_EQ(dispatcher_.start(), Status::Ok);
+    }
+
+    // Sends one frame of message @p id and polls once.
+    wireforge::PollResult exchange(std::uint16_t message_id) {
+        EXPECT_EQ(link_.send(CounterEncoder(message_id, 0U)), Status::Ok);
+        return link_.poll();
+    }
+
+    [[nodiscard]] const wireforge::LinkCounters& counters() const { return link_.counters(); }
+    [[nodiscard]] TestLink<wireforge::LoopbackTransport<256>>& link() { return link_; }
+
+private:
+    wireforge::Dispatcher<4> dispatcher_{kLayout};
+    FrameDecoder<Crc32> decoder_{kFormat};
+    wireforge::LoopbackTransport<256> transport_;
+    TestLink<wireforge::LoopbackTransport<256>> link_{transport_, decoder_, dispatcher_};
+};
+
+TEST_F(LinkCountersTest, DeliveredFramesAreCounted) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-008");
+    const wireforge::testing::AllocationTrap trap;
+    const wireforge::PollResult result = exchange(kStatusId);
+    EXPECT_EQ(result.frames, 1U);
+    EXPECT_EQ(counters().rx_frames.load(), 1U);
+    EXPECT_GT(counters().rx_bytes.load(), 0U);
+    EXPECT_GT(counters().tx_bytes.load(), 0U);
+    EXPECT_EQ(counters().tx_frames.load(), 1U);
+    EXPECT_EQ(trap.allocations(), 0U);
+}
+
+TEST_F(LinkCountersTest, UnknownIdsAreCounted) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-008");
+    const wireforge::PollResult result = exchange(0x0777U);
+    EXPECT_EQ(result.errors, 1U);
+    EXPECT_EQ(counters().rx_unknown_id.load(), 1U);
+    EXPECT_EQ(counters().rx_frames.load(), 0U);
+}
+
+TEST_F(LinkCountersTest, FramesForAnotherUnitAreNeitherFramesNorErrors) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-008");
+    const wireforge::PollResult result = exchange(kForOthersId);
+    EXPECT_EQ(result.frames, 0U);
+    EXPECT_EQ(result.errors, 0U);
+    EXPECT_EQ(result.last_error, Status::Ok);
+    EXPECT_EQ(counters().rx_not_for_node.load(), 1U);
+    EXPECT_EQ(counters().rx_frames.load(), 0U);
+}
+
+TEST_F(LinkCountersTest, DecodeErrorsAreCounted) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-008");
+    const wireforge::PollResult result = exchange(kBrokenId);
+    EXPECT_EQ(result.errors, 1U);
+    EXPECT_EQ(result.last_error, Status::OutOfRange);
+    EXPECT_EQ(counters().rx_decode_errors.load(), 1U);
+}
+
+TEST_F(LinkCountersTest, FramesRejectedByTheDecoderAreCounted) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-008");
+    const auto corrupt = [](Span<std::uint8_t> buffer, std::size_t& size) {
+        const Status status = CounterEncoder(kStatusId, 1U)(buffer, size);
+        buffer[size - 1U] ^= 0xFFU;
+        return status;
+    };
+    ASSERT_EQ(link().send(corrupt), Status::Ok);
+    const wireforge::PollResult result = link().poll();
+    EXPECT_EQ(result.last_error, Status::ChecksumMismatch);
+    EXPECT_EQ(counters().rx_rejected.load(), 1U);
+    EXPECT_EQ(counters().rx_frames.load(), 0U);
+}
+
+TEST_F(LinkCountersTest, ResetSetsEveryCounterToZero) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-008");
+    static_cast<void>(exchange(kStatusId));
+    static_cast<void>(exchange(0x0777U));
+    static_cast<void>(exchange(kForOthersId));
+    static_cast<void>(exchange(kBrokenId));
+    link().reset_counters();
+    EXPECT_EQ(counters().rx_bytes.load(), 0U);
+    EXPECT_EQ(counters().tx_bytes.load(), 0U);
+    EXPECT_EQ(counters().tx_frames.load(), 0U);
+    EXPECT_EQ(counters().tx_errors.load(), 0U);
+    EXPECT_EQ(counters().rx_frames.load(), 0U);
+    EXPECT_EQ(counters().rx_rejected.load(), 0U);
+    EXPECT_EQ(counters().rx_unknown_id.load(), 0U);
+    EXPECT_EQ(counters().rx_not_for_node.load(), 0U);
+    EXPECT_EQ(counters().rx_decode_errors.load(), 0U);
+}
+
 TEST_F(LinkTest, EncoderErrorAndFullTransport) {
     ::testing::Test::RecordProperty("requirements", "RTR-link-004");
     wireforge::LoopbackTransport<20> transport; // holds one frame (18 bytes) only
@@ -315,6 +426,7 @@ TEST(UnframedLink, OversizedReadIsRejected) {
     EXPECT_EQ(rejected.last_error, Status::InvalidLength);
     EXPECT_EQ(transport.pending(), 0U) << "the whole read is dropped";
     EXPECT_EQ(link.counters().rx_bytes.load(), 90U);
+    EXPECT_EQ(link.counters().rx_rejected.load(), 1U);
     ASSERT_EQ(link.send_frame(Payload(oversized).first(16U)), Status::Ok);
     EXPECT_EQ(link.poll().frames, 1U) << "a read of exactly MaxFrame bytes is one frame";
     EXPECT_EQ(recorder.last_size(), 16U);

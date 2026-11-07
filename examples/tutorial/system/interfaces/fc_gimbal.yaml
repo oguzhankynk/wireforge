@@ -1,0 +1,14 @@
+schema_version: 1
+interfaces:
+  fc_gimbal:
+    version: "1.0.0"
+    nodes: [fc, gimbal]
+    description: UART from the flight computer to the gimbal; the gimbal only listens.
+    header:
+      fields:
+        - { name: msgId, type: u8, role: message_id }
+        - { name: length, type: u8, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 32 }
+    messages:
+      - { name: GimbalCommand, from: fc }
+      - { name: VersionQuery, from: fc }

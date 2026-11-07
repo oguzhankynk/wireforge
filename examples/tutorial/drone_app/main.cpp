@@ -6,6 +6,7 @@
 #include "drone/model.hpp"
 #include "udp_transport.hpp"
 
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -14,6 +15,7 @@
 #include <thread>
 #include <wireforge/span.hpp>
 #include <wireforge/status.hpp>
+#include <wireforge/unhandled.hpp>
 
 namespace {
 
@@ -26,6 +28,11 @@ constexpr std::uint16_t kArmDisarm = 400; // MAV_CMD_COMPONENT_ARM_DISARM
 constexpr std::uint8_t kQuadrotor = 2;    // MAV_TYPE_QUADROTOR
 constexpr std::uint8_t kArmed = 128;      // MAV_MODE_FLAG_SAFETY_ARMED
 constexpr std::uint8_t kActive = 4;       // MAV_STATE_ACTIVE
+
+// The vehicle's own way to write a line; the hook below uses it for what it does not know.
+void log(const char* text) noexcept {
+    static_cast<void>(std::fputs(text, stdout));
+}
 
 // Receives what the ground station sends. Every message of the model has a callback.
 class Vehicle final : public link::Handler {
@@ -47,6 +54,14 @@ public:
     void onGlobalPositionIntReceived(const mav::GlobalPositionInt& /*message*/) noexcept override {}
     void onCommandAckReceived(const mav::CommandAck& /*message*/) noexcept override {}
     void onVfrHudReceived(const mav::VfrHud& /*message*/) noexcept override {}
+    // A frame that reaches no callback above (an id the model does not know). The default only
+    // counts it; this vehicle also says so.
+    void onUnhandled(const wireforge::UnhandledFrame& frame) noexcept override {
+        std::array<char, 64> text{};
+        static_cast<void>(std::snprintf(text.data(), text.size(), "vehicle: unhandled message %u\n",
+                                        static_cast<unsigned>(frame.message_id)));
+        log(text.data());
+    }
 
     [[nodiscard]] bool armed() const noexcept { return armed_; }
     [[nodiscard]] bool ground_station_seen() const noexcept { return ground_station_seen_; }
@@ -132,5 +147,10 @@ int main(int argc, char** argv) {
     std::printf("vehicle: done, %u frames sent, ground station %s\n",
                 static_cast<unsigned>(header.sequence),
                 vehicle.ground_station_seen() ? "seen" : "not seen");
+    const wireforge::LinkCounters& counters = channel.counters();
+    std::printf("vehicle: link sent %u, received %u, unknown id %u\n",
+                static_cast<unsigned>(counters.tx_frames.load()),
+                static_cast<unsigned>(counters.rx_frames.load()),
+                static_cast<unsigned>(counters.rx_unknown_id.load()));
     return 0;
 }

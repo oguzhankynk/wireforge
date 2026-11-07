@@ -36,6 +36,7 @@ SEVERITIES = (BREAKING, COMPATIBLE, DOC)
 BUMP_FOR = {BREAKING: "major", COMPATIBLE: "minor", DOC: "patch"}
 BUMP_RANK = {"downgrade": -1, "none": 0, "patch": 1, "minor": 2, "major": 3}
 _SEMVER = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+_MESSAGE = re.compile(r"/ message (\w+)")
 
 Pairs = tuple[tuple[str, str], ...]
 
@@ -78,6 +79,13 @@ class InterfaceReport:
     old_version: str | None
     new_version: str | None
     changes: list[Change] = field(default_factory=list)
+    nodes: tuple[str, ...] = ()
+
+    @property
+    def messages(self) -> list[str]:
+        """Names of the messages that the changes of this interface mention."""
+        found = {name for change in self.changes for name in _MESSAGE.findall(change.where)}
+        return sorted(found)
 
     @property
     def required_bump(self) -> str:
@@ -467,6 +475,9 @@ def compare_interface(old: Project, new: Project, name: str) -> InterfaceReport:
     report = InterfaceReport(
         name, None if before is None else before.version, None if after is None else after.version
     )
+    report.nodes = tuple(
+        sorted(set(before.nodes if before else ()) | set(after.nodes if after else ()))
+    )
     if before is None or after is None:
         severity, text = (
             (COMPATIBLE, "interface added") if before is None else (BREAKING, "removed")
@@ -485,8 +496,28 @@ def compare_interface(old: Project, new: Project, name: str) -> InterfaceReport:
         _compare_messages(before, after, sides, comparison)
     if before.description != after.description:
         comparison.add(Change(DOC, f"interface {name}", "description changed"), "")
+    _compare_units(before, after, comparison)
     report.changes = comparison.changes()
     return report
+
+
+def _compare_units(before: Interface, after: Interface, report: _Comparison) -> None:
+    """Report changes of the participants and of the senders of the messages."""
+    where = f"interface {after.name}"
+    if before.nodes != after.nodes:
+        text = f"participants {', '.join(before.nodes)} -> {', '.join(after.nodes)}"
+        report.add(Change(COMPATIBLE, where, text), "")
+    old = {entry.name: entry.senders for entry in before.messages}
+    for entry in after.messages:
+        if entry.name in old and old[entry.name] != entry.senders:
+            text = f"senders {', '.join(old[entry.name])} -> {', '.join(entry.senders)}"
+            report.add(Change(COMPATIBLE, f"{where} / message {entry.name}", text), "")
+
+
+def affected_nodes(reports: list[InterfaceReport]) -> list[str]:
+    """Return the units that take part in an interface with a change."""
+    names = {node for item in reports if item.changes for node in item.nodes}
+    return sorted(names)
 
 
 def compare_projects(

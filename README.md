@@ -18,6 +18,7 @@ of the generated code.
   other end can be hardware, an autopilot or another team's hand-written code. Code generated from ArduPilot's MAVLink
   definitions talks to ArduPilot, which knows nothing about WireForge.
 - The interface decides the bytes: generated code never adds any.
+- Describe the whole system in one model; each unit gets only its own code, tests and documents.
 - Runtime and generated code use only pre-allocated storage: no heap, no exceptions, no RTTI required.
 - One service layer behind the `wireforge` CLI, the Python API, the REST server with its web UI and the MCP server.
 - A generated Wireshark Lua dissector shows every interface's frames, with the same checks as the decoder.
@@ -72,7 +73,7 @@ Development: see CONTRIBUTING.md (`pip install -e ".[dev]"`, `cmake --preset dev
 pull request and runs the generated tests (docs/integration/github_actions.md):
 
 ```yaml
-- uses: oguzhankynk/wireforge@v0.4.2
+- uses: oguzhankynk/wireforge@v0.5.0
   with: { project: icd }
 ```
 

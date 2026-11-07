@@ -88,7 +88,7 @@ set(WIREFORGE_COVERAGE_RUNTIME_MIN_LINE "100" CACHE STRING
     "Minimum statement coverage of the runtime headers in percent")
 set(WIREFORGE_RUNTIME_INCLUDE_DIR "@RUNTIME@" CACHE PATH
     "Directory holding the WireForge runtime headers (wireforge/*.hpp)")
-get_filename_component(WIREFORGE_GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+get_filename_component(WIREFORGE_GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/@ROOT@" ABSOLUTE)
 if(NOT EXISTS "${WIREFORGE_RUNTIME_INCLUDE_DIR}/wireforge/status.hpp")
   message(FATAL_ERROR "Set WIREFORGE_RUNTIME_INCLUDE_DIR to the WireForge runtime/include dir")
 endif()
@@ -369,6 +369,7 @@ def _cmake(project: Project, directory: Path, location: Path, options: TestOptio
     values = {
         "TOOL": f"WireForge {versioning.TOOL_VERSION}",
         "NAME": project.name,
+        "ROOT": options.include_root,
         "THRESHOLD": str(options.threshold),
         "RUNTIME": relative_path(options.runtime, directory),
         "MODEL": relative_path(location, directory),
@@ -425,6 +426,7 @@ class TestOptions:
     runtime: Path = RUNTIME_INCLUDE
     threshold: int = DEFAULT_COVERAGE
     language: str = "cpp"
+    include_root: str = "../.."  # generated include root, relative to the test project
 
 
 def render(
@@ -472,11 +474,22 @@ def render(
     )
 
 
+def test_directory(project: Project, output: Path, options: TestOptions) -> Path:
+    """Directory of the test project below `output`."""
+    if options.include_root == "..":
+        return output / DIRECTORY
+    return output / project.name / DIRECTORY
+
+
 def write_test_project(
     project: Project, location: Path, output: Path, options: TestOptions | None = None
 ) -> list[Issue]:
-    """Write `<output>/<project>/generated_tests/`; unchanged files are not rewritten."""
-    directory = output / project.name / DIRECTORY
+    """Write `<output>/<project>/generated_tests/`; unchanged files are not rewritten.
+
+    A test project whose `include_root` is `..` sits directly in `output` (the layout of a unit).
+    """
+    options = options or TestOptions()
+    directory = test_directory(project, output, options)
     try:
         files = render(project, location, directory, options)
     except CodecError as error:

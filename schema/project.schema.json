@@ -77,6 +77,9 @@
     },
     "vectors": {
       "$ref": "#/$defs/sections/properties/vectors"
+    },
+    "nodes": {
+      "$ref": "#/$defs/sections/properties/nodes"
     }
   },
   "additionalProperties": false,
@@ -817,6 +820,22 @@
             },
             "reqs": {
               "$ref": "#/$defs/reqs"
+            },
+            "from": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/identifier"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/identifier"
+                  },
+                  "minItems": 1,
+                  "uniqueItems": true
+                }
+              ],
+              "description": "Unit that sends this message on the interface, or a list of units; the other participants receive it."
             }
           },
           "additionalProperties": false
@@ -827,7 +846,6 @@
       "type": "object",
       "required": [
         "version",
-        "direction",
         "messages"
       ],
       "properties": {
@@ -890,6 +908,19 @@
         },
         "reqs": {
           "$ref": "#/$defs/reqs"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "minItems": 2,
+          "uniqueItems": true,
+          "description": "Units that take part in this interface (a shared line has more than two)."
+        },
+        "message_counters": {
+          "type": "boolean",
+          "description": "Generate a counter per message and direction (default false)."
         }
       },
       "additionalProperties": false
@@ -1006,6 +1037,15 @@
           },
           "additionalProperties": {
             "$ref": "#/$defs/vectorDef"
+          }
+        },
+        "nodes": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/nodeDef"
           }
         }
       }
@@ -1271,6 +1311,22 @@
         },
         "reqs": {
           "$ref": "#/$defs/reqs"
+        }
+      },
+      "additionalProperties": false
+    },
+    "nodeDef": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "language": {
+          "enum": [
+            "cpp",
+            "c"
+          ],
+          "description": "Language of the unit's generated code; the generate command's language when absent."
         }
       },
       "additionalProperties": false

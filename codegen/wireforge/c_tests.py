@@ -20,6 +20,7 @@ from wireforge.cpp import Writer, string_literal, type_order, wire_only
 from wireforge.cpp_interface import is_checked_constant, needs_frame_check
 from wireforge.llr import Verifier
 from wireforge.model import BUILTIN_BITS
+from wireforge.nodes import entry_directions, message_way
 from wireforge.scaling import (
     function_names,
     is_float,
@@ -697,6 +698,8 @@ def message_test_source(
 def _golden_frame(
     project: Project, interface: Interface, message: Struct, frame: bytes, payload: bytes
 ) -> list[str]:
+    way = message_way(project, interface.name, message.name)
+    sends, receives = way != "receive", way != "send"
     """Return the statements that check the frame of a golden vector."""
     names = CNames(project)
     ip = f"{names.prefix}_{interface.name}"
@@ -711,39 +714,51 @@ def _golden_frame(
         "}};",
         f"{ip}_header header{{}};",
         f"{ip}_header_init(&header);",
-        f"std::array<std::uint8_t, {ip}_MAX_FRAME_SIZE> buffer{{}};",
-        "std::size_t size = 0U;",
-        (
-            f"ASSERT_EQ({ip}_encode_{message.name}(&expected, &header, buffer.data(), "
-            "buffer.size(), "
-            f"&size), {ok});"
-        ),
-        (
-            "EXPECT_TRUE(wireforge_testing::same_bytes(buffer.data(), size, kFrame.data(), "
-            "kFrame.size()));"
-        ),
-        f"EXPECT_EQ({ip}_decode_header(kFrame.data(), kFrame.size(), &header), {ok});",
     ]
+    if sends:
+        lines += [
+            f"std::array<std::uint8_t, {ip}_MAX_FRAME_SIZE> buffer{{}};",
+            "std::size_t size = 0U;",
+            (
+                f"ASSERT_EQ({ip}_encode_{message.name}(&expected, &header, buffer.data(), "
+                "buffer.size(), "
+                f"&size), {ok});"
+            ),
+            (
+                "EXPECT_TRUE(wireforge_testing::same_bytes(buffer.data(), size, kFrame.data(), "
+                "kFrame.size()));"
+            ),
+        ]
+    lines.append(f"EXPECT_EQ({ip}_decode_header(kFrame.data(), kFrame.size(), &header), {ok});")
     if overhead > 0:
         lines.append(
             f"EXPECT_EQ({ip}_decode_header(kFrame.data(), {overhead - 1}U, &header), "
             f"{_status('Truncated')});"
         )
     ident = _identifier(interface.name)
-    lines += [
-        f"generated_tests::Loop_{ident}<{ip}_MAX_FRAME_SIZE> loop;",
-        f"ASSERT_EQ(loop.send_frame(kFrame.data(), kFrame.size()), {ok});",
-        "EXPECT_EQ(loop.poll().frames, 1U);",
-        "EXPECT_EQ(loop.recorder.count(), 1U);",
-        (
-            "EXPECT_TRUE(wireforge_testing::same_bytes(loop.recorder.last(), "
-            "loop.recorder.last_size(), kPayload.data(), kPayload.size()));"
-        ),
-        f"generated_tests::Loop_{ident}<{ip}_MAX_FRAME_SIZE> sender;",
-        f"ASSERT_EQ({ip}_link_send_{message.name}(&sender.link, &expected, &header), {ok});",
-        "EXPECT_EQ(sender.poll().frames, 1U);",
-        "EXPECT_EQ(sender.recorder.count(), 1U);",
-    ]
+    if receives:
+        lines += [
+            f"generated_tests::Loop_{ident}<{ip}_MAX_FRAME_SIZE> loop;",
+            f"ASSERT_EQ(loop.send_frame(kFrame.data(), kFrame.size()), {ok});",
+            "EXPECT_EQ(loop.poll().frames, 1U);",
+            "EXPECT_EQ(loop.recorder.count(), 1U);",
+            (
+                "EXPECT_TRUE(wireforge_testing::same_bytes(loop.recorder.last(), "
+                "loop.recorder.last_size(), kPayload.data(), kPayload.size()));"
+            ),
+        ]
+    if sends:
+        lines += [
+            f"generated_tests::Loop_{ident}<{ip}_MAX_FRAME_SIZE> sender;",
+            f"ASSERT_EQ({ip}_link_send_{message.name}(&sender.link, &expected, &header), {ok});",
+        ]
+        if receives:
+            lines += [
+                "EXPECT_EQ(sender.poll().frames, 1U);",
+                "EXPECT_EQ(sender.recorder.count(), 1U);",
+            ]
+        else:
+            lines += ["EXPECT_EQ(sender.poll().frames, 0U);"]
     return lines
 
 
@@ -899,6 +914,7 @@ public:
     /// With @p decode the raw callbacks hand the message on to the default decoder.
     explicit RawRecorder_@ID@(bool decode) : decode_(decode) {
         handler_.context = this;
+        handler_.on_unhandled = &RawRecorder_@ID@::unhandled_callback;
 @SETUP@
     }
     RawRecorder_@ID@(const RawRecorder_@ID@&) = delete;
@@ -910,8 +926,18 @@ public:
     std::size_t frame_size() const { return frame_size_; }
     std::size_t raw_count() const { return raw_count_; }
     std::size_t decoded_count() const { return decoded_count_; }
+    /// Number of frames handed to the on_unhandled callback.
+    std::size_t unhandled_count() const { return unhandled_count_; }
+    /// The last frame handed to the on_unhandled callback (the frame pointer is not kept).
+    const wf_unhandled_frame& unhandled() const { return unhandled_; }
 
 private:
+    static void unhandled_callback(void* context, const wf_unhandled_frame* frame) {
+        auto* self = static_cast<RawRecorder_@ID@*>(context);
+        ++self->unhandled_count_;
+        self->unhandled_ = *frame;
+        self->unhandled_.frame = nullptr;
+    }
 @CALLBACKS@
     using Bytes = std::array<std::uint8_t, @IP@_MAX_FRAME_SIZE>;
     static std::size_t copy(const std::uint8_t* bytes, std::size_t size, Bytes& target) {
@@ -932,6 +958,8 @@ private:
     std::size_t frame_size_ = 0U;
     std::size_t raw_count_ = 0U;
     std::size_t decoded_count_ = 0U;
+    std::size_t unhandled_count_ = 0U;
+    wf_unhandled_frame unhandled_{};
 };
 
 /// Raw recorder and loopback link of interface @INTERFACE@.
@@ -988,7 +1016,10 @@ def _recorder(out: Writer, names: CNames, interface: Interface) -> None:
     ip = f"{names.prefix}_{interface.name}"
     ident = _identifier(interface.name)
     setup, callbacks = [], []
+    way = entry_directions(names.project, interface)
     for index, entry in enumerate(interface.messages):
+        if way[entry.name] == "send":
+            continue
         name = entry.name
         setup.append(
             _guarded(
@@ -1025,7 +1056,10 @@ def _raw_recorder(out: Writer, names: CNames, interface: Interface) -> None:
     ip = f"{names.prefix}_{interface.name}"
     ident = _identifier(interface.name)
     setup, callbacks = [], []
+    way = entry_directions(names.project, interface)
     for entry in interface.messages:
+        if way[entry.name] == "send":
+            continue
         name = entry.name
         both = (
             f"        handler_.on_{name}_raw = &RawRecorder_{ident}::raw_{name};\n"
@@ -1119,18 +1153,24 @@ class _InterfaceTests:
         """Declare what the tests of an interface must exercise, from the cases of the model."""
         interface = cases.interface
         profile, name = self.profile_name, interface.name
-        self.points.require("corrupt", profile, name)
         if cases.frames:
+            self.points.require("corrupt", profile, name)
             self.points.require("raw_forward", profile, name)
             self.points.require("ignored", profile, name)
-        if interface.framing.kind != "none":
+        if interface.framing.kind != "none" and cases.frames:
             self.points.require("byte_by_byte", profile, name)
-        if cases.sync:
+        if cases.sync and cases.frames:
             self.points.require("garbage", profile, name)
-        if self.has_id(interface) and cases.frames:
+        if self.has_id(interface):
             self.points.require("unknown_id", profile, name)
-        if cases.frames and (interface.header or interface.trailer):
+        if interface.header or interface.trailer:
             self.points.require("short_frame", profile, name)
+        if cases.passive:
+            self.points.require("not_for_node", profile, name)
+        if cases.defaults:
+            self.points.require("link_send", profile, name)
+        if interface.message_counters:
+            self.points.require("message_counters", profile, name)
         self.require_messages(cases, messages)
 
     def require_messages(self, cases: InterfaceCases, messages: dict[str, MessageCases]) -> None:
@@ -1159,22 +1199,26 @@ class _InterfaceTests:
         interface = cases.interface
         suite = f"Interface_{_identifier(interface.name)}"
         framed = interface.framing.kind != "none"
-        self.dispatch(cases, suite, framed=framed)
-        if framed:
-            self.bytewise(cases, suite)
-        if cases.sync:
-            self.garbage(cases, suite)
-        self.corrupt(cases, suite)
-        self.broken_frames(cases, suite, framed=framed)
+        if cases.frames:
+            self.dispatch(cases, suite, framed=framed)
+            if framed:
+                self.bytewise(cases, suite)
+            if cases.sync:
+                self.garbage(cases, suite)
+            self.corrupt(cases, suite)
+            self.broken_frames(cases, suite, framed=framed)
         self.too_small(cases, suite)
         if cases.frames:
             self.raw(cases, suite)
             self.raw_and_decoded(cases, suite)
             self.raw_decode_errors(cases, messages, suite)
             self.ignored(cases, suite)
-            self.short_frame(cases, suite)
-            if self.has_id(interface):
-                self.unknown_id(cases, suite)
+        self.short_frame(cases, suite)
+        if self.has_id(interface):
+            self.unknown_id(cases, suite)
+        self.not_for_this_unit(cases, suite, framed=framed)
+        self.link_send(cases, suite)
+        self.message_counters(cases, suite, framed=framed)
 
     def requirements(
         self,
@@ -1385,6 +1429,23 @@ class _InterfaceTests:
                 f"{_status(failing.status)});"
             )
             lines.line("EXPECT_EQ(recorder.decoded_count(), 0U);")
+            lines.line("EXPECT_EQ(recorder.unhandled_count(), 1U);")
+            lines.line(
+                "EXPECT_EQ(recorder.unhandled().reason, "
+                "static_cast<wf_unhandled_reason>(WF_UNHANDLED_DECODE_ERROR));"
+            )
+            lines.line(f"EXPECT_EQ(recorder.unhandled().status, {_status(failing.status)});")
+            lines.line("EXPECT_EQ(recorder.unhandled().frame_size, kPayload.size());")
+            if self.has_id(interface):
+                lines.line(
+                    f"EXPECT_EQ(recorder.unhandled().message_id, "
+                    f"static_cast<std::uint64_t>({ip}_{entry.name}_ID));"
+                )
+            lines.line(f"const {ip}_handler silent{{}};")
+            lines.line(
+                f"EXPECT_EQ({ip}_{entry.name}_default_raw(&silent, &raw), "
+                f"{_status(failing.status)});"
+            )
             keys = self.verifier.decode_case(self.project.messages[entry.name], failing)
             name = f"RawDecodeErrorOf{entry.name}"
             _test(
@@ -1419,7 +1480,7 @@ class _InterfaceTests:
         self.exercise("short_frame", cases)
         ip = self.ip(cases)
         lines = Writer()
-        _byte_array(lines, "kFrame", cases.frames[0][1])
+        _byte_array(lines, "kFrame", (cases.frames or cases.passive)[0][1])
         lines.line(f"generated_tests::Recorder_{_identifier(interface.name)} recorder;")
         lines.line(f"constexpr std::size_t kOverhead = {ip}_HEADER_SIZE + {ip}_TRAILER_SIZE;")
         lines.line(
@@ -1456,7 +1517,7 @@ class _InterfaceTests:
             info = self.project.messages[entry.name].message
             known.add(entry.id if entry.id is not None else (info.id if info else None))
         unknown = next(value for value in range(1 << (8 * width)) if value not in known)
-        frame = bytearray(cases.frames[0][1])
+        frame = bytearray((cases.frames or cases.passive)[0][1])
         encoded = (
             unknown.to_bytes(width, "big") if endian == "big" else unknown.to_bytes(width, "little")
         )
@@ -1469,6 +1530,20 @@ class _InterfaceTests:
             f"{_status('UnknownMessageId')});"
         )
         lines.line("EXPECT_EQ(recorder.count(), 0U);")
+        lines.line(f"generated_tests::RawRecorder_{_identifier(interface.name)} observer(false);")
+        lines.line(
+            f"EXPECT_EQ({ip}_dispatch_frame(&observer.handler(), kFrame.data(), kFrame.size()), "
+            f"{_status('UnknownMessageId')});"
+        )
+        lines.line("EXPECT_EQ(observer.unhandled_count(), 1U);")
+        lines.line(
+            "EXPECT_EQ(observer.unhandled().reason, "
+            "static_cast<wf_unhandled_reason>(WF_UNHANDLED_UNKNOWN_MESSAGE_ID));"
+        )
+        lines.line(f"EXPECT_EQ(observer.unhandled().status, {_status('UnknownMessageId')});")
+        lines.line(f"EXPECT_EQ(observer.unhandled().message_id, {unknown}U);")
+        lines.line("EXPECT_EQ(observer.unhandled().frame_size, kFrame.size());")
+        lines.line("EXPECT_EQ(observer.raw_count(), 0U);")
         _test(
             self.out,
             suite,
@@ -1476,6 +1551,114 @@ class _InterfaceTests:
             lines.lines,
             self.requirements(cases, "RejectsUnknownMessageId"),
         )
+
+    def not_for_this_unit(self, cases: InterfaceCases, suite: str, *, framed: bool) -> None:
+        """Check that a valid frame of a message the unit only sends is not for this unit."""
+        if not cases.passive:
+            return
+        self.exercise("not_for_node", cases)
+        lines = Writer()
+        for position, (_, frame) in enumerate(cases.passive):
+            _byte_array(lines, f"kFrame{position}", frame)
+        capacity = sum(len(frame) for _, frame in cases.passive)
+        lines.line(self.raw_loop(cases, capacity, decode=False))
+        for position in range(len(cases.passive)):
+            args = f"kFrame{position}.data(), kFrame{position}.size()"
+            lines.line(f"ASSERT_EQ(loop.send_frame({args}), {_status('Ok')});")
+            if not framed:
+                lines.line("EXPECT_EQ(loop.poll().errors, 0U);")
+        if framed:
+            lines.line("const wf_poll_result polled = loop.poll();")
+            lines.line("EXPECT_EQ(polled.frames, 0U);")
+            lines.line("EXPECT_EQ(polled.errors, 0U);")
+            lines.line(f"EXPECT_EQ(polled.last_error, {_status('Ok')});")
+        count = len(cases.passive)
+        lines.line(f"EXPECT_EQ(loop.recorder.unhandled_count(), {count}U);")
+        lines.line(
+            "EXPECT_EQ(loop.recorder.unhandled().reason, "
+            "static_cast<wf_unhandled_reason>(WF_UNHANDLED_NOT_FOR_THIS_NODE));"
+        )
+        lines.line(f"EXPECT_EQ(loop.recorder.unhandled().status, {_status('NotForThisNode')});")
+        lines.line("EXPECT_EQ(loop.recorder.raw_count(), 0U);")
+        lines.line(f"EXPECT_EQ(loop.link.link.counters.rx_not_for_node, {count}U);")
+        lines.line("EXPECT_EQ(loop.link.link.counters.rx_frames, 0U);")
+        lines.line("EXPECT_EQ(loop.link.link.counters.rx_decode_errors, 0U);")
+        name = "NotForThisUnit"
+        _test(self.out, suite, name, lines.lines, self.requirements(cases, name))
+
+    def sent_sizes(self, cases: InterfaceCases) -> list[tuple[str, int]]:
+        """Return the name and the default frame size of every message the unit sends."""
+        return [(cases.interface.messages[index].name, size) for index, size, _ in cases.defaults]
+
+    def send_lines(self, cases: InterfaceCases, check: str = "") -> list[str]:
+        """Return the statements that send every sent message through the link of `loop`."""
+        ip = self.ip(cases)
+        lines = [f"{ip}_header header{{}};", f"{ip}_header_init(&header);"]
+        for name, size in self.sent_sizes(cases):
+            lines += [
+                "{",
+                f"    {self.names.tname(name)} value{{}};",
+                f"    {self.names.function(name, 'init')}(&value);",
+                (
+                    f"    {'EXPECT_EQ' if size else 'EXPECT_NE'}("
+                    f"{ip}_link_send_{name}(&loop.link, &value, &header), {_status('Ok')});"
+                ),
+            ]
+            if check:
+                lines.append(check.replace("@", name).replace("%", "1" if size else "0"))
+            lines.append("}")
+        return lines
+
+    def link_send(self, cases: InterfaceCases, suite: str) -> None:
+        """Check the `link_send` function of every message the unit sends."""
+        sent = self.sent_sizes(cases)
+        if not sent:
+            return
+        self.exercise("link_send", cases)
+        lines = Writer()
+        lines.line(self.loop(cases, sum(size for _, size in sent)))
+        for text in self.send_lines(cases):
+            lines.line(text)
+        frames = sum(1 for _, size in sent if size > 0)
+        lines.line(f"EXPECT_EQ(loop.link.link.counters.tx_frames, {frames}U);")
+        name = "SendsThroughTheLink"
+        _test(self.out, suite, name, lines.lines, self.requirements(cases, name))
+
+    def message_counters(self, cases: InterfaceCases, suite: str, *, framed: bool) -> None:
+        """Check every counter of an interface with `message_counters`, and their reset."""
+        interface = cases.interface
+        if not interface.message_counters:
+            return
+        self.exercise("message_counters", cases)
+        ip = self.ip(cases)
+        sent = self.sent_sizes(cases)
+        lines = Writer()
+        for position, (_, frame) in enumerate(cases.frames):
+            _byte_array(lines, f"kFrame{position}", frame)
+        capacity = sum(len(frame) for _, frame in cases.frames) + sum(size for _, size in sent)
+        lines.line(self.loop(cases, capacity))
+        lines.line(
+            f"const {ip}_message_counters* counters = {ip}_link_message_counters(&loop.link);"
+        )
+        for position in range(len(cases.frames)):
+            args = f"kFrame{position}.data(), kFrame{position}.size()"
+            lines.line(f"ASSERT_EQ(loop.send_frame({args}), {_status('Ok')});")
+            if not framed:
+                lines.line("EXPECT_EQ(loop.poll().frames, 1U);")
+        if framed and cases.frames:
+            lines.line(f"EXPECT_EQ(loop.poll().frames, {len(cases.frames)}U);")
+        names = [interface.messages[index].name for index, _ in cases.frames]
+        for name in names:
+            lines.line(f"EXPECT_EQ(counters->rx_{name}, 1U);")
+        for text in self.send_lines(cases, "    EXPECT_EQ(counters->tx_@, %U);"):
+            lines.line(text)
+        lines.line(f"{ip}_link_reset_message_counters(&loop.link);")
+        for name in names:
+            lines.line(f"EXPECT_EQ(counters->rx_{name}, 0U);")
+        for name, _ in sent:
+            lines.line(f"EXPECT_EQ(counters->tx_{name}, 0U);")
+        name = "CountsMessages"
+        _test(self.out, suite, name, lines.lines, self.requirements(cases, name))
 
     def broken_frames(self, cases: InterfaceCases, suite: str, *, framed: bool) -> None:
         """Check that a header constant or a checksum that the receiver checks is enforced."""

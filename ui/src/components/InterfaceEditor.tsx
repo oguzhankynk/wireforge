@@ -22,6 +22,8 @@ export interface InterfaceEditorProps {
   /** Interface to edit; null creates a new one. */
   name: string | null;
   messageOptions: readonly string[];
+  /** Units of the project; with units the interface lists its participants and the senders. */
+  nodeOptions?: readonly string[];
   typeOptions: readonly string[];
   checksumOptions: readonly string[];
   onSaved: (name: string, result: ServiceResult) => void;
@@ -30,6 +32,8 @@ export interface InterfaceEditorProps {
 /** Editor of one interface: version, header and trailer fields, framing, messages, buffers. */
 export function InterfaceEditor(props: InterfaceEditorProps) {
   const { api, project, name, messageOptions, typeOptions, checksumOptions, onSaved } = props;
+  const nodeOptions = props.nodeOptions ?? [];
+  const withNodes = nodeOptions.length > 0;
   const [entryName, setEntryName] = useState(name ?? "");
   const [form, setForm] = useState<InterfaceForm>(emptyInterface);
   // The loaded definition: keys this editor does not show (bit_order, range_check) stay unchanged.
@@ -59,7 +63,7 @@ export function InterfaceEditor(props: InterfaceEditorProps) {
 
   const save = async () => {
     try {
-      const edited = toInterface(form) as unknown as Record<string, unknown>;
+      const edited = toInterface(form, withNodes) as unknown as Record<string, unknown>;
       const definition = withEdits(original, edited, INTERFACE_KEYS);
       onSaved(entryName.trim(), await api.putEntry(project, "interfaces", entryName.trim(), { definition }));
       setError("");
@@ -95,13 +99,40 @@ export function InterfaceEditor(props: InterfaceEditorProps) {
       </label>
       {text("version", "Version")}
       {text("description", "Description")}
+      {!withNodes && (
+        <label>
+          Direction
+          <select value={form.direction} onChange={(event) => { set({ direction: event.target.value as InterfaceForm["direction"] }); }}>
+            <option value="tx">tx</option>
+            <option value="rx">rx</option>
+            <option value="both">both</option>
+          </select>
+        </label>
+      )}
+      {withNodes && (
+        <fieldset>
+          <legend>Participants</legend>
+          {nodeOptions.map((node) => (
+            <label key={node}>
+              <input
+                type="checkbox"
+                checked={form.nodes.includes(node)}
+                onChange={(event) => {
+                  set({ nodes: event.target.checked ? [...form.nodes, node] : form.nodes.filter((item) => item !== node) });
+                }}
+              />{" "}
+              {node}
+            </label>
+          ))}
+        </fieldset>
+      )}
       <label>
-        Direction
-        <select value={form.direction} onChange={(event) => { set({ direction: event.target.value as InterfaceForm["direction"] }); }}>
-          <option value="tx">tx</option>
-          <option value="rx">rx</option>
-          <option value="both">both</option>
-        </select>
+        <input
+          type="checkbox"
+          checked={form.messageCounters}
+          onChange={(event) => { set({ messageCounters: event.target.checked }); }}
+        />{" "}
+        Count every message
       </label>
       <label>
         Endian
@@ -192,6 +223,24 @@ export function InterfaceEditor(props: InterfaceEditorProps) {
                 </option>
               ))}
             </select>
+            {withNodes && (
+              <span aria-label={`Message ${String(index + 1)} senders`}>
+                {form.nodes.map((node) => (
+                  <label key={node}>
+                    <input
+                      type="checkbox"
+                      aria-label={`Message ${String(index + 1)} from ${node}`}
+                      checked={row.from.includes(node)}
+                      onChange={(event) => {
+                        const from = event.target.checked ? [...row.from, node] : row.from.filter((item) => item !== node);
+                        set({ messages: form.messages.map((item, at) => (at === index ? { ...item, from } : item)) });
+                      }}
+                    />{" "}
+                    from {node}
+                  </label>
+                ))}
+              </span>
+            )}
             <input
               aria-label={`Message ${String(index + 1)} id`}
               placeholder="id override"
@@ -209,7 +258,7 @@ export function InterfaceEditor(props: InterfaceEditorProps) {
             </button>
           </div>
         ))}
-        <button type="button" onClick={() => { set({ messages: [...form.messages, { name: "", id: "" }] }); }}>
+        <button type="button" onClick={() => { set({ messages: [...form.messages, { name: "", id: "", from: [] }] }); }}>
           Add message
         </button>
       </fieldset>

@@ -17,6 +17,7 @@
 #define WIREFORGE_LOCK_HPP
 
 #include "wireforge/config.hpp"
+#include "wireforge/status.hpp"
 
 #include <atomic>
 #include <cstdint>
@@ -140,6 +141,16 @@ public:
 private:
     std::atomic<std::uint32_t> value_{0U};
 };
+
+/**
+ * @brief Counts @p status when it is Status::Ok and returns it unchanged.
+ *
+ * Generated code counts a received or sent message through this, without a condition of its own.
+ */
+inline Status count_if_ok(RelaxedCounter& counter, Status status) noexcept {
+    counter.add(static_cast<std::uint32_t>(status == Status::Ok));
+    return status;
+}
 
 } // namespace wireforge
 

@@ -1,0 +1,13 @@
+schema_version: 1
+messages:
+  Command:
+    id: 0x10
+    fields:
+      - { name: mode, type: Mode, default: idle }
+      - { name: target, type: Pair }
+      - { name: speed, type: u16, min: 0, max: 5000, default: 0 }
+  Status:
+    id: 0x20
+    fields:
+      - { name: ok, type: bool }
+      - { name: rpm, type: u16 }

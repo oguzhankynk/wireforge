@@ -1,0 +1,12 @@
+# Turns tests/python/semantic_base.yaml into a valid system of two units; a case with `nodes: true`
+# in semantic_cases.yaml applies these operations before its own patch.
+- { set: [nodes], value: { A: { description: First unit }, B: { language: c } } }
+- { del: [interfaces, raw] }
+- { del: [interfaces, fixed] }
+- { del: [interfaces, main, direction] }
+- { set: [interfaces, main, nodes], value: [A, B] }
+- set: [interfaces, main, messages]
+  value:
+    - { name: Status, from: A }
+    - { name: Command, from: B }
+    - { name: Blob, id: 9, from: [A, B] }

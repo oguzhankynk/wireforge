@@ -1,0 +1,90 @@
+# A small system of three units: a two-way link with message counters, a one-way link and a
+# shared bus. Used by the tests of units and of the code generated per unit.
+schema_version: 1
+project: fixture
+version: "1.0.0"
+namespace: demo::fixture
+defaults: { endian: big, bit_order: msb_first }
+
+nodes:
+  A: { description: Flight computer }
+  B: { description: Motor controller }
+  C: { description: Recorder }
+
+checksums:
+  frameCrc: { algo: crc32 }
+
+enums:
+  Mode: { type: u8, values: { idle: 0, run: 1, stop: 2 } }
+
+types:
+  Pair:
+    fields:
+      - { name: x, type: u8, default: 0 }
+      - { name: y, type: u8, default: 0 }
+
+messages:
+  Command:
+    id: 0x10
+    fields:
+      - { name: mode, type: Mode, default: idle }
+      - { name: target, type: Pair }
+      - { name: speed, type: u16, min: 0, max: 5000, default: 0 }
+  Status:
+    id: 0x20
+    fields:
+      - { name: ok, type: bool }
+      - { name: rpm, type: u16 }
+  Note:
+    id: 0x30
+    fields:
+      - { name: text, type: char, occurs: { max: 8 }, default: "hi" }
+  Heartbeat:
+    id: 0x40
+    fields:
+      - { name: counter, type: u8 }
+  VersionQuery:
+    id: 0x50
+    fields:
+      - { name: wanted, type: u8 }
+
+interfaces:
+  a_b:
+    version: "1.0.0"
+    nodes: [A, B]
+    message_counters: true
+    header:
+      fields:
+        - { name: sync, type: u16, const: 0xA55A, role: sync }
+        - { name: msgId, type: u8, role: message_id }
+        - { name: length, type: u16, role: payload_length }
+    trailer:
+      fields:
+        - name: crc
+          type: u32
+          checksum: { use: frameCrc, covers: { scope: header_and_payload } }
+    framing: { kind: sync_length, max_frame_size: 64, resync: true }
+    messages:
+      - { name: Command, from: A }
+      - { name: Status, from: B }
+      - { name: VersionQuery, from: A }
+  a_c:
+    version: "1.0.0"
+    nodes: [A, C]
+    header:
+      fields:
+        - { name: msgId, type: u8, role: message_id }
+    framing: { kind: none }
+    messages:
+      - { name: Note, from: A }
+  bus:
+    version: "1.0.0"
+    nodes: [A, B, C]
+    header:
+      fields:
+        - { name: msgId, type: u8, role: message_id }
+        - { name: length, type: u8, role: payload_length }
+    framing: { kind: length_prefixed, max_frame_size: 32 }
+    messages:
+      - { name: Heartbeat, from: [A, B, C] }
+      - { name: VersionQuery, from: A }

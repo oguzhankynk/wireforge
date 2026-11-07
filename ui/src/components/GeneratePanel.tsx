@@ -2,15 +2,29 @@ import { useEffect, useState } from "react";
 import { ApiError, type Api, type Language } from "../api";
 
 /** Every generated file of the project, and the download of the code with its test project. */
-export function GeneratePanel({ api, project, etag }: { api: Api; project: string; etag: string }) {
+export function GeneratePanel({
+  api,
+  project,
+  etag,
+  nodes = [],
+}: {
+  api: Api;
+  project: string;
+  etag: string;
+  /** Units of the project; with units the preview and the zip are those of the chosen unit. */
+  nodes?: readonly string[];
+}) {
   const [files, setFiles] = useState<Record<string, string>>({});
   const [file, setFile] = useState("");
   const [language, setLanguage] = useState<Language>("cpp");
   const [error, setError] = useState("");
+  const [chosen, setChosen] = useState("");
+  const unit = nodes.length === 0 ? undefined : nodes.includes(chosen) ? chosen : nodes[0];
 
   useEffect(() => {
     let active = true;
-    void api.preview(project, language).then((result) => {
+    // A project with units has no preview before a unit is chosen (the units load after the project).
+    void api.preview(project, language, unit).catch(() => ({ data: {} })).then((result) => {
       if (!active) return;
       const generated = (result.data as { files?: Record<string, string> }).files ?? {};
       setFiles(generated);
@@ -22,16 +36,17 @@ export function GeneratePanel({ api, project, etag }: { api: Api; project: strin
     return () => {
       active = false;
     };
-  }, [api, project, etag, language]);
+  }, [api, project, etag, language, unit]);
 
   const download = async () => {
     setError("");
     try {
-      const archive = await api.archive(project, language);
+      const archive = await api.archive(project, language, unit);
       const url = URL.createObjectURL(archive);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${project}${language === "c" ? "-c" : ""}-generated.zip`;
+      link.download =
+        unit === undefined ? `${project}${language === "c" ? "-c" : ""}-generated.zip` : `${project}-${unit}-generated.zip`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (failure) {
@@ -43,6 +58,23 @@ export function GeneratePanel({ api, project, etag }: { api: Api; project: strin
   return (
     <section aria-label="Generate">
       <h2>Generate</h2>
+      {unit !== undefined && (
+        <label>
+          Unit
+          <select
+            value={unit}
+            onChange={(event) => {
+              setChosen(event.target.value);
+            }}
+          >
+            {nodes.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <label>
         Language
         <select

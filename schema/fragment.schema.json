@@ -70,6 +70,9 @@
       },
       "additionalProperties": false,
       "description": "Where the requirements of this snapshot came from (written by `wireforge reqs-import`)."
+    },
+    "nodes": {
+      "$ref": "project.schema.json#/$defs/sections/properties/nodes"
     }
   },
   "additionalProperties": false,

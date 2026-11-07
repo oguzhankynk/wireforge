@@ -1,0 +1,21 @@
+schema_version: 1
+interfaces:
+  a_b:
+    version: "1.0.0"
+    nodes: [A, B]
+    header:
+      fields:
+        - { name: sync, type: u16, const: 0xA55A, role: sync }
+        - { name: msgId, type: u8, role: message_id }
+        - { name: length, type: u16, role: payload_length }
+    trailer:
+      fields:
+        - name: crc
+          type: u32
+          checksum: { use: frameCrc, covers: { scope: header_and_payload } }
+    framing: { kind: sync_length, max_frame_size: 64, resync: true }
+    message_counters: true
+    messages:
+      - { name: Command, from: A }
+      - { name: Status, from: B }
+      - { name: VersionQuery, from: A }

@@ -28,6 +28,7 @@ from wireforge.cpp_interface import (
     needs_frame_check,
 )
 from wireforge.model import BUILTIN_BITS, INTEGER_TYPES, Field, Interface, Project
+from wireforge.nodes import entry_directions
 
 if TYPE_CHECKING:
     from wireforge.generate import Banner
@@ -90,6 +91,11 @@ class CInterface:
         self.trailer = self._place(interface.trailer, "trailer")
         self._check_trailer()
         self.entries = [self._entry(m.name, m.id, m.condition) for m in interface.messages]
+        way = entry_directions(project, interface)
+        self.sent = [e for e in self.entries if way[e.name] in ("send", "both")]
+        self.received = [e for e in self.entries if way[e.name] in ("receive", "both")]
+        self.passive = [e for e in self.entries if way[e.name] == "send"]
+        self.counters = interface.message_counters
         self.out = Writer()
 
     # --- layout ---------------------------------------------------------------------------------
@@ -195,6 +201,7 @@ class CInterface:
                 "",
                 '#include "wireforge/c/expr.h"',
                 '#include "wireforge/c/link.h"',
+                '#include "wireforge/c/unhandled.h"',
                 "",
             ]
         )
@@ -313,7 +320,7 @@ class CInterface:
             "",
         ]
         self._lines(lines)
-        for entry in self.entries:
+        for entry in self.sent:
             self._lines(
                 [
                     _doc(f"Encodes a complete {entry.name} frame (header, payload, trailer)."),
@@ -336,13 +343,14 @@ class CInterface:
             _doc(
                 "Receives the messages of this interface, decoded or as raw bytes. A callback may "
                 "be null: a null raw callback decodes the payload and calls the received callback "
-                "(the default), a null received callback ignores the message."
+                "(the default), a null received callback ignores the message, a null "
+                "on_unhandled only lets the link count the frame."
             ),
             f"typedef struct {ip}_handler {{",
             "    void *context; /**< Passed to every callback. */",
         ]
         self._lines(lines)
-        for entry in self.entries:
+        for entry in self.received:
             self._lines(
                 [
                     (
@@ -362,8 +370,17 @@ class CInterface:
                 ],
                 entry.condition,
             )
-        self._lines([f"}} {ip}_handler;", ""])
-        for entry in self.entries:
+        self._lines(
+            [
+                "    /** Called for a valid frame that reaches no received callback: an unknown",
+                "     *  message id, or a payload the default raw callback could not decode.",
+                "     *  Frames the frame decoder rejects do not come here. */",
+                "    wf_unhandled_fn on_unhandled;",
+                f"}} {ip}_handler;",
+                "",
+            ]
+        )
+        for entry in self.received:
             self._lines(
                 [
                     _doc(
@@ -392,8 +409,89 @@ class CInterface:
             ]
         )
 
+    def _dispatch_context(self) -> str:
+        return "link" if self.counters else "handler"
+
+    def _dispatch_wrapper_body(self) -> list[str]:
+        ip = self.ip
+        if not self.counters:
+            return [f"    return {ip}_dispatch_frame((const {ip}_handler *)context, frame, size);"]
+        return [
+            f"    const {ip}_link *link = (const {ip}_link *)context;",
+            f"    return {ip}_dispatch_counted(link->handler, link->counters, frame, size);",
+        ]
+
+    def _link_counter_init(self) -> list[str]:
+        if not self.counters:
+            return []
+        return [
+            "    link->handler = handler;",
+            "    link->counters = &link->message_counters;",
+            "    (void)memset(&link->message_counters, 0, sizeof(link->message_counters));",
+        ]
+
+    def _link_counter_source(self) -> list[str]:
+        if not self.counters:
+            return []
+        ip = self.ip
+        return [
+            f"const {ip}_message_counters *{ip}_link_message_counters(const {ip}_link *link)",
+            "{",
+            "    return &link->message_counters;",
+            "}",
+            "",
+            f"void {ip}_link_reset_message_counters({ip}_link *link)",
+            "{",
+            "    (void)memset(&link->message_counters, 0, sizeof(link->message_counters));",
+            "}",
+            "",
+        ]
+
+    def _message_counter_type(self) -> None:
+        """Write the per-message counters (interfaces with `message_counters`)."""
+        if not self.counters:
+            return
+        ip = self.ip
+        self._lines(
+            [
+                _doc("Counters per message: rx_ for received, tx_ for sent messages."),
+                f"typedef struct {ip}_message_counters {{",
+            ]
+        )
+        for entry in self.entries:
+            lines = []
+            if entry in self.received:
+                lines.append(f"    uint32_t rx_{entry.name}; /**< Received. */")
+            if entry in self.sent:
+                lines.append(f"    uint32_t tx_{entry.name}; /**< Sent. */")
+            self._lines(lines, entry.condition)
+        self._lines([f"}} {ip}_message_counters;", ""])
+
+    def _link_counter_members(self) -> list[str]:
+        if not self.counters:
+            return []
+        ip = self.ip
+        return [
+            "    const " + ip + "_handler *handler;           /**< Receives the messages. */",
+            "    " + ip + "_message_counters *counters;      /**< Points to message_counters. */",
+            "    " + ip + "_message_counters message_counters; /**< Counters per message. */",
+        ]
+
+    def _link_counter_functions(self) -> list[str]:
+        if not self.counters:
+            return []
+        ip = self.ip
+        return [
+            _doc("The counters per message of a link."),
+            f"const {ip}_message_counters *{ip}_link_message_counters(const {ip}_link *link);",
+            _doc("Sets every counter per message of a link to zero."),
+            f"void {ip}_link_reset_message_counters({ip}_link *link);",
+            "",
+        ]
+
     def _header_link(self) -> None:
         ip = self.ip
+        self._message_counter_type()
         self._lines(
             [
                 _doc(
@@ -404,6 +502,7 @@ class CInterface:
                 f"    uint8_t rx_storage[{ip}_RX_BUFFER_BYTES]; /**< Received bytes. */",
                 f"    uint8_t rx_frame[{ip}_MAX_FRAME_SIZE];   /**< One received frame. */",
                 f"    uint8_t tx_frame[{ip}_MAX_FRAME_SIZE];   /**< One frame to send. */",
+                *self._link_counter_members(),
                 f"}} {ip}_link;",
                 "",
                 _doc("Sets up a link over @p transport; both it and @p handler must outlive it."),
@@ -413,6 +512,7 @@ class CInterface:
                 ),
                 _doc("Reads everything the transport has and dispatches every complete frame."),
                 f"wf_poll_result {ip}_link_poll({ip}_link *link);",
+                *self._link_counter_functions(),
                 _doc("Sends an already encoded frame."),
                 (
                     f"wf_status {ip}_link_send_frame({ip}_link *link, const uint8_t *frame, "
@@ -421,7 +521,7 @@ class CInterface:
                 "",
             ]
         )
-        for entry in self.entries:
+        for entry in self.sent:
             self._lines(
                 [
                     _doc(f"Encodes a {entry.name} frame and sends it."),
@@ -554,6 +654,8 @@ class CInterface:
         return []
 
     def _source_frame_writer(self) -> None:
+        if not self.sent:
+            return
         ip = self.ip
         size_check = self._size_check()
         plain = not self.header and not self.trailer and not size_check
@@ -615,7 +717,7 @@ class CInterface:
 
     def _source_encoders(self) -> None:
         ip = self.ip
-        for entry in self.entries:
+        for entry in self.sent:
             name, type_name = entry.name, self._type(entry)
             serialize = self.names.function(name, "serialize_with")
             identifier = f"{ip}_{name}_ID" if entry.identifier is not None else "0U"
@@ -771,10 +873,44 @@ class CInterface:
             ),
         ]
 
+    def _id_expression(self, entry: _Entry) -> str:
+        if entry.identifier is None:
+            return "0U"
+        return f"(uint64_t){self.ip}_{entry.name}_ID"
+
+    def _counters_parameter(self) -> str:
+        return f"{self.ip}_message_counters *counters, " if self.counters else ""
+
+    def _source_passive(self, entry: _Entry) -> None:
+        """Write the receiver of a message this unit only sends (not for this unit)."""
+        ip = self.ip
+        identifier = f"(uint64_t){ip}_{entry.name}_ID" if entry.identifier is not None else "0U"
+        counters = ["    (void)counters;"] if self.counters else []
+        self._lines(
+            [
+                (
+                    f"static wf_status {ip}_receive_{entry.name}(const {ip}_handler *handler, "
+                    f"{self._counters_parameter()}const wf_raw_message *raw)"
+                ),
+                "{",
+                *counters,
+                "    wf_report_unhandled(handler->on_unhandled, handler->context,",
+                "                        WF_UNHANDLED_NOT_FOR_THIS_NODE, WF_NOT_FOR_THIS_NODE,",
+                f"                        {identifier}, raw->frame, raw->frame_size);",
+                "    return WF_NOT_FOR_THIS_NODE;",
+                "}",
+                "",
+            ],
+            entry.condition,
+        )
+
     def _source_receivers(self) -> None:
         ip = self.ip
         check = needs_frame_check(self.interface)
         for entry in self.entries:
+            if entry in self.passive:
+                self._source_passive(entry)
+                continue
             name, type_name = entry.name, self._type(entry)
             trimmed = self.interface.trim_trailing_zeros
             payload = "payload, payload_size" if trimmed else "raw->payload, raw->payload_size"
@@ -793,7 +929,14 @@ class CInterface:
                     f"    const wf_status status = {deserialize}({payload}, "
                     f"&message, &{ip}_{name}_encoding);"
                 ),
-                f"    if (status == WF_OK && handler->on_{name}_received != NULL) {{",
+                "    if (status != WF_OK) {",
+                (
+                    "        wf_report_unhandled(handler->on_unhandled, handler->context, "
+                    "WF_UNHANDLED_DECODE_ERROR,"
+                ),
+                f"                            status, {self._id_expression(entry)}, raw->frame,",
+                "                            raw->frame_size);",
+                f"    }} else if (handler->on_{name}_received != NULL) {{",
                 f"        handler->on_{name}_received(handler->context, &message);",
                 "    }",
                 "    return status;",
@@ -801,7 +944,7 @@ class CInterface:
                 "",
                 (
                     f"static wf_status {ip}_receive_{name}(const {ip}_handler *handler, "
-                    "const wf_raw_message *raw)"
+                    f"{self._counters_parameter()}const wf_raw_message *raw)"
                 ),
                 "{",
             ]
@@ -812,11 +955,16 @@ class CInterface:
                     "        return checked;",
                     "    }",
                 ]
+            raw_call = f"handler->on_{name}_raw(handler->context, raw)"
+            default_call = f"{ip}_{name}_default_raw(handler, raw)"
+            if self.counters:
+                raw_call = f"wf_count_if_ok(&counters->rx_{name}, {raw_call})"
+                default_call = f"wf_count_if_ok(&counters->rx_{name}, {default_call})"
             lines += [
                 f"    if (handler->on_{name}_raw != NULL) {{",
-                f"        return handler->on_{name}_raw(handler->context, raw);",
+                f"        return {raw_call};",
                 "    }",
-                f"    return {ip}_{name}_default_raw(handler, raw);",
+                f"    return {default_call};",
                 "}",
                 "",
             ]
@@ -825,10 +973,17 @@ class CInterface:
     def _source_dispatch(self) -> None:
         ip = self.ip
         id_field = self._role("message_id")
-        signature = (
-            f"wf_status {ip}_dispatch_frame(const {ip}_handler *handler, "
-            "const uint8_t *frame, size_t size)"
-        )
+        if self.counters:
+            signature = (
+                f"static wf_status {ip}_dispatch_counted(const {ip}_handler *handler, "
+                f"{ip}_message_counters *counters, const uint8_t *frame, size_t size)"
+            )
+        else:
+            signature = (
+                f"wf_status {ip}_dispatch_frame(const {ip}_handler *handler, "
+                "const uint8_t *frame, size_t size)"
+            )
+        arguments = "handler, counters, " if self.counters else "handler, "
         overhead = f"{ip}_HEADER_SIZE + {ip}_TRAILER_SIZE"
         raw = (
             f"const wf_raw_message raw = {{&frame[{ip}_HEADER_SIZE], size - ({overhead}), "
@@ -840,9 +995,11 @@ class CInterface:
         if id_field is None:
             if not self.entries:
                 lines += ["(void)handler;", "(void)frame;", "(void)size;", "return WF_OK;"]
+                lines += ["(void)counters;"] if self.counters else []
             else:
-                lines += [raw, f"return {ip}_receive_{self.entries[0].name}(handler, &raw);"]
+                lines += [raw, f"return {ip}_receive_{self.entries[0].name}({arguments}&raw);"]
             self._lines([signature, "{", *[f"    {line}" for line in lines], "}", ""])
+            self._source_public_dispatch()
             return
         lines += [
             (
@@ -856,12 +1013,44 @@ class CInterface:
             self._lines(
                 [
                     f"    if (message_id == (uint64_t){ip}_{entry.name}_ID) {{",
-                    f"        return {ip}_receive_{entry.name}(handler, &raw);",
+                    f"        return {ip}_receive_{entry.name}({arguments}&raw);",
                     "    }",
                 ],
                 entry.condition,
             )
-        self._lines(["    return WF_UNKNOWN_MESSAGE_ID;", "}", ""])
+        self._lines(
+            [
+                (
+                    "    wf_report_unhandled(handler->on_unhandled, handler->context, "
+                    "WF_UNHANDLED_UNKNOWN_MESSAGE_ID,"
+                ),
+                "                        WF_UNKNOWN_MESSAGE_ID, message_id, frame, size);",
+                "    return WF_UNKNOWN_MESSAGE_ID;",
+                "}",
+                "",
+            ]
+        )
+        self._source_public_dispatch()
+
+    def _source_public_dispatch(self) -> None:
+        """With message counters, `dispatch_frame` counts into a scratch instance."""
+        if not self.counters:
+            return
+        ip = self.ip
+        self._lines(
+            [
+                (
+                    f"wf_status {ip}_dispatch_frame(const {ip}_handler *handler, "
+                    "const uint8_t *frame, size_t size)"
+                ),
+                "{",
+                f"    {ip}_message_counters scratch;",
+                "    (void)memset(&scratch, 0, sizeof(scratch));",
+                f"    return {ip}_dispatch_counted(handler, &scratch, frame, size);",
+                "}",
+                "",
+            ]
+        )
 
     # --- link -----------------------------------------------------------------------------------
 
@@ -913,7 +1102,7 @@ class CInterface:
                     "size_t size)"
                 ),
                 "{",
-                f"    return {ip}_dispatch_frame((const {ip}_handler *)context, frame, size);",
+                *self._dispatch_wrapper_body(),
                 "}",
                 "",
                 (
@@ -921,11 +1110,15 @@ class CInterface:
                     f"const {ip}_handler *handler)"
                 ),
                 "{",
+                *self._link_counter_init(),
                 "    wf_frame_decoder decoder;",
                 f"    wf_frame_decoder_init(&decoder, &{ip}_frame_format, {function}, {size}U);",
                 f"    wf_link_init(&link->link, transport, {framed}, &decoder, link->rx_storage,",
                 "                 sizeof(link->rx_storage), link->rx_frame, link->tx_frame,",
-                f"                 {ip}_MAX_FRAME_SIZE, {ip}_dispatch, handler);",
+                (
+                    f"                 {ip}_MAX_FRAME_SIZE, {ip}_dispatch, "
+                    f"{self._dispatch_context()});"
+                ),
                 "}",
                 "",
                 f"wf_poll_result {ip}_link_poll({ip}_link *link)",
@@ -933,6 +1126,7 @@ class CInterface:
                 "    return wf_link_poll(&link->link);",
                 "}",
                 "",
+                *self._link_counter_source(),
                 (
                     f"wf_status {ip}_link_send_frame({ip}_link *link, const uint8_t *frame, "
                     "size_t size)"
@@ -943,7 +1137,10 @@ class CInterface:
                 "",
             ]
         )
-        for entry in self.entries:
+        for entry in self.sent:
+            sent = "wf_link_send_encoded(&link->link, status, size)"
+            if self.counters:
+                sent = f"wf_count_if_ok(&link->message_counters.tx_{entry.name}, {sent})"
             self._lines(
                 [
                     (
@@ -956,7 +1153,7 @@ class CInterface:
                         f"    const wf_status status = {ip}_encode_{entry.name}(message, header, "
                         f"link->tx_frame, {ip}_MAX_FRAME_SIZE, &size);"
                     ),
-                    "    return wf_link_send_encoded(&link->link, status, size);",
+                    f"    return {sent};",
                     "}",
                     "",
                 ],
