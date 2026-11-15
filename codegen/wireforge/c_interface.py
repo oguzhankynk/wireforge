@@ -500,7 +500,12 @@ class CInterface:
                 f"typedef struct {ip}_link {{",
                 "    wf_link link;                                 /**< Generic part. */",
                 f"    uint8_t rx_storage[{ip}_RX_BUFFER_BYTES]; /**< Received bytes. */",
-                f"    uint8_t rx_frame[{ip}_MAX_FRAME_SIZE];   /**< One received frame. */",
+                (
+                    f"    uint8_t rx_frame[{ip}_MAX_FRAME_SIZE + 1U]; /**< One received frame and "
+                    "the byte that tells a longer read. */"
+                    if not self._framed()
+                    else f"    uint8_t rx_frame[{ip}_MAX_FRAME_SIZE];   /**< One received frame. */"
+                ),
                 f"    uint8_t tx_frame[{ip}_MAX_FRAME_SIZE];   /**< One frame to send. */",
                 *self._link_counter_members(),
                 f"}} {ip}_link;",
@@ -1113,10 +1118,17 @@ class CInterface:
                 *self._link_counter_init(),
                 "    wf_frame_decoder decoder;",
                 f"    wf_frame_decoder_init(&decoder, &{ip}_frame_format, {function}, {size}U);",
-                f"    wf_link_init(&link->link, transport, {framed}, &decoder, link->rx_storage,",
-                "                 sizeof(link->rx_storage), link->rx_frame, link->tx_frame,",
                 (
-                    f"                 {ip}_MAX_FRAME_SIZE, {ip}_dispatch, "
+                    f"    wf_link_init_rx(&link->link, transport, {framed}, &decoder, "
+                    "link->rx_storage,"
+                ),
+                (
+                    "                    sizeof(link->rx_storage), link->rx_frame, "
+                    "sizeof(link->rx_frame),"
+                ),
+                "                    link->tx_frame,",
+                (
+                    f"                    {ip}_MAX_FRAME_SIZE, {ip}_dispatch, "
                     f"{self._dispatch_context()});"
                 ),
                 "}",

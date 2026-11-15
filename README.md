@@ -73,7 +73,7 @@ Development: see CONTRIBUTING.md (`pip install -e ".[dev]"`, `cmake --preset dev
 pull request and runs the generated tests (docs/integration/github_actions.md):
 
 ```yaml
-- uses: oguzhankynk/wireforge@v0.5.0
+- uses: oguzhankynk/wireforge@v0.5.1
   with: { project: icd }
 ```
 

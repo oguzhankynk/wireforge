@@ -65,8 +65,9 @@ typedef struct wf_link {
     wf_frame_decoder decoder;      ///< Frame decoder (framed links).
     wf_ring rx_ring;               ///< Received bytes not yet framed.
     uint8_t* rx_frame;             ///< Buffer for one received frame.
+    size_t rx_frame_capacity;      ///< Size of @p rx_frame (frame_capacity + 1 for unframed links).
     uint8_t* tx_frame;             ///< Buffer for one frame to send.
-    size_t frame_capacity;         ///< Size of both frame buffers.
+    size_t frame_capacity;         ///< Largest frame; size of @p tx_frame.
     wf_dispatch_fn dispatch;       ///< Receives every complete frame.
     const void* dispatch_context;  ///< Passed to @p dispatch.
     wf_link_counters counters;     ///< Statistics.
@@ -78,22 +79,43 @@ static inline void wf_link_reset_counters(wf_link* link) {
     link->counters = zero;
 }
 
-/// Sets up a link; the buffers must outlive it and the ring storage holds a whole frame at least.
-static inline void wf_link_init(wf_link* link, const wf_transport* transport, bool framed,
-                                const wf_frame_decoder* decoder, uint8_t* rx_storage,
-                                size_t rx_capacity, uint8_t* rx_frame, uint8_t* tx_frame,
-                                size_t frame_capacity, wf_dispatch_fn dispatch,
-                                const void* dispatch_context) {
+/**
+ * Sets up a link whose receive frame buffer has its own size; the buffers must outlive it and the
+ * ring storage holds a whole frame at least. For an unframed link give @p rx_frame one byte more
+ * than @p frame_capacity: a read of at most frame_capacity bytes is then always one frame, also on
+ * a message transport (one message per receive). The generated code does this.
+ */
+static inline void wf_link_init_rx(wf_link* link, const wf_transport* transport, bool framed,
+                                   const wf_frame_decoder* decoder, uint8_t* rx_storage,
+                                   size_t rx_capacity, uint8_t* rx_frame, size_t rx_frame_capacity,
+                                   uint8_t* tx_frame, size_t frame_capacity,
+                                   wf_dispatch_fn dispatch, const void* dispatch_context) {
     link->transport = transport;
     link->framed = framed;
     link->decoder = *decoder;
     wf_ring_init(&link->rx_ring, rx_storage, rx_capacity);
     link->rx_frame = rx_frame;
+    link->rx_frame_capacity = rx_frame_capacity;
     link->tx_frame = tx_frame;
     link->frame_capacity = frame_capacity;
     link->dispatch = dispatch;
     link->dispatch_context = dispatch_context;
     wf_link_reset_counters(link);
+}
+
+/**
+ * Sets up a link whose two frame buffers have the same size; the buffers must outlive it and the
+ * ring storage holds a whole frame at least. An unframed link set up this way cannot tell a read
+ * of exactly frame_capacity bytes from a longer one; it drains the transport to find out, which
+ * suits byte streams. Use wf_link_init_rx() for message transports.
+ */
+static inline void wf_link_init(wf_link* link, const wf_transport* transport, bool framed,
+                                const wf_frame_decoder* decoder, uint8_t* rx_storage,
+                                size_t rx_capacity, uint8_t* rx_frame, uint8_t* tx_frame,
+                                size_t frame_capacity, wf_dispatch_fn dispatch,
+                                const void* dispatch_context) {
+    wf_link_init_rx(link, transport, framed, decoder, rx_storage, rx_capacity, rx_frame,
+                    frame_capacity, tx_frame, frame_capacity, dispatch, dispatch_context);
 }
 
 /*
@@ -122,7 +144,7 @@ static inline void wf_link_record(wf_link* link, wf_poll_result* result, wf_stat
     }
 }
 
-/* Drops what the transport still holds after a read that filled the frame buffer. */
+/* Drops what the transport still holds after a read that filled the receive frame buffer. */
 static inline size_t wf_link_discard_excess(wf_link* link) {
     uint8_t chunk[WF_LINK_CHUNK];
     size_t total = 0U;
@@ -176,16 +198,18 @@ static inline void wf_link_drain_ring(wf_link* link, wf_poll_result* result) {
  * Reads everything the transport has and dispatches every complete frame.
  *
  * Call regularly. For an unframed link each non-empty transport read is dispatched as one frame;
- * a read with more bytes than a frame buffer holds is rejected as WF_INVALID_LENGTH and its bytes
- * are dropped.
+ * a read with more bytes than a frame holds is rejected as WF_INVALID_LENGTH and the rest of it is
+ * dropped.
  */
 static inline wf_poll_result wf_link_poll(wf_link* link) {
     wf_poll_result result = {0U, 0U, WF_OK};
     if (!link->framed) {
         const size_t received = link->transport->receive(link->transport->context, link->rx_frame,
-                                                         link->frame_capacity);
+                                                         link->rx_frame_capacity);
         link->counters.rx_bytes += received;
-        if (received == link->frame_capacity && wf_link_discard_excess(link) > 0U) {
+        const size_t excess =
+            received == link->rx_frame_capacity ? wf_link_discard_excess(link) : 0U;
+        if (received > link->frame_capacity || excess > 0U) {
             wf_link_record(link, &result, WF_INVALID_LENGTH, true);
         } else if (received > 0U) {
             wf_link_record(link, &result,
