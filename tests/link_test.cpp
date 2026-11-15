@@ -8,12 +8,14 @@
 #include "wireforge/status.hpp"
 #include "wireforge/transport.hpp"
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <gtest/gtest.h>
+#include <iterator>
 #include <thread>
 
 namespace {
@@ -430,6 +432,71 @@ TEST(UnframedLink, OversizedReadIsRejected) {
     ASSERT_EQ(link.send_frame(Payload(oversized).first(16U)), Status::Ok);
     EXPECT_EQ(link.poll().frames, 1U) << "a read of exactly MaxFrame bytes is one frame";
     EXPECT_EQ(recorder.last_size(), 16U);
+}
+
+// A message transport: every receive() returns one whole queued message, as a message queue, a
+// datagram socket or a shared-memory channel does.
+class MessageQueue {
+public:
+    std::size_t send(Payload bytes) noexcept {
+        if (count_ == slots_.size()) {
+            return 0U;
+        }
+        Slot& slot = at((first_ + count_) % slots_.size());
+        slot.size = std::min(bytes.size(), slot.bytes.size());
+        std::copy_n(bytes.begin(), slot.size, slot.bytes.begin());
+        ++count_;
+        return bytes.size();
+    }
+    std::size_t receive(wireforge::Span<std::uint8_t> buffer) noexcept {
+        if (count_ == 0U) {
+            return 0U;
+        }
+        const Slot& slot = at(first_);
+        const std::size_t size = std::min(slot.size, buffer.size());
+        std::copy_n(slot.bytes.begin(), size, buffer.begin());
+        first_ = (first_ + 1U) % slots_.size();
+        --count_;
+        return size;
+    }
+    [[nodiscard]] std::size_t queued() const noexcept { return count_; }
+
+private:
+    struct Slot {
+        std::array<std::uint8_t, 32> bytes{};
+        std::size_t size = 0U;
+    };
+    Slot& at(std::size_t index) noexcept {
+        return *std::next(slots_.begin(), static_cast<std::ptrdiff_t>(index));
+    }
+    std::array<Slot, 4> slots_{};
+    std::size_t first_ = 0U;
+    std::size_t count_ = 0U;
+};
+
+TEST(UnframedLink, MessageOfMaxFrameKeepsTheNextMessage) {
+    ::testing::Test::RecordProperty("requirements", "RTR-link-005");
+    SizeRecorder recorder;
+    wireforge::RawDispatcher<> dispatcher(0U);
+    ASSERT_EQ(dispatcher.set_handler(MessageHandler::from_callable(recorder)), Status::Ok);
+    ASSERT_EQ(dispatcher.start(), Status::Ok);
+    MessageQueue queue;
+    wireforge::Unframed unframed;
+    wireforge::Link<MessageQueue, wireforge::Unframed, wireforge::RawDispatcher<>, 16U> link(
+        queue, unframed, dispatcher);
+    const std::array<std::uint8_t, 16> largest{};
+    const std::array<std::uint8_t, 5> next{};
+    ASSERT_EQ(queue.send(Payload(largest)), largest.size());
+    ASSERT_EQ(queue.send(Payload(next)), next.size());
+    const wireforge::PollResult first = link.poll(); // one read, one message
+    EXPECT_EQ(first.frames, 1U) << "a frame of MaxFrame bytes";
+    EXPECT_EQ(first.errors, 0U);
+    EXPECT_EQ(recorder.last_size(), 16U);
+    EXPECT_EQ(queue.queued(), 1U) << "the message behind it is still there";
+    const wireforge::PollResult second = link.poll();
+    EXPECT_EQ(second.frames, 1U);
+    EXPECT_EQ(recorder.last_size(), 5U);
+    EXPECT_EQ(link.counters().rx_frames.load(), 2U);
 }
 
 constexpr std::uint32_t kThreadedFrames = 3000U;

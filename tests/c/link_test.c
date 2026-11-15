@@ -464,6 +464,41 @@ static void test_unframed_link(void) {
     CHECK(driver.incoming_at == 40U);
 }
 
+/* A message transport (one message per receive, here a chunk of 16 bytes): with a receive frame
+ * buffer one byte larger than a frame, a message of the largest size keeps the next one. */
+static void test_unframed_message_transport(void) {
+    fake_driver driver;
+    uint8_t bytes[21];
+    for (size_t index = 0U; index < sizeof(bytes); ++index) {
+        bytes[index] = (uint8_t)index;
+    }
+    const wf_transport transport = {&driver, fake_send, fake_receive};
+    uint8_t rx_storage[16];
+    uint8_t rx_frame[17];
+    uint8_t tx_frame[16];
+    sink target = {0U, 0U, WF_OK};
+    const sink_ref reference = {&target};
+    wf_link link;
+    const wf_frame_format format = sync_format();
+    wf_frame_decoder decoder;
+    wf_frame_decoder_init(&decoder, &format, NULL, 0U);
+    wf_link_init_rx(&link, &transport, false, &decoder, rx_storage, sizeof(rx_storage), rx_frame,
+                    sizeof(rx_frame), tx_frame, sizeof(tx_frame), collect, &reference);
+
+    load(&driver, bytes, 21U); /* a message of 16 bytes, then one of 5 */
+    driver.chunk = 16U;
+    wf_poll_result result = wf_link_poll(&link);
+    CHECK(result.frames == 1U && result.errors == 0U && target.last_size == 16U);
+    result = wf_link_poll(&link);
+    CHECK(result.frames == 1U && result.errors == 0U && target.last_size == 5U);
+
+    load(&driver, bytes, 21U); /* one read longer than a frame */
+    driver.chunk = 0U;
+    result = wf_link_poll(&link);
+    CHECK(result.frames == 0U && result.errors == 1U && result.last_error == WF_INVALID_LENGTH);
+    CHECK(driver.incoming_at == 21U && link.counters.rx_rejected == 1U);
+}
+
 int main(void) {
     test_ring();
     test_frame_decoder();
@@ -471,6 +506,7 @@ int main(void) {
     test_invalid_formats();
     test_framed_link();
     test_unframed_link();
+    test_unframed_message_transport();
     if (failures == 0) {
         printf("c link: all checks passed\n");
     }

@@ -96,7 +96,8 @@ inline void reset_counters(LinkCounters& counters) noexcept {
  * @tparam Transport Type satisfying the transport requirements (or ITransport).
  * @tparam Decoder FrameDecoder<...> or Unframed.
  * @tparam Dispatch Dispatcher<...> or RawDispatcher<...> (anything with dispatch_frame()).
- * @tparam MaxFrame Largest frame in bytes (size of the rx and tx frame buffers).
+ * @tparam MaxFrame Largest frame in bytes (size of the rx and tx frame buffers; an Unframed link
+ *         receives into one byte more, so that a read of MaxFrame bytes is always one frame).
  * @tparam RxCapacity Capacity of the receive ring in bytes (at least MaxFrame).
  * @tparam L Lock policy of the transmit path.
  */
@@ -107,6 +108,10 @@ class Link {
     static_assert(RxCapacity >= MaxFrame, "the receive ring must hold a whole frame");
     static_assert(is_lock_policy_v<L>, "L must satisfy the lock policy contract");
     static constexpr bool kUnframed = std::is_same_v<Decoder, Unframed>;
+    // An unframed read that fills MaxFrame + 1 bytes is longer than any frame. With a buffer of
+    // only MaxFrame bytes a full read could be a whole frame of the largest size or a cut one, and
+    // on a message transport the next read is the next message, not the rest of this one.
+    static constexpr std::size_t kRxFrameBytes = kUnframed ? MaxFrame + 1U : MaxFrame;
 
 public:
     /**
@@ -122,14 +127,16 @@ public:
      *
      * Call regularly from the receiving thread. For Unframed links each non-empty transport read
      * is dispatched as one frame; a read with more than MaxFrame bytes is rejected as
-     * Status::InvalidLength and its bytes are dropped.
+     * Status::InvalidLength and the rest of it is dropped. This works for byte streams and for
+     * message transports (one message per receive) alike.
      */
     PollResult poll() noexcept {
         PollResult result;
         if constexpr (kUnframed) {
             const std::size_t received = transport_->receive(Span<std::uint8_t>(rx_frame_));
             counters_.rx_bytes.add(received);
-            if (received == MaxFrame && discard_excess() > 0U) {
+            if (received > MaxFrame) {
+                static_cast<void>(discard_excess());
                 record(result, Status::InvalidLength, true);
             } else if (received > 0U) {
                 record(result, dispatcher_->dispatch_frame(
@@ -185,8 +192,8 @@ private:
         detail::count_received(counters_, result, status, from_decoder);
     }
 
-    // Drops what the transport still holds after a read that filled the frame buffer: an
-    // unframed read longer than MaxFrame is one oversized frame. Returns the dropped count.
+    // Drops what the transport still holds after an unframed read longer than MaxFrame: the
+    // rest of that oversized read. Returns the dropped count.
     std::size_t discard_excess() noexcept {
         std::array<std::uint8_t, kChunk> chunk{};
         std::size_t total = 0U;
@@ -259,7 +266,7 @@ private:
     Decoder* decoder_;
     const Dispatch* dispatcher_;
     StaticSpscByteRing<RxCapacity> rx_ring_;
-    std::array<std::uint8_t, MaxFrame> rx_frame_{};
+    std::array<std::uint8_t, kRxFrameBytes> rx_frame_{};
     std::array<std::uint8_t, MaxFrame> tx_frame_{};
     L tx_lock_;
     LinkCounters counters_;
