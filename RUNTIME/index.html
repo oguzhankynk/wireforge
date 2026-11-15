@@ -1985,7 +1985,12 @@ existing driver interface is connected by a small adapter class, either a plain 
 complete frame and returns counts plus the last error. <code>Link::send(encode)</code> runs the encoder on the preallocated tx
 buffer under the tx lock and hands the frame to the transport; a transport that stops accepting bytes mid-frame gives
 <code>BufferTooSmall</code> (the receiver resynchronises). With <code>Unframed</code> each transport read is one frame; a read longer than <code>MaxFrame</code> is rejected as <code>InvalidLength</code> and
-whatever the transport still holds is dropped.</p>
+whatever the transport still holds is dropped. The link reads into <code>MaxFrame + 1</code> bytes, so a read of up to <code>MaxFrame</code>
+bytes is always one frame: this holds for byte streams and for message transports (a message queue, a datagram socket,
+a shared-memory channel), where each read returns one message. On a message transport an oversized message also drops
+the messages queued behind it. In C, <code>wf_link_init_rx()</code> takes the receive frame buffer size separately (one byte more
+than a frame for an unframed link, as the generated code does); <code>wf_link_init()</code> keeps both buffers the same size and
+suits byte streams only.</p>
 <p><code>Link::record</code> sorts every received frame into one counter of <code>LinkCounters</code> by its status: <code>rx_frames</code> (<code>Ok</code>),
 <code>rx_rejected</code> (the frame decoder refused it), <code>rx_unknown_id</code>, <code>rx_not_for_node</code> (<code>NotForThisNode</code>: a valid frame this
 unit does not receive; it is neither a frame nor an error of the poll result) and <code>rx_decode_errors</code> (any other
